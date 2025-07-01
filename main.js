@@ -8,7 +8,7 @@ let mainWindow = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 400,
-    height: 650,
+    height: 680,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -85,32 +85,36 @@ ipcMain.handle('read-file', async (event, filePath) => {
   const content = await fs.readFile(filePath, 'utf8');
   return content;
 });
-
+let lastFolderPath = null;
 ipcMain.handle('pick-folder', async () => {
   try {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
+      defaultPath: lastFolderPath || undefined
     });
 
     if (result.canceled) {
+      console.log('Folder selection canceled');
       return null;
     }
 
     const folderPath = result.filePaths[0];
-    let allFiles = await fs.readdir(folderPath);
+    lastFolderPath = folderPath;
 
-    const audioFiles = allFiles.filter((file) => {
+    const allFiles = await fs.readdir(folderPath);
+    const audioFiles = allFiles.filter(file => {
       const ext = path.extname(file).toLowerCase();
       return ['.mp3', '.wav', '.ogg', '.m4a', '.flac'].includes(ext);
     });
 
-    const audioFilePaths = audioFiles.map((file) => path.join(folderPath, file));
+    const audioFilePaths = audioFiles.map(file => path.join(folderPath, file));
     return { folderPath, audioFilePaths };
   } catch (err) {
     console.error('Error in pick-folder handler:', err);
     throw err;
   }
 });
+
 
 ipcMain.handle('save-playlist', async (event, playlist) => {
   const { canceled, filePath } = await dialog.showSaveDialog({

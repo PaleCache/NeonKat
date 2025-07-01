@@ -14,7 +14,8 @@
       "main.js",
       "preload.js",
       "renderer/**/*",
-      "build/icon.png"
+      "build/icon.png",
+      "build/music.gif"
     ],
     "win": {
     "icon": "build/icon.ico", 
