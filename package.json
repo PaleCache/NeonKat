@@ -15,18 +15,21 @@
       "preload.js",
       "renderer/**/*",
       "build/icon.png",
-      "build/music.gif"
+      "build/music.gif",
+      "build/pause.svg",
+      "build/repeat.svg",
+      "build/shuffle.svg"
     ],
     "win": {
-    "icon": "build/icon.ico", 
-    "target": "nsis"
-  },
-  "linux": {
-    "icon": "build"  
-  }
+      "icon": "build/icon.ico",
+      "target": "nsis"
+    },
+    "linux": {
+      "icon": "build"
+    }
   },
   "devDependencies": {
-    "electron": "^28.1.0",           
-    "electron-builder": "^24.12.0"
+    "electron": "^28.1.0",
+    "electron-builder": "^24.13.3"
   }
 }

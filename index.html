@@ -79,10 +79,14 @@
 }
 
     #playlist li {
-      padding: 10px;
-      cursor: pointer;
-      border-bottom: 1px solid #333;
-    }
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
     #playlist li:last-child {
       border-bottom: none;
     }
@@ -152,6 +156,18 @@ input[type="range"]::-moz-range-thumb {
       gap: 10px;
       flex-wrap: wrap;
     }
+
+    .control-btn.repeat-enabled {
+      background: #a88cff !important;
+      color: #fff;
+    }
+
+    .control-btn.enabled {
+  background-color: #a88cff !important; 
+  color: white !important;
+}
+
+
     .control-btn {
       background: #212121;
       color: white;
@@ -166,6 +182,10 @@ input[type="range"]::-moz-range-thumb {
       height: 38px; 
       line-height: 1.2;
     }
+
+
+
+
 
 
     .control-btn:hover {
@@ -247,6 +267,13 @@ input[type="range"]::-moz-range-thumb {
       color: #ffffff;
       margin-top: 10px;
     }
+
+      .icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
   </style>
 </head>
 <body>
@@ -258,14 +285,21 @@ input[type="range"]::-moz-range-thumb {
 
     <button id="chooseFolder">Choose Folder</button>
     <ul id="playlist"></ul>
-    <div class="controls">
-  <button id="playBtn" class="control-btn">Play</button>
-  <button id="pauseBtn" class="control-btn">Pause</button>
-  <div style="display: flex; align-items: center; gap: 5px;">
+    <div class="controls" style="display: flex; gap: 10px; margin-bottom: 10px;">
+  <button id="playBtn" class="control-btn">▶</button>
+  <button id="pauseBtn" class="control-btn">
+  <img src="build/pause.svg" alt="Pause" class="icon" />
+</button>
+  <button id="repeatBtn" class="control-btn">
+  <img src="build/repeat.svg" alt="Repeat" class="icon" />
+</button>
+<button id="shuffleBtn" class="control-btn">
+  <img src="build/shuffle.svg" alt="Shuffle" class="icon" />
+</button>
   </div>
 
   
-</div>
+
 
 <div id="playlistControls" style="display: flex; gap: 10px; margin-bottom: 10px;">
   <button id="savePlaylistBtn" class="control-btn">Save</button>
@@ -309,15 +343,37 @@ input[type="range"]::-moz-range-thumb {
     let audioFiles = [];
     let currentIndex = 0;
     let isSeeking = false;
+    let repeatTrack = false;
+
 
   
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 64;
+    analyser.fftSize = 128;
     const source = audioCtx.createMediaElementSource(audio);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
 
+let shuffleMode = false;
+
+const repeatBtn = document.getElementById('repeatBtn');
+const shuffleBtn = document.getElementById('shuffleBtn');
+
+shuffleBtn.addEventListener('click', () => {
+  shuffleMode = !shuffleMode;
+  shuffleBtn.classList.toggle('enabled', shuffleMode);
+});
+let shuffleTrack = false;
+
+repeatBtn.addEventListener('click', () => {
+  repeatTrack = !repeatTrack;
+  repeatBtn.classList.toggle('enabled', repeatTrack);
+});
+
+shuffleBtn.addEventListener('click', () => {
+  shuffleTrack = !shuffleTrack;
+  shuffleBtn.classList.toggle('enabled', shuffleTrack);
+});
 
 
 
@@ -459,18 +515,22 @@ volumeSlider.addEventListener('input', (e) => {
 
 
     function renderPlaylist() {
-      playlistElem.innerHTML = '';
-      audioFiles.forEach((filePath, index) => {
-        const li = document.createElement('li');
-        li.textContent = filePath.split(/[\\/]/).pop();
-        li.className = (index === currentIndex) ? 'active' : '';
-        li.addEventListener('click', () => {
-          currentIndex = index;
-          playTrack(currentIndex);
-        });
-        playlistElem.appendChild(li);
-      });
-    }
+  playlistElem.innerHTML = '';
+  audioFiles.forEach((filePath, index) => {
+    const li = document.createElement('li');
+    li.textContent = filePath.split(/[\\/]/).pop();
+    li.className = (index === currentIndex) ? 'active' : '';
+    li.addEventListener('click', () => {
+      currentIndex = index;
+      playTrack(currentIndex);
+    });
+    playlistElem.appendChild(li);
+  });
+
+  const active = playlistElem.querySelector('.active');
+  if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 
 
     async function parseM3UFile(filePath) {
@@ -547,7 +607,7 @@ volumeSlider.addEventListener('input', (e) => {
 
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
-
+      const bassOnlyCount = 8; 
       function draw() {
         requestAnimationFrame(draw);
 
@@ -597,12 +657,19 @@ volumeSlider.addEventListener('input', (e) => {
 
     audio.addEventListener('play', visualize);
     audio.addEventListener('ended', () => {
-  currentIndex++;
-  if (currentIndex >= audioFiles.length) {
-    currentIndex = 0; 
+  if (repeatTrack) {
+    playTrack(currentIndex);
+  } else if (shuffleTrack) {
+    currentIndex = Math.floor(Math.random() * audioFiles.length);
+    playTrack(currentIndex);
+  } else {
+    currentIndex++;
+    if (currentIndex >= audioFiles.length) currentIndex = 0;
+    playTrack(currentIndex);
   }
-  playTrack(currentIndex);
 });
+
+
 
   </script>
 </body>
