@@ -18,7 +18,9 @@
       "build/music.gif",
       "build/pause.svg",
       "build/repeat.svg",
-      "build/shuffle.svg"
+      "build/shuffle.svg",
+      "build/bell.svg",
+      "build/bell-ring.svg"
     ],
     "win": {
       "icon": "build/icon.ico",

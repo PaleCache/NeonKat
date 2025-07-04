@@ -274,14 +274,25 @@ input[type="range"]::-moz-range-thumb {
     object-fit: contain;
     filter: brightness(0) invert(1);
   }
+
+
+
   </style>
 </head>
 <body>
   <div id="container">
+<button id="notifyToggleBtn" style="background: none; border: none; cursor: pointer;">
+  <img src="build/bell.svg" id="bellIcon" height="20" style="filter: invert(40%) sepia(90%) saturate(1200%) hue-rotate(245deg) brightness(570%) contrast(95%);" />
+
+</button>
+
+
  <h1 style="display: flex; align-items: center; gap: 8px;">
   Muzik Electro
   <img src="build/music.gif" style="height: 54px;" />
 </h1>
+
+
 
     <button id="chooseFolder">Choose Folder</button>
     <ul id="playlist"></ul>
@@ -439,6 +450,10 @@ function updateSliderBackground(slider) {
 
 filePickerBtn.addEventListener('click', async () => {
   try {
+
+     if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
     const result = await window.electronAPI.pickFolder();
     console.log('Renderer received pickFolder result:', result);
     if (result) {
@@ -507,9 +522,22 @@ const volumePercent = document.getElementById('volumePercent');
 volumeSlider.addEventListener('input', (e) => {
   audio.volume = e.target.value;
   volumePercent.textContent = Math.round(e.target.value * 100) + '%';
+  localStorage.setItem('volumeLevel', e.target.value);
 });
 
 
+const savedVolume = localStorage.getItem('volumeLevel');
+if (savedVolume !== null) {
+  volumeSlider.value = savedVolume;
+  audio.volume = savedVolume;
+  volumePercent.textContent = Math.round(savedVolume * 100) + '%';
+  updateSliderBackground(volumeSlider);
+} else {
+  volumeSlider.value = 1;
+  audio.volume = 1;
+  volumePercent.textContent = '100%';
+  updateSliderBackground(volumeSlider);
+}
 
 
 
@@ -535,31 +563,45 @@ volumeSlider.addEventListener('input', (e) => {
 
     async function parseM3UFile(filePath) {
   const content = await window.electronAPI.readFile(filePath);
-  const lines = content.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-  const baseDir = filePath.substring(0, filePath.lastIndexOf(window.navigator.platform.startsWith('Win') ? '\\' : '/'));
-  
+  const lines = content
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith('#'));
+
+  const pathSeparator = window.navigator.platform.startsWith('Win') ? '\\' : '/';
+  const baseDir = filePath.substring(0, filePath.lastIndexOf(pathSeparator));
+
   const audioPaths = lines.map(line => {
     if (line.startsWith('/') || /^[a-zA-Z]:\\/.test(line)) return line;
-    return baseDir + (baseDir.endsWith('/') || baseDir.endsWith('\\') ? '' : window.navigator.platform.startsWith('Win') ? '\\' : '/') + line;
+    return baseDir + (baseDir.endsWith(pathSeparator) ? '' : pathSeparator) + line;
   });
+
   return audioPaths;
 }
 
 
-    function playTrack(index) {
-      if (index < 0 || index >= audioFiles.length) return;
-      currentIndex = index;
-      const filePath = audioFiles[index];
-      audio.src = `file://${filePath}`;
-      audio.play();
-      renderPlaylist();
-      progressBar.value = 0;
-      progressBar.max = 0;
-      currentTimeElem.textContent = '0:00';
-      durationElem.textContent = '0:00';
 
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    }
+   function playTrack(index) {
+  if (index < 0 || index >= audioFiles.length) return;
+  currentIndex = index;
+  const filePath = audioFiles[index];
+  audio.src = `file://${filePath}`;
+  audio.play();
+  renderPlaylist();
+  progressBar.value = 0;
+  progressBar.max = 0;
+  currentTimeElem.textContent = '0:00';
+  durationElem.textContent = '0:00';
+
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (notifyEnabled && Notification.permission === 'granted') {
+  const songName = filePath.split(/[\\/]/).pop();
+ window.electronAPI.notify('Now Playing', songName);
+}
+
+
+}
+
 
 
     document.getElementById('playBtn').addEventListener('click', () => audio.play());
@@ -670,6 +712,25 @@ volumeSlider.addEventListener('input', (e) => {
 });
 
 
+const notifyToggleBtn = document.getElementById('notifyToggleBtn');
+let notifyEnabled = localStorage.getItem('notifyEnabled') === 'true';
+const icon = document.getElementById('bellIcon');
+icon.src = notifyEnabled ? 'build/bell-ring.svg' : 'build/bell.svg';
+document.getElementById('notifyToggleBtn').addEventListener('click', () => {
+  notifyEnabled = !notifyEnabled;
+  localStorage.setItem('notifyEnabled', notifyEnabled ? 'true' : 'false')
+  const icon = document.getElementById('bellIcon');
+  icon.src = notifyEnabled ? 'build/bell-ring.svg' : 'build/bell.svg';
+  if (notifyEnabled && 'Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(permission => {
+      if (permission !== 'granted') {
+        notifyEnabled = false;
+        localStorage.setItem('notifyEnabled', 'false');
+        alert('Notifications not enabled in browser.');
+      }
+    });
+  }
+});
 
   </script>
 </body>

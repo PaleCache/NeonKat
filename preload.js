@@ -6,5 +6,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   savePlaylist: (playlist) => ipcRenderer.invoke('save-playlist', playlist),
   loadPlaylist: () => ipcRenderer.invoke('load-playlist'),
+  notify: (title, body) => ipcRenderer.send('notify', { title, body })
 });
-

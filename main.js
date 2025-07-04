@@ -2,13 +2,23 @@ const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require
 const path = require('path');
 const fs = require('fs').promises;
 
+const { Notification } = require('electron');
+
+function showNotification (title, body) {
+  new Notification({ title, body }).show();
+}
 let tray = null;
 let mainWindow = null;
+
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId("Muzik Electro");
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 400,
-    height: 680,
+    height: 720,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -114,6 +124,17 @@ ipcMain.handle('pick-folder', async () => {
     throw err;
   }
 });
+
+
+
+ipcMain.on('notify', (_, { title, body }) => {
+  new Notification({
+    title,
+    body,
+    icon: path.join(__dirname, 'build/icon.png')
+  }).show();
+});
+
 
 
 ipcMain.handle('save-playlist', async (event, playlist) => {
