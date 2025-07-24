@@ -20,7 +20,10 @@
       "build/repeat.svg",
       "build/shuffle.svg",
       "build/bell.svg",
-      "build/bell-ring.svg"
+      "build/bell-ring.svg",
+      "build/visualizer.svg",
+      "build/visualizeroff.svg"
+
     ],
     "win": {
       "icon": "build/icon.ico",

@@ -4,12 +4,12 @@ const fs = require('fs').promises;
 
 const { Notification } = require('electron');
 
-function showNotification (title, body) {
+function showNotification(title, body) {
   new Notification({ title, body }).show();
 }
+
 let tray = null;
 let mainWindow = null;
-
 
 if (process.platform === 'win32') {
   app.setAppUserModelId("Muzik Electro");
@@ -25,7 +25,7 @@ function createWindow() {
       nodeIntegration: false,
       enableRemoteModule: false,
     },
-    icon: path.join(__dirname, 'build', 'icon.png'), 
+    icon: path.join(__dirname, 'build', 'icon.png'),
   });
 
   mainWindow.loadFile('index.html');
@@ -78,6 +78,15 @@ app.whenReady().then(() => {
 });
 
 
+ipcMain.handle('getFileStats', async (event, filePath) => {
+  try {
+    const stats = await fs.stat(filePath);
+    return { mtimeMs: stats.mtimeMs }; 
+  } catch (error) {
+    console.error(`Failed to get stats for ${filePath}:`, error);
+    return null; 
+  }
+});
 
 ipcMain.handle('open-file', async () => {
   const result = await dialog.showOpenDialog({
@@ -92,15 +101,21 @@ ipcMain.handle('open-file', async () => {
 });
 
 ipcMain.handle('read-file', async (event, filePath) => {
-  const content = await fs.readFile(filePath, 'utf8');
-  return content;
+  try {
+    const content = await fs.readFile(filePath, 'utf8');
+    return content;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+    return null;
+  }
 });
+
 let lastFolderPath = null;
 ipcMain.handle('pick-folder', async () => {
   try {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
-      defaultPath: lastFolderPath || undefined
+      defaultPath: lastFolderPath || undefined,
     });
 
     if (result.canceled) {
@@ -125,17 +140,13 @@ ipcMain.handle('pick-folder', async () => {
   }
 });
 
-
-
 ipcMain.on('notify', (_, { title, body }) => {
   new Notification({
     title,
     body,
-    icon: path.join(__dirname, 'build/icon.png')
+    icon: path.join(__dirname, 'build/icon.png'),
   }).show();
 });
-
-
 
 ipcMain.handle('save-playlist', async (event, playlist) => {
   const { canceled, filePath } = await dialog.showSaveDialog({
@@ -176,7 +187,6 @@ ipcMain.handle('load-playlist', async () => {
     return null;
   }
 });
-
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
