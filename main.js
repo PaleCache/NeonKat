@@ -24,6 +24,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       enableRemoteModule: false,
+      backgroundThrottling: false,
     },
     icon: path.join(__dirname, 'build', 'icon.png'),
   });
