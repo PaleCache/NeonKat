@@ -10,11 +10,7 @@ playlist loading and saving, music visualizer, seek, volume, and other simple fe
 ## Previews
 
 | Custom Color | Color Selector | Rainbow And Visualizer Disable / Enable |
-|---------|---------|-----|
-| ![Image 1](assets/image1.png){:width="200px"} | ![Image 2](assets/image2.png){:width="200px"} | ![GIF](assets/output.gif){:width="200px"} |
-
-
-
-
+|--------------|----------------|-----------------------------------------|
+| <img src="assets/image1.png" width="300" height="1" style="object-fit: cover;"> | <img src="assets/image2.png" width="200" height="1" style="object-fit: cover;"> | <img src="assets/output.gif" width="130" height="150" style="object-fit: cover;"> |
 ## 🧑‍💻 Developer 
 PaleCache
