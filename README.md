@@ -5,7 +5,7 @@ A simple electron music player
 playlist loading and saving, music visualizer, seek, volume, and other simple features you would expect from a music player
 
 ## ℹ️ Version v0.0.6a
-🟣 Added x11 Support
+🟣 Added x11 Support <br>
 🟣 Added Mini Player
 
 ## Previews
