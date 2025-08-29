@@ -192,3 +192,94 @@ ipcMain.handle('load-playlist', async () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+
+
+ipcMain.handle('read-file-buffer', async (event, filePath) => {
+  try {
+    const buffer = await fs.readFile(filePath);
+    return buffer;
+  } catch (error) {
+    console.error('Error reading file buffer:', error);
+    throw new Error(`Failed to read file: ${error.message}`);
+  }
+});
+
+ipcMain.handle('get-file-stats', async (event, filePath) => {
+  try {
+    return await fs.stat(filePath);
+  } catch (error) {
+    console.error('Error getting file stats:', error);
+    throw new Error(`Failed to get file stats: ${error.message}`);
+  }
+});
+
+
+let miniPlayerWindow = null;
+function createMiniPlayerWindow() {
+  miniPlayerWindow = new BrowserWindow({
+    width: 420,
+    height: 120,
+    frame: false,
+    alwaysOnTop: true,
+    transparent: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      enableRemoteModule: false,
+      nodeIntegration: false
+    },
+    icon: path.join(__dirname, 'build', 'icon.png')
+  });
+  miniPlayerWindow.loadFile(path.join(__dirname, 'build', 'miniplayer.html'));
+  miniPlayerWindow.on('closed', () => {
+    miniPlayerWindow = null;
+  });
+
+  miniPlayerWindow.webContents.on('did-finish-load', () => {
+    if (mainWindow) {
+      mainWindow.webContents.send('request-current-state');
+    }
+  });
+}
+
+
+ipcMain.on('toggle-miniplayer', () => {
+  if (miniPlayerWindow) {
+    miniPlayerWindow.close();
+  } else {
+    createMiniPlayerWindow();
+  }
+});
+
+
+ipcMain.on('update-theme', (event, data) => {
+  console.log('Main process forwarding theme update:', data);
+  if (miniPlayerWindow) {
+    miniPlayerWindow.webContents.send('update-theme', data);
+  }
+});
+
+ipcMain.on('update-track', (event, data) => {
+  if (miniPlayerWindow) {
+    miniPlayerWindow.webContents.send('update-track', data);
+  }
+});
+
+ipcMain.on('play-previous', () => {
+  if (mainWindow) mainWindow.webContents.send('play-previous');
+});
+
+ipcMain.on('toggle-play', () => {
+  if (mainWindow) mainWindow.webContents.send('toggle-play');
+});
+
+ipcMain.on('play-next', () => {
+  if (mainWindow) mainWindow.webContents.send('play-next');
+});
+
+ipcMain.on('update-visualizer', (event, data) => {
+  if (miniPlayerWindow) {
+    miniPlayerWindow.webContents.send('update-visualizer', data);
+  }
+});
