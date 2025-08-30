@@ -18,7 +18,7 @@ if (process.platform === 'win32') {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 400,
-    height: 720,
+    height: 733,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -34,7 +34,7 @@ function createWindow() {
   mainWindow.on('close', (event) => {
     if (!app.isQuiting) {
       event.preventDefault();
-      mainWindow.hide();
+      mainWindow.minimize();
     }
   });
 }
@@ -78,14 +78,13 @@ app.whenReady().then(() => {
   });
 });
 
-
 ipcMain.handle('getFileStats', async (event, filePath) => {
   try {
     const stats = await fs.stat(filePath);
-    return { mtimeMs: stats.mtimeMs }; 
+    return { mtimeMs: stats.mtimeMs };
   } catch (error) {
     console.error(`Failed to get stats for ${filePath}:`, error);
-    return null; 
+    return null;
   }
 });
 
@@ -193,8 +192,6 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-
-
 ipcMain.handle('read-file-buffer', async (event, filePath) => {
   try {
     const buffer = await fs.readFile(filePath);
@@ -214,6 +211,15 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
   }
 });
 
+ipcMain.on('seek-from-mini', (_, time) => {
+  if (mainWindow) mainWindow.webContents.send('seek-from-mini', time);
+})
+
+ipcMain.on('update-time', (event, currentTime, duration) => {
+  if (miniPlayerWindow) {
+    miniPlayerWindow.webContents.send('update-time', currentTime, duration);
+  }
+});
 
 let miniPlayerWindow = null;
 function createMiniPlayerWindow() {
@@ -243,7 +249,6 @@ function createMiniPlayerWindow() {
   });
 }
 
-
 ipcMain.on('toggle-miniplayer', () => {
   if (miniPlayerWindow) {
     miniPlayerWindow.close();
@@ -251,7 +256,6 @@ ipcMain.on('toggle-miniplayer', () => {
     createMiniPlayerWindow();
   }
 });
-
 
 ipcMain.on('update-theme', (event, data) => {
   console.log('Main process forwarding theme update:', data);
@@ -263,6 +267,12 @@ ipcMain.on('update-theme', (event, data) => {
 ipcMain.on('update-track', (event, data) => {
   if (miniPlayerWindow) {
     miniPlayerWindow.webContents.send('update-track', data);
+  }
+});
+
+ipcMain.on('update-volume', (event, volume) => {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-volume', volume);
   }
 });
 
@@ -281,5 +291,12 @@ ipcMain.on('play-next', () => {
 ipcMain.on('update-visualizer', (event, data) => {
   if (miniPlayerWindow) {
     miniPlayerWindow.webContents.send('update-visualizer', data);
+  }
+});
+
+ipcMain.on('disable-visualizer', () => {
+  console.log("Main: forwarding disable-visualizer to miniplayer");
+  if (miniPlayerWindow) {
+    miniPlayerWindow.webContents.send('disable-visualizer');
   }
 });

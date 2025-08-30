@@ -31,6 +31,17 @@
       position: relative;
       border-radius: 8px 0 0 8px;
     }
+    #artwork::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5); 
+      z-index: 1; 
+      border-radius: 8px 0 0 8px;
+    }
     #visualizer {
       position: absolute;
       top: 0;
@@ -38,6 +49,7 @@
       width: 100%;
       height: 100%;
       background: transparent;
+      z-index: 2;
     }
     #info-controls {
       flex: 1;
@@ -51,10 +63,16 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: calc(100% - 50px);
+      padding-right: 30px;
+      position: relative;
+      z-index: 1;
     }
     #controls {
       display: flex;
       justify-content: center;
+      align-items: center;
+      gap: 10px;
     }
     .control-btn {
       background: none;
@@ -76,41 +94,127 @@
       height: 20px;
       filter: brightness(0) invert(1);
     }
-    #closeBtn {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      background: none;
-      border: none;
-      cursor: pointer;
+    
+    #volume-control {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
       -webkit-app-region: no-drag;
-      color: #fff;
-      font-size: 16px;
+      margin-bottom: 5px;
+      justify-content: flex-start;
     }
+    #volume {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 80px;
+      height: 5px;
+      background: #444;
+      border-radius: 5px;
+      outline: none;
+      -webkit-app-region: no-drag;
+      cursor: pointer;
+      --slider-thumb-color: #a88cff;
+    }
+    #volume::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--slider-thumb-color);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    #volume::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: var(--slider-thumb-color);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+   #seek-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  -webkit-app-region: no-drag;
+  margin-bottom: 5px;
+}
+
+#seekBar {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  max-width: 150px;
+  height: 5px;
+  background: #444;
+  border-radius: 5px;
+  cursor: pointer;
+  --slider-thumb-color: #a88cff;
+}
+
+#seekBar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--slider-thumb-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#seekBar::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--slider-thumb-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
   </style>
 </head>
 <body>
   <div id="container">
     <div id="artwork">
       <canvas id="visualizer"></canvas>
+      <img id="artwork-img" style="display: none;" alt="Hidden artwork loader">
     </div>
     <div id="info-controls">
       <div id="songName">No Track</div>
+      <div id="seek-control">
+      <input type="range" id="seekBar" min="0" max="100" value="0" step="0.1">
+      <span id="timeDisplay">0:00 / 0:00</span>
+      </div>
+      <div id="volume-control">
+        <label for="volume">
+        <img src="volume.svg" alt="Volume" width="20" height="20" > 
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="1" />
+        <span id="volumePercent">100%</span>
+      </div>
       <div id="controls">
         <button id="prevBtn" class="control-btn">
-         <img src="skipLeft.svg" alt="Play" class="icon" />
+          <img src="skipLeft.svg" alt="Previous" class="icon" />
         </button>
         <button id="playPauseBtn" class="control-btn">
           <img src="play.svg" alt="Play" class="icon" />
         </button>
         <button id="nextBtn" class="control-btn">
-         <img src="skipRight.svg" alt="Play" class="icon" />
+          <img src="skipRight.svg" alt="Next" class="icon" />
         </button>
       </div>
     </div>
   </div>
-  <button id="closeBtn">×</button>
+<style>
+label img {
+  filter: brightness(0) invert(1);
+  top: 7px;
+  position: relative;
+}
+
+</style>
   <script>
+  let rainbowHue = 0;
+
     const canvas = document.getElementById('visualizer');
     const ctx = canvas.getContext('2d');
     const artworkDiv = document.getElementById('artwork');
@@ -119,13 +223,17 @@
     const playPauseIcon = playPauseBtn.querySelector('img');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
-    const closeBtn = document.getElementById('closeBtn');
-
+    const volumeSlider = document.getElementById('volume');
+    const volumePercent = document.getElementById('volumePercent');
+    const defaultImage = 'default-artwork.jpg';
+    const seekBar = document.getElementById('seekBar');
+    const timeDisplay = document.getElementById('timeDisplay');   
     let isPlaying = false;
     let themeColor = '#a88cff';
     let isRainbowActive = false;
-    let rainbowHue = 0;
+   
     let rainbowFrameId;
+    let currentArtworkUrl = null;
 
     function resizeCanvas() {
       canvas.width = canvas.offsetWidth;
@@ -134,16 +242,49 @@
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+    function updateSliderBackground(slider) {
+      const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+      slider.style.background = `linear-gradient(to right, ${themeColor} 0%, ${themeColor} ${value}%, #444 ${value}%, #444 100%)`;
+      slider.style.setProperty('--slider-thumb-color', themeColor);
+    }
+
     window.electronAPI.onUpdateTrack((data) => {
-      if (data.songName) songNameElem.textContent = data.songName;
-      if (data.artUrl) artworkDiv.style.backgroundImage = `url(${data.artUrl})`;
+      if (data.songName) {
+        songNameElem.textContent = data.songName;
+      }
+      if (data.artUrl) {
+        const img = document.getElementById('artwork-img');
+        img.src = data.artUrl;
+        img.onload = () => {
+          artworkDiv.style.backgroundImage = `url(${data.artUrl})`;
+          currentArtworkUrl = data.artUrl;
+        };
+        img.onerror = () => {
+          artworkDiv.style.backgroundImage = `url(${defaultImage})`;
+          currentArtworkUrl = defaultImage;
+        };
+      } else if (!currentArtworkUrl) {
+        artworkDiv.style.backgroundImage = `url(${defaultImage})`;
+        currentArtworkUrl = defaultImage;
+      }
       isPlaying = data.isPlaying;
       playPauseIcon.src = isPlaying ? 'pause.svg' : 'play.svg';
       playPauseIcon.alt = isPlaying ? 'Pause' : 'Play';
+      if (data.volume !== undefined) {
+        volumeSlider.value = data.volume;
+        volumePercent.textContent = `${Math.round(data.volume * 100)}%`;
+        updateSliderBackground(volumeSlider);
+        console.log(`Miniplayer received volume update: ${data.volume}`);
+      }
     });
 
     window.electronAPI.onUpdateVisualizer((dataArray) => {
-      drawVisualizer(new Uint8Array(dataArray));
+      if (dataArray && Array.isArray(dataArray) && dataArray.length > 0) {
+        drawVisualizer(new Uint8Array(dataArray));
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        console.log('Miniplayer canvas cleared: no valid data');
+      }
     });
 
     window.electronAPI.onUpdateTheme((data) => {
@@ -154,20 +295,21 @@
       } else {
         stopRainbowColorLoop();
       }
+      updateSliderBackground(volumeSlider);
     });
 
     function drawVisualizer(dataArray) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const bufferLength = dataArray.length;
-      const barWidth = (canvas.width / bufferLength) * 1.5;
-      const halfCount = Math.floor(bufferLength / 2);
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      const halfCount = Math.floor(bufferLength / 4); 
       const centerX = canvas.width / 2;
 
       for (let i = 0; i < halfCount; i++) {
         const barHeight = dataArray[i] * (canvas.height / 255) * 0.5;
         ctx.fillStyle = themeColor;
-        ctx.fillRect(centerX - (i + 1) * barWidth, canvas.height - barHeight, barWidth / 2, barHeight);
-        ctx.fillRect(centerX + i * barWidth, canvas.height - barHeight, barWidth / 2, barHeight);
+        ctx.fillRect(centerX - (i + 1) * barWidth, canvas.height - barHeight, barWidth * 0.8, barHeight);
+        ctx.fillRect(centerX + i * barWidth, canvas.height - barHeight, barWidth * 0.8, barHeight); 
       }
     }
 
@@ -176,6 +318,8 @@
         if (!isRainbowActive) return;
         rainbowHue = (rainbowHue + 1) % 360;
         themeColor = `hsl(${rainbowHue}, 100%, 65%)`;
+        updateSliderBackground(volumeSlider);
+        updateSeekBarThemeColor();
         requestAnimationFrame(updateHue);
       }
       if (!rainbowFrameId) {
@@ -190,6 +334,53 @@
       }
     }
 
+    volumeSlider.addEventListener('input', (e) => {
+      const volume = parseFloat(e.target.value);
+      volumePercent.textContent = `${Math.round(volume * 100)}%`;
+      updateSliderBackground(volumeSlider);
+      window.electronAPI.updateVolume(volume);
+      console.log(`Miniplayer sent volume update: ${volume}`);
+    });
+
+    volumeSlider.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      console.log('Volume slider mousedown');
+    });
+
+
+    function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function updateSeekBarBackground() {
+  const value = (seekBar.value - seekBar.min) / (seekBar.max - seekBar.min) * 100;
+  seekBar.style.background = `linear-gradient(to right, ${themeColor} 0%, ${themeColor} ${value}%, #444 ${value}%, #444 100%)`;
+  seekBar.style.setProperty('--slider-thumb-color', themeColor);
+}
+
+window.electronAPI.onUpdateTime((currentTime, duration) => {
+  seekBar.max = duration;
+  seekBar.value = currentTime;
+  updateSeekBarBackground();
+  timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+});
+
+
+
+
+seekBar.addEventListener('input', (e) => {
+  const time = parseFloat(e.target.value);
+  updateSeekBarBackground();
+  window.electronAPI.seekFromMini(time);
+});
+
+
+function updateSeekBarThemeColor() {
+  updateSeekBarBackground();
+}
+
     prevBtn.addEventListener('click', () => {
       console.log('Previous button clicked');
       window.electronAPI.playPrevious();
@@ -202,10 +393,12 @@
       console.log('Play/Pause button clicked');
       window.electronAPI.togglePlay();
     });
-    closeBtn.addEventListener('click', () => {
-      console.log('Close button clicked');
-      window.electronAPI.toggleMiniplayer();
-    });
+    window.electronAPI.onDisableVisualizer(() => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  console.log('Visualizer disabled and cleared');
+});
+
+
   </script>
 </body>
 </html>

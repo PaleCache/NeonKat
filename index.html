@@ -28,7 +28,7 @@
       background: #111;
       padding: 15px;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 10px rgba(151, 132, 132, 0.5);
     }
     h1 {
       font-size: 24px;
@@ -360,9 +360,10 @@
       <button id="clearPlaylistBtn" class="control-btn">Clear</button>
     </div>
     <div class="volume-control" style="display: flex; align-items: center; gap: 5px;">
-      <label for="volume" style="user-select:none;">Volume:</label>
-      <input type="range" id="volume" min="0" max="1" step="0.01" value="1" />
-      <span id="volumePercent">100%</span>
+         <label for="volume">
+        <img src="build/volume.svg" alt="Volume" width="20" height="20" > 
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="1" />
+        <span id="volumePercent">100%</span>
       <div id="selectedFolderName"></div>
     </div>
     <div id="progressContainer">
@@ -374,6 +375,14 @@
     <footer>Made With ♥ By PaleCache</footer>
   </div>
   <audio id="audio"></audio>
+  <style>
+label img {
+  filter: brightness(0) invert(1);
+  top: 7px;
+  position: relative;
+}
+
+</style>
 <script>
   const filePickerBtn = document.getElementById('chooseFolder');
   const savePlaylistBtn = document.getElementById('savePlaylistBtn');
@@ -402,7 +411,7 @@
   const rainbowIcon = document.getElementById('rainbowIcon');
   rainbowIcon.src = isRainbowActive ? 'build/flash.svg' : 'build/flashoff.svg';
   const rainbowToggleBtn = document.getElementById('rainbowToggleBtn');
-
+  let rainbowFrameId = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 128;
@@ -414,6 +423,11 @@
   const shuffleBtn = document.getElementById('shuffleBtn');
   const visualizerColorPicker = document.getElementById('visualizerColor');
   const miniplayerToggleBtn = document.getElementById('miniplayerToggleBtn');
+
+  function updateSliderBackground(slider) {
+    const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+    slider.style.background = `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${value}%, #444 ${value}%, #444 100%)`;
+  }
 
   function updateThemeColor(color, isRainbow = isRainbowActive) {
     themeColor = color;
@@ -549,12 +563,7 @@
     return currentIndex;
   }
 
-  document.addEventListener('click', (e) => {
-    if (!sortBtn.contains(e.target) && !sortMenu.contains(e.target)) {
-      sortMenu.style.display = 'none';
-    }
-  });
-
+ 
   const sortOptions = sortMenu.querySelectorAll('button');
   sortOptions.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -621,11 +630,6 @@
     renderPlaylist();
     window.electronAPI.updateTrack({ songName: 'No Track', artUrl: null, isPlaying: false });
   });
-
-  function updateSliderBackground(slider) {
-    const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
-    slider.style.background = `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${value}%, #444 ${value}%, #444 100%)`;
-  }
 
   [volumeSlider, progressBar].forEach(slider => {
     updateSliderBackground(slider);
@@ -708,6 +712,7 @@
     audio.volume = e.target.value;
     volumePercent.textContent = Math.round(e.target.value * 100) + '%';
     localStorage.setItem('volumeLevel', e.target.value);
+    window.electronAPI.updateVolume(e.target.value);
   });
 
   const savedVolume = localStorage.getItem('volumeLevel');
@@ -818,7 +823,9 @@
       const trackData = {
         songName: filePath.split(/[\\/]/).pop(),
         artUrl: visualizerCanvas.style.backgroundImage.slice(5, -2),
-        isPlaying: !audio.paused
+        isPlaying: !audio.paused,
+        filePath: filePath,
+        volume: audio.volume
       };
       window.electronAPI.updateTrack(trackData);
     });
@@ -843,24 +850,23 @@
   });
 
   audio.addEventListener('play', () => {
-    window.electronAPI.updateTrack({ isPlaying: true });
+    window.electronAPI.updateTrack({ isPlaying: true, volume: audio.volume });
   });
 
   audio.addEventListener('pause', () => {
-    window.electronAPI.updateTrack({ isPlaying: false });
+    window.electronAPI.updateTrack({ isPlaying: false, volume: audio.volume });
   });
+audio.addEventListener('timeupdate', () => {
+  if (!isSeeking && audio.duration) {
+    progressBar.max = audio.duration;
+    progressBar.value = audio.currentTime;
+    currentTimeElem.textContent = formatTime(audio.currentTime);
+    durationElem.textContent = formatTime(audio.duration);
+    updateSliderBackground(progressBar);
+    window.electronAPI.updateTime(audio.currentTime, audio.duration);
+  }
+});
 
-  audio.addEventListener('timeupdate', () => {
-    if (!isSeeking && audio.duration) {
-      progressBar.max = audio.duration;
-      progressBar.value = audio.currentTime;
-
-      currentTimeElem.textContent = formatTime(audio.currentTime);
-      durationElem.textContent = formatTime(audio.duration);
-
-      updateSliderBackground(progressBar);
-    }
-  });
 
   progressBar.addEventListener('input', () => {
     isSeeking = true;
@@ -879,70 +885,87 @@
   }
 
   function visualize() {
-    if (!visualizerToggle) return;
+  if (!visualizerToggle || !analyser) {
+    ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+    return;
+  }
 
-    visualizerCanvas.width = visualizerCanvas.offsetWidth;
-    visualizerCanvas.height = visualizerCanvas.offsetHeight;
+  visualizerCanvas.width = visualizerCanvas.offsetWidth;
+  visualizerCanvas.height = visualizerCanvas.offsetHeight;
 
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
 
-    function draw() {
-      if (!visualizerToggle) {
-        ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-        return;
-      }
+  let frameCounter = 0;
 
-      animationFrameId = requestAnimationFrame(draw);
-
-      if (!analyser) return;
-      analyser.getByteFrequencyData(dataArray);
-
-      if (visualizerToggle) {
-        window.electronAPI.updateVisualizer(Array.from(dataArray));
-      }
-
+  function draw() {
+    if (!visualizerToggle || !analyser) {
       ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      return;
+    }
 
-      let songName = audioFiles[currentIndex]?.split(/[\\/]/).pop() || 'No Track';
-      if (songName.length > 50) songName = songName.slice(0, 47) + '...';
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '14px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(songName, visualizerCanvas.width / 2, 18);
+    animationFrameId = requestAnimationFrame(draw);
 
-      const centerX = visualizerCanvas.width / 2;
-      const barWidth = (visualizerCanvas.width / bufferLength) * 1.5;
-      const halfCount = Math.floor(bufferLength / 2);
-      const currentPrimaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+    analyser.getByteFrequencyData(dataArray);
 
-      for (let i = 0; i < halfCount; i++) {
-        const scale = 0.5;
-        const barHeight = dataArray[i] * (visualizerCanvas.height / 255) * scale;
+  
+    frameCounter++;
+    if (frameCounter % 2 === 0) {
+      window.electronAPI.updateVisualizer(Array.from(dataArray));
+    }
 
-        const xLeft = centerX - (i + 1) * (barWidth + 1);
-        if (xLeft + barWidth > 0) {
-          const gradientLeft = ctx.createLinearGradient(xLeft, visualizerCanvas.height - barHeight, xLeft, visualizerCanvas.height);
-          gradientLeft.addColorStop(0, currentPrimaryColor);
-          gradientLeft.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
-          gradientLeft.addColorStop(1, currentPrimaryColor);
-          ctx.fillStyle = gradientLeft;
-          ctx.fillRect(xLeft, visualizerCanvas.height - barHeight, barWidth, barHeight);
-        }
+    ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+    let songName = audioFiles[currentIndex]?.split(/[\\/]/).pop() || 'No Track';
+    if (songName.length > 50) songName = songName.slice(0, 47) + '...';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(songName, visualizerCanvas.width / 2, 18);
 
-        const xRight = centerX + i * (barWidth + 1);
-        if (xRight < visualizerCanvas.width) {
-          const gradientRight = ctx.createLinearGradient(xRight, visualizerCanvas.height - barHeight, xRight, visualizerCanvas.height);
-          gradientRight.addColorStop(0, currentPrimaryColor);
-          gradientRight.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
-          gradientRight.addColorStop(1, currentPrimaryColor);
-          ctx.fillStyle = gradientRight;
-          ctx.fillRect(xRight, visualizerCanvas.height - barHeight, barWidth, barHeight);
-        }
+    const centerX = visualizerCanvas.width / 2;
+    const barWidth = (visualizerCanvas.width / bufferLength) * 1.5;
+    const halfCount = Math.floor(bufferLength / 2);
+    const currentPrimaryColor = getComputedStyle(document.documentElement)
+      .getPropertyValue('--primary-color')
+      .trim();
+
+    for (let i = 0; i < halfCount; i++) {
+      const scale = 0.5;
+      const barHeight = dataArray[i] * (visualizerCanvas.height / 255) * scale;
+
+      const xLeft = centerX - (i + 1) * (barWidth + 1);
+      if (xLeft + barWidth > 0) {
+        const gradientLeft = ctx.createLinearGradient(xLeft, visualizerCanvas.height - barHeight, xLeft, visualizerCanvas.height);
+        gradientLeft.addColorStop(0, currentPrimaryColor);
+        gradientLeft.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
+        gradientLeft.addColorStop(1, currentPrimaryColor);
+        ctx.fillStyle = gradientLeft;
+        ctx.fillRect(xLeft, visualizerCanvas.height - barHeight, barWidth, barHeight);
+      }
+
+      const xRight = centerX + i * (barWidth + 1);
+      if (xRight < visualizerCanvas.width) {
+        const gradientRight = ctx.createLinearGradient(xRight, visualizerCanvas.height - barHeight, xRight, visualizerCanvas.height);
+        gradientRight.addColorStop(0, currentPrimaryColor);
+        gradientRight.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
+        gradientRight.addColorStop(1, currentPrimaryColor);
+        ctx.fillStyle = gradientRight;
+        ctx.fillRect(xRight, visualizerCanvas.height - barHeight, barWidth, barHeight);
       }
     }
-    draw();
   }
+
+  draw();
+}
+
 
   function adjustColor(color, percent) {
     if (color.startsWith('hsl')) {
@@ -1011,6 +1034,8 @@
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
+                console.log("Disable button clicked in index.html");
+        window.electronAPI.disableVisualizer();
       }
       ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
     }
@@ -1071,25 +1096,48 @@
   }
 
   let rainbowHue = 0;
-  function startRainbowColorLoop() {
-    function updateHue() {
-      if (!isRainbowActive) return;
+function stopVisualizer() {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+  window.electronAPI.disableVisualizer();
+}
 
-      rainbowHue = (rainbowHue + 1) % 360;
-      const color = `hsl(${rainbowHue}, 100%, 65%)`;
-      const darkColor = `hsl(${rainbowHue}, 100%, 45%)`;
 
-      document.documentElement.style.setProperty('--primary-color', color);
-      document.documentElement.style.setProperty('--primary-dark', darkColor);
+function startRainbowColorLoop() {
+  if (!isRainbowActive || rainbowFrameId) return;
 
-      updateSliderBackground(volumeSlider);
-      updateSliderBackground(progressBar);
-
-      requestAnimationFrame(updateHue);
+  function updateHue() {
+    if (!isRainbowActive) {
+      cancelAnimationFrame(rainbowFrameId);
+      rainbowFrameId = null;
+      return;
     }
 
-    requestAnimationFrame(updateHue);
+    rainbowHue = (rainbowHue + 1) % 360;
+    const color = `hsl(${rainbowHue}, 100%, 65%)`;
+    const darkColor = `hsl(${rainbowHue}, 100%, 45%)`;
+
+    document.documentElement.style.setProperty('--primary-color', color);
+    document.documentElement.style.setProperty('--primary-dark', darkColor);
+
+    updateSliderBackground(volumeSlider);
+    updateSliderBackground(progressBar);
+
+    rainbowFrameId = requestAnimationFrame(updateHue);
   }
+
+  rainbowFrameId = requestAnimationFrame(updateHue);
+}
+
+function stopRainbowLoop() {
+  if (rainbowFrameId) {
+    cancelAnimationFrame(rainbowFrameId);
+    rainbowFrameId = null;
+  }
+}
 
   window.electronAPI.onUpdateTrack((data) => {
     if (data.isPlaying !== undefined) {
@@ -1101,6 +1149,14 @@
     }
   });
 
+  window.electronAPI.onUpdateVolume((volume) => {
+    audio.volume = volume;
+    volumeSlider.value = volume;
+    volumePercent.textContent = Math.round(volume * 100) + '%';
+    localStorage.setItem('volumeLevel', volume);
+    updateSliderBackground(volumeSlider);
+  });
+
   window.electronAPI.onRequestCurrentState(() => {
     if (audioFiles[currentIndex]) {
       const filePath = audioFiles[currentIndex];
@@ -1108,18 +1164,13 @@
         const trackData = {
           songName: filePath.split(/[\\/]/).pop(),
           artUrl: visualizerCanvas.style.backgroundImage.slice(5, -2),
-          isPlaying: !audio.paused
+          isPlaying: !audio.paused,
+          filePath: filePath,
+          volume: audio.volume
         };
         window.electronAPI.updateTrack(trackData);
       });
       window.electronAPI.updateTheme({ color: themeColor, isRainbow: isRainbowActive });
-
-      if (visualizerToggle && !audio.paused) {
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyser.getByteFrequencyData(dataArray);
-        window.electronAPI.updateVisualizer(Array.from(dataArray));
-      }
     }
   });
 
@@ -1129,6 +1180,15 @@
       playTrack(currentIndex);
     }
   });
+
+  window.electronAPI.onSeekFromMini((time) => {
+  if (!isNaN(time) && audio.duration) {
+    audio.currentTime = time;    
+    progressBar.value = time;    
+    currentTimeElem.textContent = formatTime(time);
+    updateSliderBackground(progressBar);
+  }
+})
 
   window.electronAPI.onPlayNext(() => {
     if (currentIndex < audioFiles.length - 1) {
