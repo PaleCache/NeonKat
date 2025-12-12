@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
+   setMiniMode: (isMini) => ipcRenderer.send('set-mini-mode', isMini),
   savePlaylist: (playlist) => ipcRenderer.invoke('save-playlist', playlist),
   readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
   openFile: () => ipcRenderer.invoke('open-file'),
@@ -59,4 +60,3 @@ onDisableVisualizer: (callback) => {
     return () => ipcRenderer.removeAllListeners('update-visualizer');
   }
 });
-

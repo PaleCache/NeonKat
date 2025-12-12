@@ -21,13 +21,29 @@
       align-items: center;
       min-height: 100vh;
       overflow: hidden;
+       -webkit-app-region: drag;
+         background: transparent;
+        
     }
+
+
+    .control-btn img,
+.icon,
+#topControls img,
+#bellIcon,
+#visualizerIcon,
+#rainbowIcon,
+#miniPlayerBtn img {
+  filter: brightness(0) invert(1) !important;
+}
     #container {
       width: 100%;
       max-width: 400px;
       background: #111;
       padding: 15px;
       border-radius: 10px;
+      
+      
     }
     h1 {
       font-size: 24px;
@@ -46,6 +62,7 @@
       width: 100%;
       margin-bottom: 10px;
       font-size: 14px;
+      -webkit-app-region: no-drag;
     }
     #chooseFolder:hover {
       background: var(--primary-color);
@@ -60,6 +77,7 @@
       width: 100%;
       margin-bottom: 10px;
       font-size: 14px;
+      -webkit-app-region: no-drag;
     }
     #savePlaylistBtn:hover, #loadPlaylistBtn:hover, #sortBtn:hover {
       background: var(--primary-color);
@@ -69,6 +87,7 @@
       color: var(--primary-color);
       text-align: center;
       margin-bottom: 10px;
+      -webkit-app-region: no-drag;
     }
     #sortMenu {
       position: absolute;
@@ -78,6 +97,7 @@
       z-index: 10;
       display: none;
       width: 150px;
+      -webkit-app-region: no-drag;
     }
     #sortMenu button {
       background: #212121;
@@ -88,6 +108,7 @@
       text-align: left;
       cursor: pointer;
       font-size: 14px;
+      -webkit-app-region: no-drag;
     }
     #sortMenu button:hover {
       background: var(--primary-color);
@@ -101,6 +122,7 @@
       overflow-y: auto;
       background: #222;
       border-radius: 5px;
+      -webkit-app-region: no-drag;
     }
     #playlist li {
       padding: 10px;
@@ -169,10 +191,12 @@
       margin-bottom: 15px;
       gap: 10px;
       flex-wrap: wrap;
+      -webkit-app-region: no-drag;
     }
     .control-btn.repeat-enabled {
       background: var(--primary-color) !important;
       color: #fff;
+      -webkit-app-region: no-drag;
     }
     .control-btn.enabled {
       background-color: var(--primary-color) !important;
@@ -191,6 +215,7 @@
       white-space: nowrap;
       height: 38px;
       line-height: 1.2;
+      -webkit-app-region: no-drag;
     }
     .control-btn:hover {
       background: var(--primary-color);
@@ -205,6 +230,7 @@
       outline: none;
       border-radius: 5px;
       margin-left: 10px;
+      -webkit-app-region: no-drag;
     }
     #volume::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -214,6 +240,7 @@
       background: var(--primary-color);
       border-radius: 50%;
       cursor: pointer;
+      -webkit-app-region: no-drag;
     }
     #volume::-moz-range-thumb {
       -moz-appearance: none;
@@ -223,6 +250,7 @@
       background: var(--primary-color);
       border-radius: 50%;
       cursor: pointer;
+      -webkit-app-region: no-drag;
     }
     #visualizer {
       width: 100%;
@@ -237,6 +265,7 @@
       margin-bottom: 10px;
       position: relative;
       background-size: 100% 100%;
+      -webkit-app-region: no-drag;
     }
     #progressContainer {
       display: flex;
@@ -245,6 +274,7 @@
       margin: 10px 0;
       font-size: 12px;
       color: #ffffff;
+      -webkit-app-region: no-drag;
     }
     #progressBar {
       flex: 1;
@@ -253,6 +283,7 @@
       border-radius: 3px;
       -webkit-appearance: none;
       appearance: none;
+      -webkit-app-region: no-drag;
     }
     #progressBar::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -271,10 +302,21 @@
       cursor: pointer;
     }
     footer {
-      text-align: center;
+  text-align: right;
+  font-size: 8px;
+  font-weight: bold;
+  color: #ffffff;  
+  pointer-events: none;
+      
+      
+    }
+
+    title {
+    text-align: center;
       font-size: 12px;
       color: #ffffff;
-      margin-top: 10px;
+        font-weight: bold;
+
     }
     .icon {
       width: 20px;
@@ -288,11 +330,14 @@
       gap: 0px;
       margin-bottom: 1px;
       flex-wrap: nowrap;
+      -webkit-app-region: no-drag;
+          width: 173px;
     }
     #visualizerControls {
       display: flex;
       align-items: center;
       gap: 5px;
+      -webkit-app-region: no-drag;
     }
     #visualizerColor {
       height: 20px;
@@ -302,6 +347,33 @@
       background: #111111;
       cursor: pointer;
     }
+
+
+    body.mini-mode #container {
+      width: 260px !important;
+      max-width: 260px !important;
+      padding: 8px !important;
+    }
+
+    
+
+    body.mini-mode h1,
+    body.mini-mode #playlist,
+    body.mini-mode #playlistControls,
+    body.mini-mode #sortBtn,
+    body.mini-mode #sortMenu,
+    body.mini-mode #chooseFolder{
+      display: none !important;
+    }
+
+    body.mini-mode .controls {
+      margin-top: 5px;
+    }
+
+    body.mini-mode #visualizer {
+      height: 80px !important;
+    }
+
   </style>
 </head>
 <body>
@@ -309,19 +381,19 @@
   <div id="container">
     <div id="topControls">
       <button id="notifyToggleBtn" style="background: none; border: none; cursor: pointer;">
-        <img src="build/bell.svg" id="bellIcon" height="17" style="filter: invert(40%) sepia(90%) saturate(1200%) hue-rotate(245deg) brightness(570%) contrast(95%);" />
+        <img src="build/bell.svg" id="bellIcon" height="17" />
       </button>
       <div id="visualizerControls">
         <button id="visualizerToggleBtn" style="background: none; border: none; cursor: pointer;">
-          <img src="build/visualizer.svg" id="visualizerIcon" height="20" style="filter: invert(40%) sepia(90%) saturate(1200%) hue-rotate(245deg) brightness(570%) contrast(95%);" />
+          <img src="build/visualizer.svg" id="visualizerIcon" height="20" />
         </button>
         <input type="color" id="visualizerColor" value="#a88cff" title="Select Theme Color" />
         <button id="rainbowToggleBtn" style="background: none; border: none; cursor: pointer;">
-          <img id="rainbowIcon" src="build/flashoff.svg" height="27" style="filter: invert(40%) sepia(90%) saturate(1200%) hue-rotate(245deg) brightness(570%) contrast(95%);" />
+          <img id="rainbowIcon" src="build/flashoff.svg" height="27" />
         </button>
       </div>
-      <button id="miniplayerToggleBtn" style="background: none; border: none; cursor: pointer; margin-left: 10px;">
-        <img src="build/miniplayer.svg" height="20" style="filter: invert(40%) sepia(90%) saturate(1200%) hue-rotate(245deg) brightness(570%) contrast(95%);" />
+      <button id="miniPlayerBtn" style="background: none; border: none; cursor: pointer; margin-left: 10px;">
+        <img src="build/miniplayer.svg" height="20" />
       </button>
     </div>
     <h1 style="display: flex; align-items: center; gap: 8px;">
@@ -371,7 +443,7 @@
       <span id="duration">0:00</span>
     </div>
     <canvas id="visualizer"></canvas>
-    <footer>Made With ♥ By PaleCache</footer>
+    <footer>Muzik Electro </footer>
   </div>
   <audio id="audio"></audio>
   <style>
@@ -398,6 +470,7 @@ label img {
   const sortBtn = document.getElementById('sortBtn');
   const sortMenu = document.getElementById('sortMenu');
   let audioFiles = [];
+  let rainbowIntervalId = null;
   let currentIndex = 0;
   let isSeeking = false;
   let repeatTrack = false;
@@ -422,7 +495,15 @@ label img {
   const shuffleBtn = document.getElementById('shuffleBtn');
   const visualizerColorPicker = document.getElementById('visualizerColor');
   const miniplayerToggleBtn = document.getElementById('miniplayerToggleBtn');
+    const miniBtn = document.getElementById('miniPlayerBtn');
+    let isMini = false;
 
+    miniBtn.addEventListener('click', () => {
+      isMini = !isMini;
+      document.body.classList.toggle('mini-mode', isMini);
+      window.electronAPI.setMiniMode(isMini);
+      setTimeout(visualize, 100);
+    });
   function updateSliderBackground(slider) {
     const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
     slider.style.background = `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${value}%, #444 ${value}%, #444 100%)`;
@@ -454,15 +535,20 @@ label img {
     updateThemeColor(e.target.value, false);
   });
 
-  rainbowToggleBtn.addEventListener('click', () => {
-    isRainbowActive = !isRainbowActive;
-    rainbowIcon.src = isRainbowActive ? 'build/flash.svg' : 'build/flashoff.svg';
-    updateThemeColor(themeColor, isRainbowActive);
-  });
+rainbowToggleBtn.addEventListener('click', () => {
+  isRainbowActive = !isRainbowActive;
+  rainbowIcon.src = isRainbowActive ? 'build/flash.svg' : 'build/flashoff.svg';
+  localStorage.setItem('isRainbowActive', isRainbowActive);
+  if (isRainbowActive) {
+    updateThemeColor(themeColor, true);
+    startRainbowColorLoop();
+  } else {
+    stopRainbowLoop();
+    updateThemeColor(themeColor, false);
+  }
+});
 
-  miniplayerToggleBtn.addEventListener('click', () => {
-    window.electronAPI.toggleMiniplayer();
-  });
+
 
   shuffleBtn.addEventListener('click', () => {
     shuffleTrack = !shuffleTrack;
@@ -589,6 +675,10 @@ label img {
     event.preventDefault();
     playlistElem.style.border = '2px dashed #212121';
   });
+
+  window.addEventListener('resize', () => {
+  setTimeout(visualize, 50);
+});
 
   playlistElem.addEventListener('dragleave', (event) => {
     event.preventDefault();
@@ -829,6 +919,7 @@ label img {
       window.electronAPI.updateTrack(trackData);
     });
     renderPlaylist();
+    visualize();
     progressBar.value = 0;
     progressBar.max = 0;
     currentTimeElem.textContent = '0:00';
@@ -883,89 +974,98 @@ audio.addEventListener('timeupdate', () => {
     return `${m}:${s}`;
   }
 
-  function visualize() {
-  if (!visualizerToggle || !analyser) {
-    ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
-    }
-    return;
+
+let lastWidth = 0;
+let lastHeight = 0;
+
+function visualize() {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
   }
 
-  visualizerCanvas.width = visualizerCanvas.offsetWidth;
-  visualizerCanvas.height = visualizerCanvas.offsetHeight;
+  const canvas = visualizerCanvas;
+  const width = canvas.offsetWidth;
+  const height = canvas.offsetHeight;
+  if (width !== lastWidth || height !== lastHeight) {
+    canvas.width = width;
+    canvas.height = height;
+    lastWidth = width;
+    lastHeight = height;
+  }
 
+  const ctx = canvas.getContext('2d');
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
 
   let frameCounter = 0;
+  let lastTime = 0;
 
-  function draw() {
-    if (!visualizerToggle || !analyser) {
-      ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      return;
-    }
-
+  function draw(timestamp) {
     animationFrameId = requestAnimationFrame(draw);
 
-    analyser.getByteFrequencyData(dataArray);
+    if (lastTime && (timestamp - lastTime) < 33) return;
+    lastTime = timestamp || performance.now();
+    ctx.clearRect(0, 0, width, height);
 
-  
+    let songName = audioFiles[currentIndex]?.split(/[\\/]/).pop() || 'No Track';
+    if (songName.length > 50) songName = songName.slice(0, 47) + '...';
+
+    const isMini = document.body.classList.contains('mini-mode');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = isMini ? '10.5px Arial' : '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(songName, width / 2, isMini ? 14 : 18);
+    if (!visualizerToggle || !analyser || !isMainWindowVisible) return;
+
+    analyser.getByteFrequencyData(dataArray);
     frameCounter++;
-    if (frameCounter % 2 === 0) {
+    if (frameCounter % 2 === 0 && window.electronAPI?.updateVisualizer) {
       window.electronAPI.updateVisualizer(Array.from(dataArray));
     }
 
-    ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-    let songName = audioFiles[currentIndex]?.split(/[\\/]/).pop() || 'No Track';
-    if (songName.length > 50) songName = songName.slice(0, 47) + '...';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(songName, visualizerCanvas.width / 2, 18);
+    const barCount = isMini ? 48 : 64;
+    const step = Math.max(1, Math.floor(bufferLength / barCount));
+    const barWidth = Math.max(1.5, (width / barCount) * 0.8);
+    const centerX = width / 2;
+    const spacing = 1;
 
-    const centerX = visualizerCanvas.width / 2;
-    const barWidth = (visualizerCanvas.width / bufferLength) * 1.5;
-    const halfCount = Math.floor(bufferLength / 2);
     const currentPrimaryColor = getComputedStyle(document.documentElement)
-      .getPropertyValue('--primary-color')
-      .trim();
+      .getPropertyValue('--primary-color').trim() || '#a88cff';
 
-    for (let i = 0; i < halfCount; i++) {
-      const scale = 0.5;
-      const barHeight = dataArray[i] * (visualizerCanvas.height / 255) * scale;
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, currentPrimaryColor);
+    gradient.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
+    gradient.addColorStop(1, currentPrimaryColor);
+    ctx.fillStyle = gradient;
 
-      const xLeft = centerX - (i + 1) * (barWidth + 1);
-      if (xLeft + barWidth > 0) {
-        const gradientLeft = ctx.createLinearGradient(xLeft, visualizerCanvas.height - barHeight, xLeft, visualizerCanvas.height);
-        gradientLeft.addColorStop(0, currentPrimaryColor);
-        gradientLeft.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
-        gradientLeft.addColorStop(1, currentPrimaryColor);
-        ctx.fillStyle = gradientLeft;
-        ctx.fillRect(xLeft, visualizerCanvas.height - barHeight, barWidth, barHeight);
-      }
+    for (let i = 0; i < barCount; i++) {
+      const value = dataArray[i * step] || 0;
+      const barHeight = value * (height / 255) * (isMini ? 0.7 : 0.55);
+      const xLeft = centerX - (i + 1) * (barWidth + spacing);
+      const xRight = centerX + i * (barWidth + spacing);
+      const y = height - barHeight;
 
-      const xRight = centerX + i * (barWidth + 1);
-      if (xRight < visualizerCanvas.width) {
-        const gradientRight = ctx.createLinearGradient(xRight, visualizerCanvas.height - barHeight, xRight, visualizerCanvas.height);
-        gradientRight.addColorStop(0, currentPrimaryColor);
-        gradientRight.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
-        gradientRight.addColorStop(1, currentPrimaryColor);
-        ctx.fillStyle = gradientRight;
-        ctx.fillRect(xRight, visualizerCanvas.height - barHeight, barWidth, barHeight);
-      }
+      if (xLeft + barWidth > 0) ctx.fillRect(xLeft, y, barWidth, barHeight);
+      if (xRight < width) ctx.fillRect(xRight, y, barWidth, barHeight);
     }
   }
 
-  draw();
+  animationFrameId = requestAnimationFrame(draw);
 }
 
+let isMainWindowVisible = true;
 
+document.addEventListener('visibilitychange', () => {
+  isMainWindowVisible = !document.hidden;
+  if (!isMainWindowVisible) {
+    stopVisualizer();
+    stopRainbowLoop();
+  } else {
+    if (visualizerToggle) visualize();
+    if (isRainbowActive) startRainbowColorLoop();
+  }
+});
   function adjustColor(color, percent) {
     if (color.startsWith('hsl')) {
       const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
@@ -1019,26 +1119,18 @@ audio.addEventListener('timeupdate', () => {
   visualizerIcon.src = visualizerToggle ? 'build/visualizer.svg' : 'build/visualizeroff.svg';
 
   visualizerToggleBtn.addEventListener('click', () => {
-    visualizerToggle = !visualizerToggle;
-    localStorage.setItem('visualizerToggle', visualizerToggle);
-    visualizerIcon.src = visualizerToggle ? 'build/visualizer.svg' : 'build/visualizeroff.svg';
+  visualizerToggle = !visualizerToggle;
+  localStorage.setItem('visualizerToggle', visualizerToggle);
+  visualizerIcon.src = visualizerToggle ? 'build/visualizer.svg' : 'build/visualizeroff.svg';
 
-    if (visualizerToggle) {
-      if (!audio.paused) {
-        visualize();
-      }
-      audio.addEventListener('play', visualize);
-    } else {
-      audio.removeEventListener('play', visualize);
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-                console.log("Disable button clicked in index.html");
-        window.electronAPI.disableVisualizer();
-      }
-      ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-    }
-  });
+  if (visualizerToggle) {
+    if (!audio.paused) visualize();
+    audio.addEventListener('play', visualize);
+  } else {
+    audio.removeEventListener('play', visualize);
+    if (!animationFrameId && !audio.paused) visualize();
+  }
+});
 
   if (visualizerToggle) {
     audio.addEventListener('play', visualize);
@@ -1105,17 +1197,14 @@ function stopVisualizer() {
 }
 
 
+
+
+
 function startRainbowColorLoop() {
-  if (!isRainbowActive || rainbowFrameId) return;
+  if (!isRainbowActive || rainbowIntervalId) return;
 
-  function updateHue() {
-    if (!isRainbowActive) {
-      cancelAnimationFrame(rainbowFrameId);
-      rainbowFrameId = null;
-      return;
-    }
-
-    rainbowHue = (rainbowHue + 1) % 360;
+  rainbowIntervalId = setInterval(() => {
+    rainbowHue = (rainbowHue + 5) % 360;
     const color = `hsl(${rainbowHue}, 100%, 65%)`;
     const darkColor = `hsl(${rainbowHue}, 100%, 45%)`;
 
@@ -1124,17 +1213,13 @@ function startRainbowColorLoop() {
 
     updateSliderBackground(volumeSlider);
     updateSliderBackground(progressBar);
-
-    rainbowFrameId = requestAnimationFrame(updateHue);
-  }
-
-  rainbowFrameId = requestAnimationFrame(updateHue);
+  }, 100);
 }
 
 function stopRainbowLoop() {
-  if (rainbowFrameId) {
-    cancelAnimationFrame(rainbowFrameId);
-    rainbowFrameId = null;
+  if (rainbowIntervalId) {
+    clearInterval(rainbowIntervalId);
+    rainbowIntervalId = null;
   }
 }
 
@@ -1157,21 +1242,25 @@ function stopRainbowLoop() {
   });
 
   window.electronAPI.onRequestCurrentState(() => {
-    if (audioFiles[currentIndex]) {
-      const filePath = audioFiles[currentIndex];
-      setVisualizerBackground(filePath).then(() => {
-        const trackData = {
-          songName: filePath.split(/[\\/]/).pop(),
-          artUrl: visualizerCanvas.style.backgroundImage.slice(5, -2),
-          isPlaying: !audio.paused,
-          filePath: filePath,
-          volume: audio.volume
-        };
-        window.electronAPI.updateTrack(trackData);
-      });
+  if (audioFiles[currentIndex]) {
+    const filePath = audioFiles[currentIndex];
+    setVisualizerBackground(filePath).then(() => {
+      const trackData = {
+        songName: filePath.split(/[\\/]/).pop(),
+        artUrl: visualizerCanvas.style.backgroundImage.slice(5, -2),
+        isPlaying: !audio.paused,
+        filePath: filePath,
+        volume: audio.volume
+      };
+      window.electronAPI.updateTrack(trackData);
       window.electronAPI.updateTheme({ color: themeColor, isRainbow: isRainbowActive });
-    }
-  });
+    });
+  } else {
+  
+    window.electronAPI.updateTrack({ songName: 'No Track', artUrl: null, isPlaying: false });
+    window.electronAPI.updateTheme({ color: themeColor, isRainbow: isRainbowActive });
+  }
+});
 
   window.electronAPI.onPlayPrevious(() => {
     if (currentIndex > 0) {

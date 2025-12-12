@@ -3,11 +3,6 @@ const path = require('path');
 const fs = require('fs').promises;
 
 const { Notification } = require('electron');
-
-function showNotification(title, body) {
-  new Notification({ title, body }).show();
-}
-
 let tray = null;
 let mainWindow = null;
 
@@ -19,22 +14,36 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 400,
     height: 733,
+    frame: false,
+    transparent: true,
+    resizable: true,
+     alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       enableRemoteModule: false,
       backgroundThrottling: false,
+     
     },
     icon: path.join(__dirname, 'build', 'icon.png'),
   });
+
+  ipcMain.on('set-mini-mode', (event, isMini) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (isMini) {
+    window.setBounds({ width: 560, height: 320 });
+  } else {
+    window.setBounds({ width: 560, height: 733 });
+  }
+});
 
   mainWindow.loadFile('index.html');
 
   mainWindow.on('close', (event) => {
     if (!app.isQuiting) {
       event.preventDefault();
-      mainWindow.minimize();
+       mainWindow.hide();
     }
   });
 }
@@ -119,7 +128,6 @@ ipcMain.handle('pick-folder', async () => {
     });
 
     if (result.canceled) {
-      console.log('Folder selection canceled');
       return null;
     }
 
@@ -211,95 +219,3 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
   }
 });
 
-ipcMain.on('seek-from-mini', (_, time) => {
-  if (mainWindow) mainWindow.webContents.send('seek-from-mini', time);
-})
-
-ipcMain.on('update-time', (event, currentTime, duration) => {
-  if (miniPlayerWindow) {
-    miniPlayerWindow.webContents.send('update-time', currentTime, duration);
-  }
-});
-
-let miniPlayerWindow = null;
-function createMiniPlayerWindow() {
-  miniPlayerWindow = new BrowserWindow({
-    width: 420,
-    height: 120,
-    frame: false,
-    alwaysOnTop: true,
-    transparent: true,
-    skipTaskbar: true,
-    
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      enableRemoteModule: false,
-      nodeIntegration: false,
-      backgroundThrottling: false
-    },
-    icon: path.join(__dirname, 'build', 'icon.png')
-  });
-  miniPlayerWindow.loadFile(path.join(__dirname, 'build', 'miniplayer.html'));
-  miniPlayerWindow.on('closed', () => {
-    miniPlayerWindow = null;
-  });
-
-  miniPlayerWindow.webContents.on('did-finish-load', () => {
-    if (mainWindow) {
-      mainWindow.webContents.send('request-current-state');
-    }
-  });
-}
-
-ipcMain.on('toggle-miniplayer', () => {
-  if (miniPlayerWindow) {
-    miniPlayerWindow.close();
-  } else {
-    createMiniPlayerWindow();
-  }
-});
-
-ipcMain.on('update-theme', (event, data) => {
-  console.log('Main process forwarding theme update:', data);
-  if (miniPlayerWindow) {
-    miniPlayerWindow.webContents.send('update-theme', data);
-  }
-});
-
-ipcMain.on('update-track', (event, data) => {
-  if (miniPlayerWindow) {
-    miniPlayerWindow.webContents.send('update-track', data);
-  }
-});
-
-ipcMain.on('update-volume', (event, volume) => {
-  if (mainWindow) {
-    mainWindow.webContents.send('update-volume', volume);
-  }
-});
-
-ipcMain.on('play-previous', () => {
-  if (mainWindow) mainWindow.webContents.send('play-previous');
-});
-
-ipcMain.on('toggle-play', () => {
-  if (mainWindow) mainWindow.webContents.send('toggle-play');
-});
-
-ipcMain.on('play-next', () => {
-  if (mainWindow) mainWindow.webContents.send('play-next');
-});
-
-ipcMain.on('update-visualizer', (event, data) => {
-  if (miniPlayerWindow) {
-    miniPlayerWindow.webContents.send('update-visualizer', data);
-  }
-});
-
-ipcMain.on('disable-visualizer', () => {
-  console.log("Main: forwarding disable-visualizer to miniplayer");
-  if (miniPlayerWindow) {
-    miniPlayerWindow.webContents.send('disable-visualizer');
-  }
-});
