@@ -1053,6 +1053,9 @@ function updateSelectionVisuals() {
   function playTrack(index) {
     if (index < 0 || index >= audioFiles.length) return;
     currentIndex = index;
+    selectedIndices.clear();        
+  selectedIndices.add(currentIndex);  
+  lastSelectedIndex = currentIndex;
     const filePath = audioFiles[index];
     audio.src = `file://${filePath}`;
     audio.play();
@@ -1067,7 +1070,9 @@ function updateSelectionVisuals() {
       window.electronAPI.updateTrack(trackData);
     });
     renderPlaylist();
+    updateSelectionVisuals();
     visualize();
+    scrollToCurrentTrack();
     progressBar.value = 0;
     progressBar.max = 0;
     currentTimeElem.textContent = '0:00';
@@ -1394,10 +1399,13 @@ document.addEventListener('visibilitychange', () => {
     }
   }
 
-  function scrollToCurrentTrack() {
-    const el = document.querySelector(`.track-item[data-index="${currentIndex}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+function scrollToCurrentTrack() {
+  const items = playlistElem.querySelectorAll('li');
+  const currentItem = items[currentIndex];
+  if (currentItem) {
+    currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+}
 
   let rainbowHue = 0;
 function stopVisualizer() {
