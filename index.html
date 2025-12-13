@@ -327,6 +327,11 @@ width: 100%;
     }
 
 
+    #streamUrlInput:focus,
+#streamNameInput:focus {
+  outline: none !important;
+}
+
     #playlist li.selected {
   background: var(--primary-color) !important;
   color: #000;
@@ -397,7 +402,8 @@ width: 100%;
     body.mini-mode #playlistControls,
     body.mini-mode #sortBtn,
     body.mini-mode #sortMenu,
-    body.mini-mode #chooseFolder{
+    body.mini-mode #chooseFolder,
+    body.mini-mode #addStreamBtn{
       display: none !important;
     }
 
@@ -438,7 +444,27 @@ width: 100%;
       Muzik Electro
       <img src="build/music.gif" style="height: 54px;" />
     </h1>
-    <button id="chooseFolder">Choose Folder</button>
+ <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+  <button id="chooseFolder" style="flex: 1;">Choose Folder</button>
+  <button id="addStreamBtn" class="control-btn" style="flex: 1;">Add Stream</button>
+</div>
+
+    <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;  justify-content: center; align-items: center; z-index: 9999;">
+  <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
+    border-radius: 10px;-webkit-app-region: drag;">
+    <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
+    <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
+    <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
+    
+    <label>Station Name (optional):</label>
+    <input type="text" id="streamNameInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="My Favorite Station" />
+    
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button id="cancelStreamBtn" style="background: #444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
+      <button id="addStreamConfirmBtn" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Add</button>
+    </div>
+  </div>
+</div>
     <div style="position: relative;">
       <button id="sortBtn">Sort Playlist</button>
       <div id="sortMenu">
@@ -534,6 +560,9 @@ label img {
   const source = audioCtx.createMediaElementSource(audio);
   source.connect(analyser);
   analyser.connect(audioCtx.destination);
+  const radioIconImg = new Image();
+  radioIconImg.src = 'build/radio.svg';
+
 
   const repeatBtn = document.getElementById('repeatBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
@@ -592,6 +621,85 @@ rainbowToggleBtn.addEventListener('click', () => {
   }
 });
 
+
+const addStreamBtn = document.getElementById('addStreamBtn');
+const streamModal = document.getElementById('streamModal');
+const streamUrlInput = document.getElementById('streamUrlInput');
+const streamNameInput = document.getElementById('streamNameInput');
+const cancelStreamBtn = document.getElementById('cancelStreamBtn');
+const addStreamConfirmBtn = document.getElementById('addStreamConfirmBtn');
+
+addStreamBtn.addEventListener('click', () => {
+  streamUrlInput.value = '';
+  streamNameInput.value = '';
+  streamModal.style.display = 'flex';
+  streamUrlInput.focus();
+});
+
+cancelStreamBtn.addEventListener('click', () => {
+  streamModal.style.display = 'none';
+});
+
+addStreamConfirmBtn.addEventListener('click', () => {
+  let url = streamUrlInput.value.trim();
+  if (!url) {
+    alert('Fuck, enter a URL first!');
+    return;
+  }
+
+  let name = streamNameInput.value.trim() || new URL(url).hostname;
+  if (url.toLowerCase().endsWith('.pls') || url.toLowerCase().endsWith('.m3u')) {
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        const lines = text.split('\n');
+        for (let line of lines) {
+          line = line.trim();
+          if (line.startsWith('File1=') || line.toLowerCase().includes('http')) {
+            const match = line.match(/(https?:\/\/[^\s]+)/i);
+            if (match) {
+              addStreamToPlaylist(match[1], name);
+              streamModal.style.display = 'none';
+              return;
+            }
+          }
+        }
+        alert('No valid stream found in that playlist file, asshole.');
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Couldn\'t fetch the playlist file. Try a direct stream URL.');
+      });
+  } else {
+    addStreamToPlaylist(url, name);
+    streamModal.style.display = 'none';
+  }
+});
+
+
+streamModal.addEventListener('click', (e) => {
+  if (e.target === streamModal) {
+    streamModal.style.display = 'none';
+  }
+});
+
+
+
+function addStreamToPlaylist(url, customName = null) {
+  const name = customName || new URL(url).hostname;
+
+  const streamEntry = {
+    url: url,
+    name: name,
+    isStream: true
+  };
+
+  audioFiles.push(streamEntry);
+  renderPlaylist();
+  updateStoredPlaylist();
+  currentIndex = audioFiles.length - 1;
+  playTrack(currentIndex);
+}
 
 
   shuffleBtn.addEventListener('click', () => {
@@ -923,46 +1031,68 @@ document.addEventListener('click', (e) => {
 
 function renderPlaylist() {
   playlistElem.innerHTML = '';
-  audioFiles.forEach((filePath, index) => {
-    const li = document.createElement('li');
-    li.textContent = filePath.split(/[\\/]/).pop();
-    if (selectedIndices.has(index)) {
-      li.classList.add('selected');
+  audioFiles.forEach((item, index) => {
+  const li = document.createElement('li');
+
+  if (typeof item === 'string') {
+    li.textContent = item.split(/[\\/]/).pop();
+  } else if (item.isStream) {
+    li.innerHTML = '';
+
+    const icon = document.createElement('img');
+    icon.src = 'build/radio.svg';
+    icon.style.width = '16px';
+    icon.style.height = '16px';
+    icon.style.marginRight = '8px';
+    icon.style.verticalAlign = 'middle';
+    icon.style.filter = 'brightness(0) invert(1)';
+
+    const text = document.createElement('span');
+    text.textContent = item.name || 'Unknown Station';
+
+    li.appendChild(icon);
+    li.appendChild(text);
+  } else {
+    li.textContent = 'Unknown Track';
+  }
+
+  li.addEventListener('click', (e) => {
+    if (contextMenuOpen) {
+      contextMenu.style.display = 'none';
+      contextMenuOpen = false;
+      e.stopPropagation();
+      return;
     }
 
-li.addEventListener('click', (e) => {
-  if (contextMenuOpen) {
-    contextMenu.style.display = 'none';
-    contextMenuOpen = false;
-    e.stopPropagation();
-    return;
-  }
+    if (e.shiftKey && lastSelectedIndex !== null) {
+      const start = Math.min(lastSelectedIndex, index);
+      const end = Math.max(lastSelectedIndex, index);
+      selectedIndices.clear();
+      for (let i = start; i <= end; i++) selectedIndices.add(i);
+    } else if (e.ctrlKey || e.metaKey) {
+      if (selectedIndices.has(index)) selectedIndices.delete(index);
+      else selectedIndices.add(index);
+      lastSelectedIndex = index;
+    } else {
+      selectedIndices.clear();
+      selectedIndices.add(index);
+      lastSelectedIndex = index;
+      currentIndex = index;
+      playTrack(index);
+    }
 
-
-  if (e.shiftKey && lastSelectedIndex !== null) {
-    const start = Math.min(lastSelectedIndex, index);
-    const end = Math.max(lastSelectedIndex, index);
-    selectedIndices.clear();
-    for (let i = start; i <= end; i++) selectedIndices.add(i);
-  } else if (e.ctrlKey || e.metaKey) {
-  
-    if (selectedIndices.has(index)) selectedIndices.delete(index);
-    else selectedIndices.add(index);
-    lastSelectedIndex = index;
-  } else {
-   
-    selectedIndices.clear();
-    selectedIndices.add(index);
-    lastSelectedIndex = index;
-    currentIndex = index;
-    playTrack(index);
-  }
-
-  updateSelectionVisuals();
-});
-
-    playlistElem.appendChild(li);
+    updateSelectionVisuals();
   });
+
+  if (selectedIndices.has(index)) {
+    li.classList.add('selected');
+  }
+  if (index === currentIndex) {
+    li.classList.add('active');
+  }
+
+  playlistElem.appendChild(li);
+});
 }
 
 
@@ -1006,6 +1136,9 @@ function updateSelectionVisuals() {
   async function getAlbumArtUrl(filePath) {
     const defaultImage = 'build/default-artwork.jpg';
 
+    if (typeof item !== 'string') {
+    return defaultImage;
+  }
     if (!['.mp3', '.m4a', '.flac', '.opus'].some(ext => filePath.toLowerCase().endsWith(ext))) {
       return defaultImage;
     }
@@ -1044,46 +1177,68 @@ function updateSelectionVisuals() {
     }
   }
 
-  async function setVisualizerBackground(filePath) {
-    const imageUrl = await getAlbumArtUrl(filePath);
+async function setVisualizerBackground(item) {
+  if (typeof item === 'string') {
+    const imageUrl = await getAlbumArtUrl(item);
     visualizerCanvas.style.backgroundImage = `url(${imageUrl})`;
     visualizerCanvas.style.backgroundColor = '#111111';
+  } else {
+    visualizerCanvas.style.backgroundImage = 'none';
+    visualizerCanvas.style.backgroundColor = '#111111';
+  }
+}
+
+  async function playTrack(index) {
+  if (index < 0 || index >= audioFiles.length) return;
+
+  currentIndex = index;
+  selectedIndices.clear();
+  selectedIndices.add(currentIndex);
+  lastSelectedIndex = currentIndex;
+
+  const item = audioFiles[index];
+
+  let src;
+  let displayName;
+
+  if (typeof item === 'string') {
+    src = `file://${item}`;
+    displayName = item.split(/[\\/]/).pop();
+  } else if (item.isStream) {
+    src = item.url;
+    displayName = item.name || 'Radio Stream';
+  } else {
+    return;
   }
 
-  function playTrack(index) {
-    if (index < 0 || index >= audioFiles.length) return;
-    currentIndex = index;
-    selectedIndices.clear();        
-  selectedIndices.add(currentIndex);  
-  lastSelectedIndex = currentIndex;
-    const filePath = audioFiles[index];
-    audio.src = `file://${filePath}`;
-    audio.play();
-    setVisualizerBackground(filePath).then(() => {
-      const trackData = {
-        songName: filePath.split(/[\\/]/).pop(),
-        artUrl: visualizerCanvas.style.backgroundImage.slice(5, -2),
-        isPlaying: !audio.paused,
-        filePath: filePath,
-        volume: audio.volume
-      };
-      window.electronAPI.updateTrack(trackData);
-    });
-    renderPlaylist();
-    updateSelectionVisuals();
-    visualize();
-    scrollToCurrentTrack();
-    progressBar.value = 0;
-    progressBar.max = 0;
+  audio.src = src;
+  audio.play();
+  await setVisualizerBackground(item);
+
+  const trackData = {
+    songName: displayName,
+    artUrl: visualizerCanvas.style.backgroundImage.slice(5, -2) || null,
+    isPlaying: true,
+    volume: audio.volume
+  };
+  window.electronAPI.updateTrack(trackData);
+
+  renderPlaylist();
+  updateSelectionVisuals();
+  visualize();
+  scrollToCurrentTrack();
+  if (item.isStream) {
+    currentTimeElem.textContent = 'LIVE';
+    durationElem.textContent = '∞';
+  } else {
     currentTimeElem.textContent = '0:00';
     durationElem.textContent = '0:00';
-
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    if (notifyEnabled && Notification.permission === 'granted') {
-      const songName = filePath.split(/[\\/]/).pop();
-      window.electronAPI.notify('Now Playing', songName);
-    }
   }
+
+  if (notifyEnabled && Notification.permission === 'granted') {
+    window.electronAPI.notify('Now Playing', displayName);
+  }
+}
 
 
 const playPauseBtn = document.getElementById('playPauseBtn');
@@ -1129,13 +1284,23 @@ if (audio.paused) {
     window.electronAPI.updateTrack({ isPlaying: false, volume: audio.volume });
   });
 audio.addEventListener('timeupdate', () => {
-  if (!isSeeking && audio.duration) {
-    progressBar.max = audio.duration;
-    progressBar.value = audio.currentTime;
-    currentTimeElem.textContent = formatTime(audio.currentTime);
-    durationElem.textContent = formatTime(audio.duration);
+  const currentItem = audioFiles[currentIndex];
+
+  if (!isSeeking) {
+    if (currentItem && currentItem.isStream) {
+      currentTimeElem.textContent = 'LIVE';
+      durationElem.textContent = '∞';
+      progressBar.value = 0;
+      progressBar.max = 1;
+      window.electronAPI.updateTime(0, Infinity);
+    } else if (audio.duration && isFinite(audio.duration)) {
+      progressBar.max = audio.duration;
+      progressBar.value = audio.currentTime;
+      currentTimeElem.textContent = formatTime(audio.currentTime);
+      durationElem.textContent = formatTime(audio.duration);
+      window.electronAPI.updateTime(audio.currentTime, audio.duration);
+    }
     updateSliderBackground(progressBar);
-    window.electronAPI.updateTime(audio.currentTime, audio.duration);
   }
 });
 
@@ -1190,17 +1355,36 @@ function visualize() {
     lastTime = timestamp || performance.now();
     ctx.clearRect(0, 0, width, height);
 
-    let songName = audioFiles[currentIndex]?.split(/[\\/]/).pop() || 'No Track';
-    if (songName.length > 50) songName = songName.slice(0, 47) + '...';
+let songName = 'No Track';
+let isRadioStream = false;
 
-    const isMini = document.body.classList.contains('mini-mode');
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = isMini ? '10.5px Arial' : '14px Arial';
-    ctx.textAlign = 'center';
+const currentItem = audioFiles[currentIndex];
 
-const maxWidth = width * 0.92;
+if (currentItem) {
+  if (typeof currentItem === 'string') {
+    songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
+  } else if (currentItem.isStream) {
+    isRadioStream = true;
+    if (currentItem.name && currentItem.name.trim() !== '') {
+      songName = currentItem.name.trim();
+    } else {
+      try {
+        songName = new URL(currentItem.url).hostname;
+      } catch {
+        songName = 'Radio Stream';
+      }
+    }
+  }
+}
+
+if (songName.length > 50) {
+  songName = songName.slice(0, 47) + '...';
+}
+
+const isMini = document.body.classList.contains('mini-mode');
+const iconSize = isMini ? 10 : 14;
 const textY = isMini ? 14 : 18;
-
+const maxWidth = width * 0.92;
 ctx.font = isMini ? '10.5px Arial' : '14px Arial';
 ctx.textAlign = 'center';
 ctx.fillStyle = '#FFFFFF';
@@ -1208,6 +1392,7 @@ ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
 ctx.shadowBlur = 3;
 ctx.shadowOffsetX = 1;
 ctx.shadowOffsetY = 1;
+
 let displayText = songName;
 let textWidth = ctx.measureText(displayText).width;
 
@@ -1227,12 +1412,28 @@ if (textWidth > maxWidth) {
   displayText = songName.slice(0, low) + ellipsis;
 }
 
-ctx.fillText(displayText, width / 2, textY);
 
+let textX = width / 2;
+
+if (isRadioStream && radioIconImg.complete) {
+const totalWidth = ctx.measureText(displayText).width + iconSize + 8;
+const startX = width / 2 - totalWidth / 2;
+ctx.save();
+ctx.filter = 'brightness(0) invert(1)';
+ctx.drawImage(radioIconImg, startX, textY - iconSize + 2, iconSize, iconSize);
+ctx.restore();
+ 
+  textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
+} else {
+  textX = width / 2;
+}
+
+ctx.fillText(displayText, textX, textY);
 ctx.shadowColor = 'transparent';
 ctx.shadowBlur = 0;
 ctx.shadowOffsetX = 0;
 ctx.shadowOffsetY = 0;
+
 
     if (!visualizerToggle || !analyser || !isMainWindowVisible) return;
 
@@ -1517,5 +1718,21 @@ function stopRainbowLoop() {
     }
   });
 </script>
+
+<div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
+  <div style="background: #222; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;">
+    <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
+    <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
+    <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #333; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
+    
+    <label>Station Name (optional):</label>
+    <input type="text" id="streamNameInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #333; border: none; border-radius: 5px; color: white;" placeholder="My Favorite Station" />
+    
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button id="cancelStreamBtn" style="background: #444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
+      <button id="addStreamConfirmBtn" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Add</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
