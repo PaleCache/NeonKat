@@ -1,44 +1,38 @@
 {
   "name": "muzik-electro",
-  "version": "0.0.8",
+  "version": "0.0.9",
+  "description": "A sick-ass music player with visualizer and miniplayer",
+  "author": "cx <cx@yourdomain.com>",
+  "homepage": "https://github.com/cx/muzik-electro",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "build:linux": "electron-builder --linux AppImage",
+    "build:win": "electron-builder --win"
   },
   "build": {
     "appId": "com.palecache.Muzik-Electro",
     "productName": "Muzik Electro",
+    "directories": {
+      "output": "dist"
+    },
     "files": [
-      "index.html",
       "main.js",
       "preload.js",
+      "index.html",
       "renderer/**/*",
-      "build/icon.png",
-      "build/music.gif",
-      "build/pause.svg",
-      "build/repeat.svg",
-      "build/shuffle.svg",
-      "build/bell.svg",
-      "build/bell-ring.svg",
-      "build/visualizer.svg",
-      "build/visualizeroff.svg",
-      "build/flash.svg",
-      "build/flashoff.svg",
-      "build/default-artwork.jpg",
-      "build/play.svg",
-      "build/skipRight.svg",
-      "build/skipLeft.svg",
-      "build/miniplayer.svg",
-      "build/volume.svg"
-
+      "build/**/*"
     ],
+    "asar": true,
     "win": {
-      "icon": "build/icon.ico",
-      "target": "nsis"
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.ico"
     },
     "linux": {
-      "icon": "build"
+      "target": ["AppImage"],
+      "icon": "build/icon.png",
+      "category": "Audio"
     }
   },
   "devDependencies": {

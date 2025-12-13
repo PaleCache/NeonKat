@@ -12,11 +12,11 @@ if (process.platform === 'win32') {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 733,
+    width: 560,
+    height: 743,
     frame: false,
     transparent: true,
-    resizable: true,
+    resizable: false,
      alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -32,7 +32,7 @@ function createWindow() {
   ipcMain.on('set-mini-mode', (event, isMini) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (isMini) {
-    window.setBounds({ width: 560, height: 320 });
+    window.setBounds({ width: 260, height: 290 });
   } else {
     window.setBounds({ width: 560, height: 733 });
   }
