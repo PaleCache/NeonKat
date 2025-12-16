@@ -1,5 +1,5 @@
 {
-  "name": "muzik-electro",
+  "name": "neonkat",
   "version": "0.1.0",
   "description": "A sick-ass music player with visualizer and miniplayer",
   "author": "cx <cx@yourdomain.com>",
@@ -12,8 +12,8 @@
     "build:win": "electron-builder --win"
   },
   "build": {
-    "appId": "com.palecache.Muzik-Electro",
-    "productName": "Muzik Electro",
+    "appId": "com.palecache.NeonKat",
+    "productName": "NeonKat",
     "directories": {
       "output": "dist"
     },
@@ -22,16 +22,17 @@
       "preload.js",
       "index.html",
       "renderer/**/*",
-      "build/**/*"
+      "build/**/*",
+      "jsmediatags.min.js"
     ],
     "asar": true,
     "win": {
       "target": ["nsis", "portable"],
-      "icon": "build/icon.ico"
+      "icon": "build/kat.ico"
     },
     "linux": {
       "target": ["AppImage"],
-      "icon": "build/icon.png",
+      "icon": "build/kat.png",
       "category": "Audio"
     }
   },

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Muzik Electro</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  <title>NeonKat</title>
+  <script src="jsmediatags.min.js"></script>
   <style>
     :root {
       --primary-color: #a88cff;
@@ -23,7 +23,34 @@
       width: 100vw;
       overflow: hidden;
       -webkit-app-region: drag;
+      outline: none !important;
     }
+
+#visualizerControls,
+#hamburgerBtn,
+#playlist li,
+#chooseFolder,
+#addStreamBtn,
+#sortBtn,
+#miniPlayerBtn,
+#notifyToggleBtn,
+#visualizerToggleBtn,
+#rainbowToggleBtn,
+button,
+
+a {
+  -webkit-app-region: no-drag !important;
+    outline: none !important;
+}
+
+
+.control-btn img,
+#topControls img,
+.icon {
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
+    outline: none !important;
+}
 
 
     .control-btn img,
@@ -43,7 +70,7 @@
         background: #111;
         padding: 15px;
         border-radius: 10px;
-        border: 6px solid #212121; 
+        border: 6px solid var(--primary-color); 
         box-sizing: border-box;      
         display: flex;
         flex-direction: column;
@@ -55,7 +82,7 @@
       text-align: center;
       margin: 0 0 10px;
       color: #ffffff;
-      margin-left: 100px;
+      margin-left: 145px;
     }
     #chooseFolder {
       background: #212121;
@@ -316,22 +343,21 @@
       cursor: pointer;
     }
     footer {
-  text-align: right;
-  font-size: 8px;
-  font-weight: bold;
-  color: #ffffff;  
-  pointer-events: none;
-      
-      
+      text-align: right;
+      font-size: 9px;
+      font-weight: bold;
+      color: #ffffff;  
+      pointer-events: none;
     }
 
 
     #streamUrlInput:focus,
-#streamNameInput:focus {
-  outline: none !important;
-}
+      #streamNameInput:focus,
+      #ytUrlInput {
+        outline: none !important;
+    }
 
-    #playlist li.selected {
+#playlist li.selected {
   background: var(--primary-color) !important;
   color: #000;
   font-weight: bold;
@@ -361,7 +387,7 @@
       gap: 0px;
       margin-bottom: 1px;
       flex-wrap: nowrap;
-      -webkit-app-region: no-drag;
+      -webkit-app-region: drag;
           width: 173px;
     }
     #visualizerControls {
@@ -377,6 +403,11 @@
       border: none;
       background: #111111;
       cursor: pointer;
+    }
+
+    #visualizerCanvas{
+     background-size: revert-layer !important;
+
     }
 
     #contextMenu button:hover {
@@ -399,7 +430,10 @@
     body.mini-mode #sortBtn,
     body.mini-mode #sortMenu,
     body.mini-mode #chooseFolder,
-    body.mini-mode #addStreamBtn{
+    body.mini-mode #addStreamBtn,
+    body.mini-mode #hamburgerMenu,
+    body.mini-mode #hamburgerBtn
+    {
       display: none !important;
     }
 
@@ -410,42 +444,74 @@
     body.mini-mode #visualizer {
       height: 80px !important;
       background-position: center !important;
-      background-size: cover !important;
       image-rendering: pixelated;
     }
+
+    #hamburgerMenu button:hover {
+  background: var(--primary-color) !important;
+  color: black !important;
+}
+
+#hamburgerBtn svg {
+  filter: brightness(0) invert(1);
+}
+
+#hamburgerBtn:hover svg {
+  stroke: var(--primary-color);
+}
 
   </style>
 </head>
 <body>
   <div id="rainbow-helper"></div>
   <div id="container">
-    <div id="topControls">
-      <button id="notifyToggleBtn" style="background: none; border: none; cursor: pointer;">
-        <img src="build/bell.svg" id="bellIcon" height="17" />
+  <div id="topControls" style="width: 100%; justify-content: space-between;">
+  <div style="display: flex; align-items: center; gap: 0px;">
+    <button id="notifyToggleBtn" style="background: none; border: none; cursor: pointer;" title="Notifications">
+      <img src="build/bell.svg" id="bellIcon" height="17" />
+    </button>
+    <div id="visualizerControls">
+      <button id="visualizerToggleBtn" style="background: none; border: none; cursor: pointer;" title="Audio Visualizer">
+        <img src="build/visualizer.svg" id="visualizerIcon" height="20" />
       </button>
-      <div id="visualizerControls">
-        <button id="visualizerToggleBtn" style="background: none; border: none; cursor: pointer;">
-          <img src="build/visualizer.svg" id="visualizerIcon" height="20" />
-        </button>
-        <input type="color" id="visualizerColor" value="#a88cff" title="Select Theme Color" />
-        <button id="rainbowToggleBtn" style="background: none; border: none; cursor: pointer;">
-          <img id="rainbowIcon" src="build/flashoff.svg" height="27" />
-        </button>
-      </div>
-      <button id="miniPlayerBtn" style="background: none; border: none; cursor: pointer; margin-left: 10px;">
-        <img src="build/miniplayer.svg" height="20" />
+      <input type="color" id="visualizerColor" value="#a88cff" title="Select Theme Color" />
+      <button id="rainbowToggleBtn" style="background: none; border: none; cursor: pointer;" title="Neon Mode">
+        <img id="rainbowIcon" src="build/flashoff.svg" height="27" />
       </button>
     </div>
+    <button id="miniPlayerBtn" style="background: none; border: none; cursor: pointer; margin-left: 10px;" title="Mini Player">
+      <img src="build/miniplayer.svg" height="20" />
+    </button>
+  </div>
+
+  <button id="hamburgerBtn" style="background: none; border: none; cursor: pointer; padding: 8px; -webkit-app-region: no-drag;" title="Menu">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+</div>
+
+
+<div id="hamburgerMenu" style="position: absolute; top: 70px; right: 15px; background: #222; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 2px solid var(--primary-color); display: none; z-index: 9999; min-width: 200px; -webkit-app-region: no-drag;">
+  <button id="downloadYoutubeBtn" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer; border-bottom: 1px solid #333;">
+    Download With Yt-Dlp
+  </button>
+  <button id="aboutBtn" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer;">
+    About NeonKat
+  </button>
+</div>
     <h1 style="display: flex; align-items: center; gap: 8px;">
-      Muzik Electro
-      <img src="build/music.gif" style="height: 54px;" />
+      NeonKat
+      <img src="build/kat.png" style="height: 54px;" />
     </h1>
  <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
   <button id="chooseFolder" style="flex: 1;">Choose Folder</button>
   <button id="addStreamBtn" class="control-btn" style="flex: 1;">Add Stream</button>
 </div>
 
-    <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;  justify-content: center; align-items: center; z-index: 9999;">
+    <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px; background: rgba(0,0,0,0.8); border-radius: 10px; justify-content: center; align-items: center; z-index: 9999;">
   <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
     border-radius: 10px;-webkit-app-region: drag;">
     <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
@@ -507,8 +573,8 @@
     </div>
     <canvas id="visualizer"></canvas>
     <footer>
-  <img src="build/pirate.png" alt=':)' style="width: 15px; height: auto; margin-right: 0px; vertical-align: middle;">
-  Muzik Electro
+  <img src="build/kat.png" alt=':)' style="width: 18px; height: auto; margin-right: 0px; vertical-align: middle;">
+  NeonKat
 </footer>
   </div>
   <audio id="audio"></audio>
@@ -535,6 +601,7 @@ label img {
   const durationElem = document.getElementById('duration');
   const sortBtn = document.getElementById('sortBtn');
   const sortMenu = document.getElementById('sortMenu');
+  
   let audioFiles = [];
   let rainbowIntervalId = null;
   let currentIndex = 0;
@@ -566,6 +633,170 @@ label img {
   const miniplayerToggleBtn = document.getElementById('miniplayerToggleBtn');
     const miniBtn = document.getElementById('miniPlayerBtn');
     let isMini = false;
+
+
+
+
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const downloadYoutubeBtn = document.getElementById('downloadYoutubeBtn');
+
+let menuOpen = false;
+
+hamburgerBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  menuOpen = !menuOpen;
+  hamburgerMenu.style.display = menuOpen ? 'block' : 'none';
+});
+
+
+document.addEventListener('click', () => {
+  if (menuOpen) {
+    menuOpen = false;
+    hamburgerMenu.style.display = 'none';
+  }
+});
+
+
+hamburgerMenu.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+
+downloadYoutubeBtn.addEventListener('click', () => {
+  hamburgerMenu.style.display = 'none';
+  menuOpen = false;
+
+  if (document.getElementById('ytModal')) {
+    document.getElementById('ytModal').style.display = 'flex';
+    return;
+  }
+
+
+
+
+  const modalHTML = `
+<div id="ytModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); border-radius: 10px; display: flex; justify-content: center; align-items: center; z-index: 99999;">
+  <div style="background: #111; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color);">
+    <h3 style="margin-top: 0; color: var(--primary-color); text-align: center;">Download With Yt-Dlp</h3>
+    
+    <!-- Permanent warning right under the title -->
+    <div style="background: #330000; border: 1px solid #ff3333; padding: 12px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13px; color: #ffaaaa; text-align: center;">
+      <strong>⚠️ HEADS UP ⚠️</strong><br><br>
+      Downloading large playlists (50+ videos) at once can get your IP temporarily rate-limited by YouTube for up to 24 hours.<br>
+      Stick to single videos or smaller batches to avoid getting fucked by their servers.
+    </div>
+    
+    <input type="text" id="ytUrlInput" placeholder="Paste YouTube URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
+    
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+      <button id="chooseDlFolderBtn" style="padding: 10px 15px; background: #212121; border: none; border-radius: 6px; color: white; cursor: pointer; flex: 1;">Choose Folder</button>
+      <span id="selectedDlFolder" style="color: var(--primary-color); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 2;">No folder selected</span>
+    </div>
+    
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button id="cancelYtBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
+      <button id="downloadYtConfirmBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold;">Download</button>
+    </div>
+  </div>
+</div>`;
+
+
+
+
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  const ytModal = document.getElementById('ytModal');
+  const ytUrlInput = document.getElementById('ytUrlInput');
+  const cancelBtn = document.getElementById('cancelYtBtn');
+  const confirmBtn = document.getElementById('downloadYtConfirmBtn');
+  const chooseFolderBtn = document.getElementById('chooseDlFolderBtn');
+  const selectedFolderSpan = document.getElementById('selectedDlFolder');
+
+  let downloadFolder = null; 
+  ytUrlInput.focus();
+  chooseFolderBtn.addEventListener('click', async () => {
+    const result = await window.electronAPI.pickDownloadFolder();
+    if (result.success) {
+      downloadFolder = result.folderPath;
+      selectedFolderSpan.textContent = downloadFolder;
+    } else {
+      selectedFolderSpan.textContent = 'Canceled';
+    }
+  });
+
+  cancelBtn.addEventListener('click', () => ytModal.remove());
+  ytModal.addEventListener('click', (e) => { if (e.target === ytModal) ytModal.remove(); });
+
+  confirmBtn.addEventListener('click', async () => {
+    const url = ytUrlInput.value.trim();
+    if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
+      alert('Give me a proper YouTube link');
+      return;
+    }
+
+    if (!downloadFolder) {
+      alert('Pick a folder first');
+      return;
+    }
+
+    confirmBtn.textContent = 'Downloading...';
+    confirmBtn.disabled = true;
+    const result = await window.electronAPI.downloadYoutube({ url, downloadFolder });
+
+    if (result.success) {
+  renderPlaylist();
+  alert(`Download complete!`);
+} else {
+  alert('Download fucked up: ' + result.message);
+}
+
+        ytModal.remove();
+      });
+    });
+
+
+
+    const aboutBtn = document.getElementById('aboutBtn');
+
+aboutBtn.addEventListener('click', () => {
+  hamburgerMenu.style.display = 'none';
+  menuOpen = false;
+
+  if (document.getElementById('aboutModal')) {
+    document.getElementById('aboutModal').style.display = 'flex';
+    return;
+  }
+
+  const modalHTML = `
+  <div id="aboutModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); border-radius: 10px; display: flex; justify-content: center; align-items: center; z-index: 99999;">
+    <div style="background: #111; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; border: 3px solid var(--primary-color); text-align: center; color: white;">
+      <h3 style="margin-top: 0; color: var(--primary-color);">About NeonKat</h3>
+      
+      <p style="font-size: 16px; margin: 15px 0;">Made With ❤️ By <strong>PaleCache</strong></p>
+      
+      <p style="font-size: 14px; margin-bottom: 20px;">A music player with YouTube ripping, streams, and neon vibes. Check out the source and star it if you love it!</p>
+      
+      <button id="openGitLabBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
+      
+      <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  const aboutModal = document.getElementById('aboutModal');
+  const closeBtn = document.getElementById('closeAboutBtn');
+  const gitLabBtn = document.getElementById('openGitLabBtn');
+  const gitLabUrl = 'https://gitlab.com/PaleCache/neonkat';
+
+  gitLabBtn.addEventListener('click', async () => {
+    await window.electronAPI.openExternal(gitLabUrl);
+  });
+
+  closeBtn.addEventListener('click', () => aboutModal.remove());
+  aboutModal.addEventListener('click', (e) => { if (e.target === aboutModal) aboutModal.remove(); });
+});
 
     miniBtn.addEventListener('click', () => {
       isMini = !isMini;
@@ -660,7 +891,7 @@ addStreamConfirmBtn.addEventListener('click', () => {
             }
           }
         }
-        alert('No valid stream found in that playlist file, asshole.');
+        alert('No valid stream found in that playlist file');
       })
       .catch(err => {
         console.error(err);
@@ -946,7 +1177,7 @@ document.addEventListener('click', (e) => {
     const { folderPath, audioFilePaths } = result;
 
     if (!audioFilePaths.length) {
-      alert('No audio files found in that folder, dipshit!');
+      alert('No audio files found in that folder');
       return;
     }
 

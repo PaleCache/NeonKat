@@ -1,13 +1,16 @@
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
+const { spawn } = require('child_process');
+const { shell } = require('electron');
 
 const { Notification } = require('electron');
 let tray = null;
 let mainWindow = null;
 
 if (process.platform === 'win32') {
-  app.setAppUserModelId("Muzik Electro");
+  app.setAppUserModelId("NeonKat");
 }
 
 function createWindow() {
@@ -17,24 +20,108 @@ function createWindow() {
     frame: false,
     transparent: true,
     resizable: false,
-     alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       enableRemoteModule: false,
       backgroundThrottling: false,
+      contextIsolation: true
      
     },
     icon: path.join(__dirname, 'build', 'kat.png'),
   });
 
+
+
+  ipcMain.handle('download-youtube', async (event, { url, downloadFolder }) => {
+  if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
+    return { success: false, message: 'Pick a valid fucking folder' };
+  }
+
+  const args = [
+    url,
+    '--extract-audio',
+    '--audio-format', 'mp3',
+    '--audio-quality', '0',
+    '--embed-thumbnail',
+    '--convert-thumbnails', 'jpg',
+    '--add-metadata',
+    '--output', path.join(downloadFolder, '%(title)s.%(ext)s'),
+    '--no-playlist',          
+    '--newline',
+  ];
+
+  return new Promise((resolve) => {
+    const ytProcess = spawn('yt-dlp', args, { cwd: downloadFolder });
+
+    let output = '';
+    let error = '';
+
+    ytProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    ytProcess.stderr.on('data', (data) => {
+      error += data.toString();
+    });
+
+    ytProcess.on('close', (code) => {
+      if (code === 0) {
+        const destMatch = output.match(/Destination: (.+\.(mp3|m4a|opus|webm))/i);
+        let filePath = destMatch ? path.join(downloadFolder, destMatch[1].trim()) : null;
+
+        if (!filePath) {
+          filePath = path.join(downloadFolder, 'downloaded_track.mp3');
+        }
+
+        resolve({ success: true, filePath });
+      } else {
+        let msg = `yt-dlp failed with code ${code}`;
+        if (error.includes('command not found') || error.includes('not recognized')) {
+          msg += '\n\nyt-dlp not found in PATH, Install it properly.';
+        } else {
+          msg += `\nError: ${error.substring(0, 600)}`;
+        }
+        resolve({ success: false, message: msg });
+      }
+    });
+
+    ytProcess.on('error', (err) => {
+      if (err.code === 'ENOENT') {
+        resolve({ success: false, message: 'yt-dlp not found. Install it and add to PATH' });
+      } else {
+        resolve({ success: false, message: `Spawn error: ${err.message}` });
+      }
+    });
+  });
+});
+
+ipcMain.on('open-external', (event, url) => {
+  shell.openExternal(url);
+});
+
+  ipcMain.handle('pick-download-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+    title: 'Select Download Folder'
+  });
+
+  if (result.canceled) {
+    return { success: false };
+  }
+
+  return { success: true, folderPath: result.filePaths[0] };
+});
+
   ipcMain.on('set-mini-mode', (event, isMini) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (isMini) {
     window.setBounds({ width: 260, height: 290 });
+    window.setAlwaysOnTop(true, 'screen-saver');
   } else {
     window.setBounds({ width: 441, height: 743 });
+    window.setAlwaysOnTop(false);
   }
 });
 
@@ -70,7 +157,7 @@ app.whenReady().then(() => {
     },
   ]);
 
-  tray.setToolTip('Muzik Electro');
+  tray.setToolTip('NeonKat');
   tray.setContextMenu(contextMenu);
 
   tray.on('click', () => {
@@ -122,15 +209,10 @@ ipcMain.handle('read-file', async (event, filePath) => {
 let lastFolderPath = null;
 ipcMain.handle('pick-folder', async () => {
   try {
-    if (mainWindow) mainWindow.setAlwaysOnTop(false);
-
     const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory'],
+     properties: ['openDirectory'],
       defaultPath: lastFolderPath || undefined,
     });
-
-
-    if (mainWindow) mainWindow.setAlwaysOnTop(true);  
 
     if (result.canceled) return null;
 
