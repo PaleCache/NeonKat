@@ -1,8 +1,8 @@
 {
   "name": "neonkat",
-  "version": "0.1.0",
-  "description": "A sick-ass music player with visualizer and miniplayer",
-  "author": "cx <cx@yourdomain.com>",
+  "version": "0.1.1",
+  "description": "A simple yet not music player with visualizer and miniplayer",
+  "author": "PaleCache",
   "homepage": "https://github.com/cx/muzik-electro",
   "main": "main.js",
   "scripts": {

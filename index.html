@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -10,6 +10,8 @@
       --primary-color: #a88cff;
       --primary-dark: #7a5fff;
     }
+
+    
     body {
       margin: 0;
       padding: 0;                  
@@ -22,8 +24,8 @@
       height: 100vh;
       width: 100vw;
       overflow: hidden;
-      -webkit-app-region: drag;
       outline: none !important;
+      border-radius: 10px;
     }
 
 #visualizerControls,
@@ -39,7 +41,7 @@
 button,
 
 a {
-  -webkit-app-region: no-drag !important;
+  
     outline: none !important;
 }
 
@@ -261,6 +263,10 @@ a {
     .control-btn:hover {
       background: var(--primary-color) !important;
     }
+
+    * {
+  transition: none !important;
+}
     #volume {
       -webkit-appearance: none;
       -moz-appearance: none;
@@ -348,6 +354,7 @@ a {
       font-weight: bold;
       color: #ffffff;  
       pointer-events: none;
+      height: 13px !important;
     }
 
 
@@ -463,6 +470,7 @@ a {
   </style>
 </head>
 <body>
+  <div id="titlebar" style="-webkit-app-region: drag; height: 20px; position: absolute; top: 0; left: 0; right: 0; z-index: 1;"></div>
   <div id="rainbow-helper"></div>
   <div id="container">
   <div id="topControls" style="width: 100%; justify-content: space-between;">
@@ -502,7 +510,7 @@ a {
     About NeonKat
   </button>
 </div>
-    <h1 style="display: flex; align-items: center; gap: 8px;">
+    <h1 style="display: flex; align-items: center; gap: 8px; ">
       NeonKat
       <img src="build/kat.png" style="height: 54px;" />
     </h1>
@@ -573,7 +581,12 @@ a {
     </div>
     <canvas id="visualizer"></canvas>
     <footer>
-  <img src="build/kat.png" alt=':)' style="width: 18px; height: auto; margin-right: 0px; vertical-align: middle;">
+  <img src="build/kat.png" alt=':)' style="    width: 15px;
+    height: 15px;
+    margin-right: 8px;
+    vertical-align: middle;
+    -webkit-app-region: drag;
+    transform: scale(2) !important; -webkit-app-region: drag;">
   NeonKat
 </footer>
   </div>
@@ -605,6 +618,8 @@ label img {
   let audioFiles = [];
   let rainbowIntervalId = null;
   let currentIndex = 0;
+
+let flashIntensity = 0; 
   let isSeeking = false;
   let repeatTrack = false;
   let shuffleTrack = false;
@@ -622,6 +637,14 @@ label img {
   analyser.fftSize = 128;
   const source = audioCtx.createMediaElementSource(audio);
   source.connect(analyser);
+  const lowpass = audioCtx.createBiquadFilter();
+lowpass.type = 'lowpass';
+lowpass.frequency.value = 150;  
+lowpass.Q.value = 1;           
+
+source.connect(lowpass);
+lowpass.connect(analyser);
+analyser.connect(audioCtx.destination); 
   analyser.connect(audioCtx.destination);
   const radioIconImg = new Image();
   radioIconImg.src = 'build/radio.svg';
@@ -637,7 +660,7 @@ label img {
 
 
 
-    const hamburgerBtn = document.getElementById('hamburgerBtn');
+const hamburgerBtn = document.getElementById('hamburgerBtn');
 const hamburgerMenu = document.getElementById('hamburgerMenu');
 const downloadYoutubeBtn = document.getElementById('downloadYoutubeBtn');
 
@@ -686,7 +709,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
       Stick to single videos or smaller batches to avoid getting fucked by their servers.
     </div>
     
-    <input type="text" id="ytUrlInput" placeholder="Paste YouTube URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
+    <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
     
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
       <button id="chooseDlFolderBtn" style="padding: 10px 15px; background: #212121; border: none; border-radius: 6px; color: white; cursor: pointer; flex: 1;">Choose Folder</button>
@@ -730,10 +753,15 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
   confirmBtn.addEventListener('click', async () => {
     const url = ytUrlInput.value.trim();
-    if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
-      alert('Give me a proper YouTube link');
-      return;
-    }
+    if (!url) {
+      alert('Paste a fucking URL first!');
+  return;
+}
+
+
+if (!url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('soundcloud.com')) {
+  alert('Stick to YouTube or SoundCloud links for now, Should i add more? let me know :)');
+}
 
     if (!downloadFolder) {
       alert('Pick a folder first');
@@ -818,7 +846,6 @@ aboutBtn.addEventListener('click', () => {
     window.electronAPI.updateTheme({ color, isRainbow });
 
     if (isRainbowActive) {
-      startRainbowColorLoop();
     } else {
       document.documentElement.style.setProperty('--primary-color', themeColor);
       document.documentElement.style.setProperty('--primary-dark', adjustColor(themeColor, -20));
@@ -841,9 +868,7 @@ rainbowToggleBtn.addEventListener('click', () => {
   localStorage.setItem('isRainbowActive', isRainbowActive);
   if (isRainbowActive) {
     updateThemeColor(themeColor, true);
-    startRainbowColorLoop();
   } else {
-    stopRainbowLoop();
     updateThemeColor(themeColor, false);
   }
 });
@@ -929,10 +954,53 @@ function addStreamToPlaylist(url, customName = null) {
 }
 
 
-  shuffleBtn.addEventListener('click', () => {
-    shuffleTrack = !shuffleTrack;
-    shuffleBtn.classList.toggle('enabled', shuffleTrack);
-  });
+
+let savedSortedOrder = []; 
+let isShuffled = false;
+shuffleBtn.classList.toggle('enabled', isShuffled);
+
+shuffleBtn.addEventListener('click', () => {
+  isShuffled = !isShuffled;
+  shuffleBtn.classList.toggle('enabled', isShuffled);
+
+  if (isShuffled) {
+    savedSortedOrder = [...audioFiles];
+    const currentTrack = audioFiles[currentIndex];
+    let remaining = audioFiles.filter((_, i) => i !== currentIndex);
+    shuffleArray(remaining);
+    audioFiles = [currentTrack, ...remaining];
+    currentIndex = 0;
+
+  } else {
+    audioFiles = [...savedSortedOrder];
+    const currentTrack = audioFiles[currentIndex];
+    const restoredIndex = audioFiles.findIndex(item => deepEqual(item, currentTrack));
+    currentIndex = restoredIndex !== -1 ? restoredIndex : 0;
+  }
+
+  renderPlaylist();
+  updateSelectionVisuals();
+  scrollToCurrentTrack();
+});
+
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (typeof a === 'string') return a === b;
+  if (a.isStream && b.isStream) {
+    return a.url === b.url && a.name === b.name;
+  }
+  return false;
+}
 
   repeatBtn.addEventListener('click', () => {
     repeatTrack = !repeatTrack;
@@ -1167,29 +1235,29 @@ document.addEventListener('click', (e) => {
     if ('Notification' in window && Notification.permission !== 'granted') {
       await Notification.requestPermission();
     }
-
     const result = await window.electronAPI.pickFolder();
     if (!result || result.canceled) {
-      return;  
+      return;
     }
-
-
     const { folderPath, audioFilePaths } = result;
-
     if (!audioFilePaths.length) {
       alert('No audio files found in that folder');
       return;
     }
 
-    audioFiles = audioFilePaths;
-    currentIndex = 0;
+    
+      audioFiles = audioFilePaths;
+    savedSortedOrder = [];
+    isShuffled = false;
+    shuffleBtn.classList.remove('enabled');
 
-    const sortedIndex = await applySavedSort();
+    currentIndex = 0;
+    await applySavedSort();
+
     updateStoredPlaylist();
     renderPlaylist();
     playTrack(0);
     scrollToCurrentTrack();
-
   } catch (err) {
     console.error('Folder load error:', err);
     alert('Error: ' + err.message);
@@ -1421,7 +1489,9 @@ async function setVisualizerBackground(item) {
   let displayName;
 
   if (typeof item === 'string') {
-    src = `file://${item}`;
+
+    let pathPart = item.replace(/\\/g, '/');
+    src = 'file://' + pathPart.split('/').map(encodeURIComponent).join('/');
     displayName = item.split(/[\\/]/).pop();
   } else if (item.isStream) {
     src = item.url;
@@ -1567,17 +1637,14 @@ function visualize() {
   let frameCounter = 0;
   let lastTime = 0;
 
-  function draw(timestamp) {
+function draw(timestamp) {
     animationFrameId = requestAnimationFrame(draw);
-
     if (lastTime && (timestamp - lastTime) < 33) return;
     lastTime = timestamp || performance.now();
     ctx.clearRect(0, 0, width, height);
-
-let songName = 'No Track';
-let isRadioStream = false;
-
-const currentItem = audioFiles[currentIndex];
+    let songName = 'No Track';
+    let isRadioStream = false;
+    const currentItem = audioFiles[currentIndex];
 
 if (currentItem) {
   if (typeof currentItem === 'string') {
@@ -1657,10 +1724,99 @@ ctx.shadowOffsetY = 0;
     if (!visualizerToggle || !analyser || !isMainWindowVisible) return;
 
     analyser.getByteFrequencyData(dataArray);
+frameCounter++;
+if (frameCounter % 2 === 0 && window.electronAPI?.updateVisualizer) {
+  window.electronAPI.updateVisualizer(Array.from(dataArray));
+}
+
+
+let lowEnergy = 0;
+const lowStart = 0;
+const lowEnd = 10;
+for (let i = lowStart; i < lowEnd; i++) {
+  lowEnergy += dataArray[i];
+}
+lowEnergy /= (lowEnd - lowStart);
+
+if (!window.energyHistory) window.energyHistory = [];
+window.energyHistory.push(lowEnergy);
+if (window.energyHistory.length > 32) window.energyHistory.shift();
+
+const avgEnergy = window.energyHistory.reduce((a,b) => a+b) / window.energyHistory.length;
+
+const thresholdMultiplier = 1.8;
+const minThreshold = 80;
+
+let isBeat = false;
+if (lowEnergy > Math.max(avgEnergy * thresholdMultiplier, minThreshold) && !window.lastBeat) {
+  isBeat = true;
+  window.lastBeat = true;
+} else if (lowEnergy < avgEnergy * 1.2) {
+  window.lastBeat = false;
+}
     frameCounter++;
     if (frameCounter % 2 === 0 && window.electronAPI?.updateVisualizer) {
       window.electronAPI.updateVisualizer(Array.from(dataArray));
     }
+
+  if (isRainbowActive) {
+  let bass = 0;
+  let mids = 0;
+
+  const BASS_BINS = 6;
+  const MID_START = 12;
+  const MID_BINS = 10;
+
+  for (let i = 0; i < BASS_BINS; i++) bass += dataArray[i];
+  for (let i = MID_START; i < MID_START + MID_BINS; i++) mids += dataArray[i];
+
+  bass /= BASS_BINS;
+  mids /= MID_BINS;
+  if (window.prevBass === undefined) window.prevBass = bass;
+  if (window.prevMids === undefined) window.prevMids = mids;
+
+  const bassDelta = bass - window.prevBass;
+  const midDelta = mids - window.prevMids;
+
+  window.prevBass = bass;
+  window.prevMids = mids;
+  if (!window.bassDeltaHist) window.bassDeltaHist = [];
+  window.bassDeltaHist.push(bassDelta);
+  if (window.bassDeltaHist.length > 20) window.bassDeltaHist.shift();
+
+  const avgBassDelta =
+    window.bassDeltaHist.reduce((a, b) => a + b, 0) /
+    window.bassDeltaHist.length;
+  const now = performance.now();
+  if (!window.lastBeatTime) window.lastBeatTime = 0;
+
+  const MIN_INTERVAL = 1; 
+  let triggerBeat = false;
+  if (
+    bassDelta > avgBassDelta * 1.8 && 
+    bassDelta > 4 &&                  
+    bassDelta > midDelta * 1.5 &&     
+    now - window.lastBeatTime > MIN_INTERVAL
+  ) {
+    triggerBeat = true;
+    window.lastBeatTime = now;
+  }
+
+
+  if (window.rainbowHue === undefined) window.rainbowHue = Math.floor(Math.random() * 360);
+
+  if (triggerBeat) {
+    window.rainbowHue = (window.rainbowHue + 60) % 360;
+  }
+
+  const color = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 70 : 55}%)`;
+  const darkColor = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 40 : 30}%)`;
+
+  document.documentElement.style.setProperty('--primary-color', color);
+  document.documentElement.style.setProperty('--primary-dark', darkColor);
+}
+
+
 
     const barCount = isMini ? 48 : 64;
     const step = Math.max(1, Math.floor(bufferLength / barCount));
@@ -1692,16 +1848,16 @@ ctx.shadowOffsetY = 0;
   animationFrameId = requestAnimationFrame(draw);
 }
 
+
+
 let isMainWindowVisible = true;
 
 document.addEventListener('visibilitychange', () => {
   isMainWindowVisible = !document.hidden;
   if (!isMainWindowVisible) {
     stopVisualizer();
-    stopRainbowLoop();
   } else {
     if (visualizerToggle) visualize();
-    if (isRainbowActive) startRainbowColorLoop();
   }
 });
   function adjustColor(color, percent) {
@@ -1774,18 +1930,17 @@ document.addEventListener('visibilitychange', () => {
     audio.addEventListener('play', visualize);
   }
 
-  audio.addEventListener('ended', () => {
-    if (repeatTrack) {
-      playTrack(currentIndex);
-    } else if (shuffleTrack) {
-      currentIndex = Math.floor(Math.random() * audioFiles.length);
-      playTrack(currentIndex);
-    } else {
-      currentIndex++;
-      if (currentIndex >= audioFiles.length) currentIndex = 0;
-      playTrack(currentIndex);
+audio.addEventListener('ended', () => {
+  if (repeatTrack) {
+    playTrack(currentIndex);
+  } else {
+    currentIndex++;
+    if (currentIndex >= audioFiles.length) {
+      currentIndex = 0;
     }
-  });
+    playTrack(currentIndex);
+  }
+});
 
   async function applySavedSort() {
     const criteria = localStorage.getItem('sortCriteria');

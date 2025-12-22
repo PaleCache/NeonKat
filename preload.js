@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-
+dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
   pickDownloadFolder: () => ipcRenderer.invoke('pick-download-folder'),
   openFile: () => ipcRenderer.invoke('open-file'),
