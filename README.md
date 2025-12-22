@@ -8,6 +8,7 @@
 - Seek, volume, and other simple features you would expect from a music player <br>
 - Yt-dlp support (need to have yt-dlp installed in your path https://github.com/yt-dlp/yt-dlp/wiki/Installation)<br>
 - Radio streams support
+- Neon Mode (changes colors to the beat)
 
 ## ℹ️ Version v0.1.1a
 - Added x11 Support <br>
