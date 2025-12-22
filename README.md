@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./build/kat.png" alt="NeonKat Banner" width="10%"> <br>NeonKat: A simple electron music player for linux and windows systems
+  <img src="./build/kat.png" alt="NeonKat Banner" width="10%"> <br>NeonKat: A simple electron music player for linux and windows based systems
 </p>
 
 <br><br>
