@@ -805,7 +805,7 @@ aboutBtn.addEventListener('click', () => {
       
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with YouTube ripping, streams, and neon vibes. Check out the source and star it if you love it!</p>
       
-      <button id="openGitLabBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
+      <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
     </div>
@@ -815,11 +815,11 @@ aboutBtn.addEventListener('click', () => {
 
   const aboutModal = document.getElementById('aboutModal');
   const closeBtn = document.getElementById('closeAboutBtn');
-  const gitLabBtn = document.getElementById('openGitLabBtn');
-  const gitLabUrl = 'https://gitlab.com/PaleCache/neonkat';
+  const gitHubBtn = document.getElementById('openGitHubBtn');
+  const gitHubUrl = 'https://github.com/PaleCache/NeonKat';
 
-  gitLabBtn.addEventListener('click', async () => {
-    await window.electronAPI.openExternal(gitLabUrl);
+  gitHubBtn.addEventListener('click', async () => {
+    await window.electronAPI.openExternal(gitHubUrl);
   });
 
   closeBtn.addEventListener('click', () => aboutModal.remove());
