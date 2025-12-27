@@ -14,7 +14,7 @@
 - **Zero outside connections. Runs 100% locally on your device.** --  Your music and your data stays with you as it always should.
   No cloud bullshit, no tracking, no compromises.
  
-## ℹ️ Version v0.1.1a
+## ℹ️ Version v0.1.3a
 - Added x11 Support <br>
 - Added Mini Player <br>
 - Added Radio Streams <br>
