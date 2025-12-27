@@ -8,7 +8,7 @@
 - **Music visualizer**<br> 
 - **Always on top mini mode**
 - **Seek, volume, and other simple features you would expect from a music player** <br>
-- **Yt-dlp support (need to have yt-dlp installed in your path https://github.com/yt-dlp/yt-dlp/wiki/Installation)**<br>
+- **Yt-dlp support (need to have yt-dlp and ffmpeg installed in your path https://github.com/yt-dlp/yt-dlp/wiki/Installation)**<br>
 - **Radio streams support**
 - **Neon Mode (changes colors to the beat)**
 - **Zero outside connections. Runs 100% locally on your device.** --  Your music and your data stays with you as it always should.
