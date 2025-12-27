@@ -1525,10 +1525,14 @@ async function setVisualizerBackground(item) {
   let displayName;
 
   if (typeof item === 'string') {
+  let normalizedPath = item.replace(/\\/g, '/');
+  const a = document.createElement('a');
+  a.href = 'file://' + normalizedPath;
+  src = a.href;
+  src = src.replace(/^file:\/*/i, 'file:///');
+  
+  displayName = item.split(/[\\/]/).pop();
 
-    let pathPart = item.replace(/\\/g, '/');
-    src = 'file://' + pathPart.split('/').map(encodeURIComponent).join('/');
-    displayName = item.split(/[\\/]/).pop();
   } else if (item.isStream) {
     src = item.url;
     displayName = item.name || 'Radio Stream';
