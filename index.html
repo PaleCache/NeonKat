@@ -1525,13 +1525,13 @@ async function setVisualizerBackground(item) {
   let displayName;
 
   if (typeof item === 'string') {
-  let normalizedPath = item.replace(/\\/g, '/');
-  const a = document.createElement('a');
-  a.href = 'file://' + normalizedPath;
-  src = a.href;
-  src = src.replace(/^file:\/*/i, 'file:///');
-  
-  displayName = item.split(/[\\/]/).pop();
+  const normalizedPath = item.replace(/\\/g, '/');
+  const encodedPath = encodeURI(normalizedPath).replace(/#/g, '%23');
+  src = `file://${encodedPath}`;
+
+  displayName = normalizedPath.split('/').pop();
+
+
 
   } else if (item.isStream) {
     src = item.url;
