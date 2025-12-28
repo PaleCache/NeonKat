@@ -11,6 +11,7 @@
 - **Yt-dlp support (need to have yt-dlp and ffmpeg installed in your system path https://github.com/yt-dlp/yt-dlp/wiki/Installation)**<br>
 - **Radio streams support**
 - **Neon Mode (changes colors to the beat)**
+- **Canvas Mode (Short mp4 video previews)** - plays short videos in the visualizer, similar to spotify’s canvas feature.
 - **Zero outside connections. Runs 100% locally on your device.** --  Your music and your data stays with you as it always should.
   No cloud bullshit, no tracking, no compromises.
  
@@ -23,6 +24,10 @@
 | Mini Mode | Radio Streams | Yt-dlp Support |
 |--------------|----------------|-----------------------------------------|
 | <img src="./assets/mini-mode.png" width="200"  style="object-fit: cover;"> | <img src="./assets/radio-streams.png" width="200"  style="object-fit: cover;"> | <img src="./assets/yt-dlp-support.png" width="210" style="object-fit: cover;"> |
+
+| Short Mp4 Music Video Previews |
+|--------------|
+| <img src="./assets/gifPreview.gif" width="200"  style="object-fit: cover;"> | <img src="./assets/radio-streams.png" width="200"  style="object-fit: cover;"> | <img src="./assets/yt-dlp-support.png" width="210" style="object-fit: cover;"> |
 
 ## 🤗 Special Thanks
 - Some friends who helped with the artwork you know who you are, thanks a lot :)<br>
