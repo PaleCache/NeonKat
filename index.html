@@ -302,7 +302,7 @@ a {
     }
     #visualizer {
       width: 100%;
-      height: 143px;
+      height: 164px;
       background-size: contain;
       background-position: center;
       background-repeat: no-repeat;
@@ -448,11 +448,24 @@ a {
       margin-top: 5px;
     }
 
-    body.mini-mode #visualizer {
-      height: 84px !important;
-      background-position: center !important;
-      image-rendering: pixelated;
-    }
+  body.mini-mode #visualizer {
+    height: 109px !important;
+    background-position: center !important;
+    image-rendering: pixelated;
+}
+
+
+body.mini-mode #visualizerVideo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 106px;
+    object-fit: cover;
+    z-index: 0;
+    border-radius: inherit;
+}
+
+
 
     #hamburgerMenu button:hover {
   background: var(--primary-color) !important;
@@ -468,13 +481,14 @@ a {
 }
 
 #visualizerWrapper {
-  position: relative;
-  width: 100%;
-  height: 220px;
-  overflow: hidden;
-  border-radius: 8px;
-  background: #111;
+    position: relative;
+    width: 100%;
+    height: 225px;
+    overflow: initial;
+    border-radius: 8px;
+    background: #111;
 }
+
 #skipVideoToggle {
   width: 40px;
   height: 20px;
@@ -505,12 +519,13 @@ a {
 }
 
 #visualizerVideo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0; 
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 164px;
+    object-fit: cover;
+    z-index: 0;
+    border-radius: inherit;
 }
 
 #visualizer {
@@ -536,6 +551,81 @@ a {
   text-shadow: 0 0 4px black;
 }
 
+
+.vis-mode-toggle {
+  width: 100%;
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vis-mode-toggle:last-child {
+  border-bottom: none;
+}
+
+.vis-mode-toggle .label {
+  font-weight: normal;
+}
+
+.vis-mode-toggle .switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  right: 27px;
+}
+
+.vis-mode-toggle .switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.vis-mode-toggle .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #444;
+  transition: .3s;
+  border-radius: 26px;
+}
+
+.vis-mode-toggle .slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #666;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+
+.vis-mode-toggle input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+.vis-mode-toggle input:checked + .slider:before {
+  transform: translateX(24px);
+  background-color: #111;
+}
+
+.vis-mode-toggle.active .label {
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
   </style>
 </head>
 <body>
@@ -548,7 +638,7 @@ a {
     <button id="notifyToggleBtn" style="background: none; border: none; cursor: pointer;" title="Notifications">
       <img src="build/bell.svg" id="bellIcon" height="17" />
     </button>
-    <button id="gifPreviewToggleBtn" style="background: none; border: none; cursor: pointer;" title="GIF Preview in Visualizer">
+    <button id="gifPreviewToggleBtn" style="background: none; border: none; cursor: pointer;" title="Canvas Mode">
   <img src="build/gif.svg" id="gifIcon" height="20" />  
 </button>
     <div id="visualizerControls">
@@ -580,12 +670,27 @@ a {
 
 
 <div id="hamburgerMenu" style="position: absolute; top: 70px; right: 15px; background: #222; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 2px solid var(--primary-color); display: none; z-index: 9999; min-width: 200px; -webkit-app-region: no-drag;">
-  <button id="downloadYoutubeBtn" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer; border-bottom: 1px solid #333;">
+  <button id="downloadYoutubeBtn" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer;">
     Download With Yt-Dlp
   </button>
   <button id="aboutBtn" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer;">
     About NeonKat
   </button>
+
+ <div class="vis-mode-toggle" id="barsToggle">
+  <span class="label">Visualizer Bars</span>
+  <label class="switch">
+    <input type="checkbox" id="barsCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
+<div class="vis-mode-toggle" id="bubblesToggle">
+  <span class="label">Visualizer Bubbles</span>
+  <label class="switch">
+    <input type="checkbox" id="bubblesCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
 </div>
     <h1 style="display: flex; align-items: center; gap: 8px; ">
       NeonKat
@@ -688,11 +793,21 @@ label img {
 
 </style>
 <script>
-  
+  const bubbleImages = [
+  new Image(),
+  new Image()
+];
+  bubbleImages[0].src = 'build/note.png'; 
+  bubbleImages[1].src = 'build/note1.png';  
   const filePickerBtn = document.getElementById('chooseFolder');
   const savePlaylistBtn = document.getElementById('savePlaylistBtn');
   const loadPlaylistBtn = document.getElementById('loadPlaylistBtn');
   const selectedFolderName = document.getElementById('selectedFolderName');
+  let visualizerMode = localStorage.getItem('visualizerMode') || 'bars';
+  const barsToggle = document.getElementById('barsToggle');
+  const bubblesToggle = document.getElementById('bubblesToggle');
+  const barsCheckbox = document.getElementById('barsCheckbox');
+  const bubblesCheckbox = document.getElementById('bubblesCheckbox');
   let skipVideo = localStorage.getItem('skipVideo') === 'true';
   const playlistElem = document.getElementById('playlist');
   const audio = document.getElementById('audio');
@@ -704,6 +819,7 @@ label img {
   const durationElem = document.getElementById('duration');
   const sortBtn = document.getElementById('sortBtn');
   const sortMenu = document.getElementById('sortMenu');
+ 
   let audioFiles = [];
   let rainbowIntervalId = null;
   let currentIndex = 0;
@@ -719,6 +835,8 @@ label img {
   const rainbowIcon = document.getElementById('rainbowIcon');
   rainbowIcon.src = isRainbowActive ? 'build/flash.svg' : 'build/flashoff.svg';
   const rainbowToggleBtn = document.getElementById('rainbowToggleBtn');
+  const barsToggleBtn = document.getElementById('barsToggleBtn');
+const bubblesToggleBtn = document.getElementById('bubblesToggleBtn');
   let rainbowFrameId = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
@@ -746,7 +864,37 @@ analyser.connect(audioCtx.destination);
     let isMini = false;
 
 
+function updateVisualizerModeUI() {
+  if (visualizerMode === 'bars') {
+    barsToggle.classList.add('active');
+    bubblesToggle.classList.remove('active');
+    barsCheckbox.checked = true;
+    bubblesCheckbox.checked = false;
+  } else {
+    bubblesToggle.classList.add('active');
+    barsToggle.classList.remove('active');
+    barsCheckbox.checked = false;
+    bubblesCheckbox.checked = true;
+  }
+}
 
+
+barsToggle.addEventListener('click', () => {
+  visualizerMode = 'bars';
+  localStorage.setItem('visualizerMode', visualizerMode);
+  updateVisualizerModeUI();
+  if (visualizerToggle && !audio.paused) visualize();
+});
+
+bubblesToggle.addEventListener('click', () => {
+  visualizerMode = 'bubbles';
+  localStorage.setItem('visualizerMode', visualizerMode);
+  updateVisualizerModeUI();
+  if (visualizerToggle && !audio.paused) visualize();
+});
+
+
+updateVisualizerModeUI();
 
 const hamburgerBtn = document.getElementById('hamburgerBtn');
 const hamburgerMenu = document.getElementById('hamburgerMenu');
@@ -941,7 +1089,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.4 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.5 alpha</p>
       </div>
   </div>
   `;
@@ -1860,214 +2008,248 @@ function draw(timestamp) {
     animationFrameId = requestAnimationFrame(draw);
     if (lastTime && (timestamp - lastTime) < 33) return;
     lastTime = timestamp || performance.now();
+
+    const canvas = visualizerCanvas;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+    if (width !== lastWidth || height !== lastHeight) {
+        canvas.width = width;
+        canvas.height = height;
+        lastWidth = width;
+        lastHeight = height;
+    }
+
     ctx.clearRect(0, 0, width, height);
     let songName = 'No Track';
     let isRadioStream = false;
     const currentItem = audioFiles[currentIndex];
-
-if (currentItem) {
-  if (typeof currentItem === 'string') {
-    songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
-  } else if (currentItem.isStream) {
-    isRadioStream = true;
-    if (currentItem.name && currentItem.name.trim() !== '') {
-      songName = currentItem.name.trim();
-    } else {
-      try {
-        songName = new URL(currentItem.url).hostname;
-      } catch {
-        songName = 'Radio Stream';
-      }
+    if (currentItem) {
+        if (typeof currentItem === 'string') {
+            songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
+        } else if (currentItem.isStream) {
+            isRadioStream = true;
+            songName = currentItem.name?.trim() || (new URL(currentItem.url).hostname || 'Radio Stream');
+        }
     }
-  }
-}
+    if (songName.length > 50) songName = songName.slice(0, 47) + '...';
 
-if (songName.length > 50) {
-  songName = songName.slice(0, 47) + '...';
-}
+    const isMini = document.body.classList.contains('mini-mode');
+    const iconSize = isMini ? 10 : 14;
+    const textY = isMini ? 14 : 18;
+    const maxWidth = width * 0.92;
 
-const isMini = document.body.classList.contains('mini-mode');
-const iconSize = isMini ? 10 : 14;
-const textY = isMini ? 14 : 18;
-const maxWidth = width * 0.92;
-ctx.font = isMini ? '10.5px Arial' : '14px Arial';
-ctx.textAlign = 'center';
-ctx.fillStyle = '#FFFFFF';
-ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-ctx.shadowBlur = 3;
-ctx.shadowOffsetX = 1;
-ctx.shadowOffsetY = 1;
+    ctx.font = isMini ? '10.5px Arial' : '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
 
-let displayText = songName;
-let textWidth = ctx.measureText(displayText).width;
-
-if (textWidth > maxWidth) {
-  let ellipsis = '...';
-  let availableWidth = maxWidth - ctx.measureText(ellipsis).width;
-  let low = 0, high = songName.length;
-  while (low < high) {
-    let mid = Math.floor((low + high + 1) / 2);
-    let testText = songName.slice(0, mid);
-    if (ctx.measureText(testText).width <= availableWidth) {
-      low = mid;
-    } else {
-      high = mid - 1;
+    let displayText = songName;
+    let textWidth = ctx.measureText(displayText).width;
+    if (textWidth > maxWidth) {
+        const ellipsis = '...';
+        let availableWidth = maxWidth - ctx.measureText(ellipsis).width;
+        let low = 0, high = songName.length;
+        while (low < high) {
+            let mid = Math.floor((low + high + 1) / 2);
+            let testText = songName.slice(0, mid);
+            if (ctx.measureText(testText).width <= availableWidth) low = mid;
+            else high = mid - 1;
+        }
+        displayText = songName.slice(0, low) + ellipsis;
     }
-  }
-  displayText = songName.slice(0, low) + ellipsis;
-}
 
+    let textX = width / 2;
+    if (isRadioStream && radioIconImg.complete) {
+        const totalWidth = ctx.measureText(displayText).width + iconSize + 8;
+        const startX = width / 2 - totalWidth / 2;
+        ctx.save();
+        ctx.filter = 'brightness(0) invert(1)';
+        ctx.drawImage(radioIconImg, startX, textY - iconSize + 2, iconSize, iconSize);
+        ctx.restore();
+        textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
+    }
+    ctx.fillText(displayText, textX, textY);
 
-let textX = width / 2;
-
-if (isRadioStream && radioIconImg.complete) {
-const totalWidth = ctx.measureText(displayText).width + iconSize + 8;
-const startX = width / 2 - totalWidth / 2;
-ctx.save();
-ctx.filter = 'brightness(0) invert(1)';
-ctx.drawImage(radioIconImg, startX, textY - iconSize + 2, iconSize, iconSize);
-ctx.restore();
- 
-  textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
-} else {
-  textX = width / 2;
-}
-
-ctx.fillText(displayText, textX, textY);
-ctx.shadowColor = 'transparent';
-ctx.shadowBlur = 0;
-ctx.shadowOffsetX = 0;
-ctx.shadowOffsetY = 0;
-
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 
     if (!visualizerToggle || !analyser || !isMainWindowVisible) return;
-
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
     analyser.getByteFrequencyData(dataArray);
-frameCounter++;
-if (frameCounter % 2 === 0 && window.electronAPI?.updateVisualizer) {
-  window.electronAPI.updateVisualizer(Array.from(dataArray));
-}
 
-
-let lowEnergy = 0;
-const lowStart = 0;
-const lowEnd = 10;
-for (let i = lowStart; i < lowEnd; i++) {
-  lowEnergy += dataArray[i];
-}
-lowEnergy /= (lowEnd - lowStart);
-
-if (!window.energyHistory) window.energyHistory = [];
-window.energyHistory.push(lowEnergy);
-if (window.energyHistory.length > 32) window.energyHistory.shift();
-
-const avgEnergy = window.energyHistory.reduce((a,b) => a+b) / window.energyHistory.length;
-
-const thresholdMultiplier = 1.8;
-const minThreshold = 80;
-
-let isBeat = false;
-if (lowEnergy > Math.max(avgEnergy * thresholdMultiplier, minThreshold) && !window.lastBeat) {
-  isBeat = true;
-  window.lastBeat = true;
-} else if (lowEnergy < avgEnergy * 1.2) {
-  window.lastBeat = false;
-}
     frameCounter++;
     if (frameCounter % 2 === 0 && window.electronAPI?.updateVisualizer) {
-      window.electronAPI.updateVisualizer(Array.from(dataArray));
+        window.electronAPI.updateVisualizer(Array.from(dataArray));
     }
 
-  if (isRainbowActive) {
-  let bass = 0;
-  let mids = 0;
+    let lowEnergy = 0;
+    for (let i = 0; i < 10; i++) lowEnergy += dataArray[i];
+    lowEnergy /= 10;
 
-  const BASS_BINS = 6;
-  const MID_START = 12;
-  const MID_BINS = 10;
+    if (!window.energyHistory) window.energyHistory = [];
+    window.energyHistory.push(lowEnergy);
+    if (window.energyHistory.length > 32) window.energyHistory.shift();
+    const avgEnergy = window.energyHistory.reduce((a, b) => a + b) / window.energyHistory.length;
 
-  for (let i = 0; i < BASS_BINS; i++) bass += dataArray[i];
-  for (let i = MID_START; i < MID_START + MID_BINS; i++) mids += dataArray[i];
+    let isBeat = false;
+    if (lowEnergy > Math.max(avgEnergy * 1.0, 80) && !window.lastBeat) {
+        isBeat = true;
+        window.lastBeat = true;
+    } else if (lowEnergy < avgEnergy * 1.2) {
+        window.lastBeat = false;
+    }
 
-  bass /= BASS_BINS;
-  mids /= MID_BINS;
-  if (window.prevBass === undefined) window.prevBass = bass;
-  if (window.prevMids === undefined) window.prevMids = mids;
+    const currentPrimaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
 
-  const bassDelta = bass - window.prevBass;
-  const midDelta = mids - window.prevMids;
+    if (isRainbowActive) {
+        let bass = 0, mids = 0;
+        for (let i = 0; i < 6; i++) bass += dataArray[i];
+        for (let i = 12; i < 22; i++) mids += dataArray[i];
+        bass /= 6; mids /= 10;
 
-  window.prevBass = bass;
-  window.prevMids = mids;
-  if (!window.bassDeltaHist) window.bassDeltaHist = [];
-  window.bassDeltaHist.push(bassDelta);
-  if (window.bassDeltaHist.length > 20) window.bassDeltaHist.shift();
+        if (window.prevBass === undefined) window.prevBass = bass;
+        if (window.prevMids === undefined) window.prevMids = mids;
+        const bassDelta = bass - window.prevBass;
+        const midDelta = mids - window.prevMids;
+        window.prevBass = bass;
+        window.prevMids = mids;
 
-  const avgBassDelta =
-    window.bassDeltaHist.reduce((a, b) => a + b, 0) /
-    window.bassDeltaHist.length;
-  const now = performance.now();
-  if (!window.lastBeatTime) window.lastBeatTime = 0;
+        if (!window.bassDeltaHist) window.bassDeltaHist = [];
+        window.bassDeltaHist.push(bassDelta);
+        if (window.bassDeltaHist.length > 20) window.bassDeltaHist.shift();
+        const avgBassDelta = window.bassDeltaHist.reduce((a, b) => a + b, 0) / window.bassDeltaHist.length;
 
-  const MIN_INTERVAL = 1; 
-  let triggerBeat = false;
-  if (
-    bassDelta > avgBassDelta * 1.8 && 
-    bassDelta > 4 &&                  
-    bassDelta > midDelta * 1.5 &&     
-    now - window.lastBeatTime > MIN_INTERVAL
-  ) {
-    triggerBeat = true;
-    window.lastBeatTime = now;
-  }
+        const now = performance.now();
+        if (!window.lastBeatTime) window.lastBeatTime = 0;
+        let triggerBeat = false;
+        if (bassDelta > avgBassDelta * 1.8 && bassDelta > 4 && bassDelta > midDelta * 1.5 && now - window.lastBeatTime > 1) {
+            triggerBeat = true;
+            window.lastBeatTime = now;
+        }
 
+        if (window.rainbowHue === undefined) window.rainbowHue = Math.floor(Math.random() * 360);
+        if (triggerBeat) window.rainbowHue = (window.rainbowHue + 60) % 360;
 
-  if (window.rainbowHue === undefined) window.rainbowHue = Math.floor(Math.random() * 360);
+        const color = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 70 : 55}%)`;
+        const darkColor = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 40 : 30}%)`;
+        document.documentElement.style.setProperty('--primary-color', color);
+        document.documentElement.style.setProperty('--primary-dark', darkColor);
+    }
 
-  if (triggerBeat) {
-    window.rainbowHue = (window.rainbowHue + 60) % 360;
-  }
+ 
+    if (visualizerMode === 'bars') {
+        const barCount = isMini ? 48 : 64;
+        const step = Math.max(1, Math.floor(bufferLength / barCount));
+        const barWidth = Math.max(1.5, (width / barCount) * 0.8);
+        const centerX = width / 2;
+        const spacing = 1;
 
-  const color = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 70 : 55}%)`;
-  const darkColor = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 40 : 30}%)`;
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, currentPrimaryColor);
+        gradient.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
+        gradient.addColorStop(1, currentPrimaryColor);
+        ctx.fillStyle = gradient;
 
-  document.documentElement.style.setProperty('--primary-color', color);
-  document.documentElement.style.setProperty('--primary-dark', darkColor);
+        for (let i = 0; i < barCount; i++) {
+            const value = dataArray[i * step] || 0;
+            const barHeight = value * (height / 255) * (isMini ? 0.7 : 0.55);
+            const xLeft = centerX - (i + 1) * (barWidth + spacing);
+            const xRight = centerX + i * (barWidth + spacing);
+            const y = height - barHeight;
+
+            if (xLeft + barWidth > 0) ctx.fillRect(xLeft, y, barWidth, barHeight);
+            if (xRight < width) ctx.fillRect(xRight, y, barWidth, barHeight);
+        }
+   } else if (visualizerMode === 'bubbles') {
+        if (!window.bubbles) window.bubbles = [];
+        const MAX_BUBBLES = 25;
+        const bassLevel = lowEnergy / 255;
+        if (Math.random() < bassLevel * 0.35) {
+            const img = getRandomBubbleImage();
+            if (img) {
+                window.bubbles.push({
+                    x: Math.random() * width,
+                    y: height + 30,
+                    img: img,
+                    size: 20 + Math.random() * 30,
+                    speedY: 1.2 + Math.random() * 2,
+                    speedX: (Math.random() - 0.5) * 1,
+                    opacity: 0.7 + Math.random() * 0.3
+                });
+            }
+        }
+        if (isBeat && window.bubbles.length < MAX_BUBBLES) {
+            const burstCount = 3 + Math.floor(Math.random() * 5);
+            for (let i = 0; i < burstCount; i++) {
+                const img = getRandomBubbleImage();
+                if (img) {
+                    window.bubbles.push({
+                        x: Math.random() * width,
+                        y: height + 50,
+                        img: img,
+                        size: 50 + Math.random() * 60,
+                        speedY: 3 + Math.random() * 5,
+                        speedX: (Math.random() - 0.5) * 4,
+                        opacity: 1
+                    });
+                }
+            }
+        }
+        for (let i = window.bubbles.length - 1; i >= 0; i--) {
+            const b = window.bubbles[i];
+            b.y -= b.speedY;
+            b.x += b.speedX;
+            b.opacity -= 0.004;
+
+           ctx.globalAlpha = Math.max(0, b.opacity);
+            drawTintedImage(
+              ctx,
+              b.img,
+              b.x - b.size / 2,
+              b.y - b.size / 2,
+              b.size,
+              b.size
+            );
+            ctx.globalAlpha = 1;
+
+            if (b.y + b.size < -50 || b.opacity <= 0) {
+                window.bubbles.splice(i, 1);
+            }
+        }
+    }
 }
-
-
-
-    const barCount = isMini ? 48 : 64;
-    const step = Math.max(1, Math.floor(bufferLength / barCount));
-    const barWidth = Math.max(1.5, (width / barCount) * 0.8);
-    const centerX = width / 2;
-    const spacing = 1;
-
-    const currentPrimaryColor = getComputedStyle(document.documentElement)
-      .getPropertyValue('--primary-color').trim() || '#a88cff';
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, currentPrimaryColor);
-    gradient.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
-    gradient.addColorStop(1, currentPrimaryColor);
-    ctx.fillStyle = gradient;
-
-    for (let i = 0; i < barCount; i++) {
-      const value = dataArray[i * step] || 0;
-      const barHeight = value * (height / 255) * (isMini ? 0.7 : 0.55);
-      const xLeft = centerX - (i + 1) * (barWidth + spacing);
-      const xRight = centerX + i * (barWidth + spacing);
-      const y = height - barHeight;
-
-      if (xLeft + barWidth > 0) ctx.fillRect(xLeft, y, barWidth, barHeight);
-      if (xRight < width) ctx.fillRect(xRight, y, barWidth, barHeight);
-    }
-  }
 
   animationFrameId = requestAnimationFrame(draw);
 }
 
-
+function drawTintedImage(ctx, originalImg, x, y, width, height) {
+  if (!originalImg || !originalImg.complete) {
+    ctx.drawImage(originalImg, x, y, width, height);
+    return;
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, width, height);
+  ctx.clip();
+  ctx.drawImage(originalImg, x, y, width, height);
+  const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = primary;
+  ctx.fillRect(x, y, width, height);
+  ctx.restore();
+}
+function getRandomBubbleImage() {
+  const loaded = bubbleImages.filter(img => img.complete);
+  if (loaded.length === 0) return null;
+  return loaded[Math.floor(Math.random() * loaded.length)];
+}
 
 let isMainWindowVisible = true;
 
