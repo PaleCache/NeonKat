@@ -969,7 +969,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
     <div style="background: #330000; border: 1px solid #ff3333; padding: 12px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13px; color: #ffaaaa; text-align: center;">
       <strong>⚠️ HEADS UP ⚠️</strong><br><br>
       Downloading large playlists (50+ videos) at once can get your IP temporarily rate-limited by YouTube for up to 24 hours.<br>
-      Stick to single videos or smaller batches to avoid getting blocked.
+      Stick to single videos to avoid getting blocked.
     </div>
 
     <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
@@ -1044,49 +1044,59 @@ skipToggle.addEventListener('click', () => {
     updateToggleUI();
 });
   confirmBtn.addEventListener('click', async () => {
-    const url = ytUrlInput.value.trim();
-    if (!url) {
-      alert('Paste a fucking URL first!');
-  return;
-}
+  const url = ytUrlInput.value.trim();
+  if (!url) {
+    alert('Paste a fucking URL first!');
+    return;
+  }
 
+    if (url.includes('soundcloud.com') && !skipVideo) {
+    alert('Enable Audio Only For SoundCloud links');
+    return;
+  }
 
-if (!url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('soundcloud.com')) {
-  alert('Stick to YouTube or SoundCloud links for now, Should i add more? let me know :)');
-}
+  if (!url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('soundcloud.com')) {
+    alert('Stick to YouTube or SoundCloud links for now. Want more sites? Let me know :)');
+    return;
+  }
 
-    if (!downloadFolder) {
-      alert('Pick a folder first');
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    if (url.includes('list=')) {
+      alert('Playlists are disabled to avoid getting your IP rate-limited or banned by YouTube. Download single videos only');
       return;
     }
+  }
 
-    confirmBtn.textContent = 'Downloading...';
-    confirmBtn.disabled = true;
-   const result = await window.electronAPI.downloadYoutube({ 
-      url, 
-      downloadFolder,
-      skipVideo
-    });
+  if (!downloadFolder) {
+    alert('Pick a folder first');
+    return;
+  }
 
-    if (result.success) {
-  renderPlaylist();
-  if (Notification.permission === 'granted') {
+  confirmBtn.textContent = 'Downloading...';
+  confirmBtn.disabled = true;
+
+  const result = await window.electronAPI.downloadYoutube({
+    url,
+    downloadFolder,
+    skipVideo
+  });
+
+  if (result.success) {
+    renderPlaylist();
+     if (Notification.permission === 'granted') {
     window.electronAPI.notify('Download Complete :)');
   }
-  else{alert(`Download Fucked Up :(`)}
-} else {
-  if (Notification.permission === 'granted') {
-    window.electronAPI.notify('Download Fucked Up :(');
+
+  else{alert('Download complete :)');}
+
+  } else {
+    alert(`Download failed: ${result.message || 'Unknown fuckup'}`);
   }
 
-  else{alert(`Download Fucked Up :(`)}
-}
-
-   confirmBtn.textContent = 'Download';
-    confirmBtn.disabled = false;
-  });
+  confirmBtn.textContent = 'Download';
+  confirmBtn.disabled = false;
 });
-
+})
 
 
 const aboutBtn = document.getElementById('aboutBtn');

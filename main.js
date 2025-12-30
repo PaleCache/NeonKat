@@ -34,50 +34,25 @@ function createWindow() {
 
 
 
- ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false }) => {
+
+const spawnSafe = (cmd, args) => {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    proc.stdout.on('data', () => {});
+    proc.stderr.on('data', () => {});
+    proc.on('close', code => resolve(code));
+    proc.on('error', reject);
+  });
+};
+
+ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false }) => {
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
     return { success: false, message: 'Pick a valid folder' };
   }
 
-  const tempVideoPath = path.join(downloadFolder, 'NEONKAT_TEMP.%(ext)s');
-  const sanitizedTitle = (title) => title.replace(/[/\\?%*:|"<>]/g, '');
+  const sanitizedTitle = (title) => title.replace(/[/\\?%*:|"<>]/g, '').trim() || 'Unknown';
 
   try {
-    const info = await new Promise((resolve, reject) => {
-      const proc = spawn('yt-dlp', ['-j', url]);
-      let output = '';
-      proc.stdout.on('data', data => output += data.toString());
-      proc.on('close', code => code === 0 ? resolve(JSON.parse(output)) : reject(new Error('Failed to get info')));
-      proc.on('error', reject);
-    });
-
-    const hasVideo = info.formats.some(f => f.vcodec !== 'none');
-    let videoPath = null;
-    let mp3Path = null;
-    if (!hasVideo) {
-      skipVideo = true;
-    }
-    const thumbTemp = path.join(downloadFolder, 'NEONKAT_THUMB.%(ext)s');
-    const thumbArgs = [
-      url,
-      '--write-thumbnail',
-      '--convert-thumbnails', 'jpg',
-      '--skip-download',
-      '--no-playlist',
-      '-o', thumbTemp
-    ];
-
-    await new Promise((resolve, reject) => {
-      const proc = spawn('yt-dlp', thumbArgs);
-      proc.on('close', code => code === 0 ? resolve() : reject(new Error('Thumbnail download failed')));
-      proc.on('error', reject);
-    });
-
-    const thumbFiles = await fs.readdir(downloadFolder);
-    const thumbFile = thumbFiles.find(f => f.startsWith('NEONKAT_THUMB.'));
-    if (!thumbFile) throw new Error('Thumbnail not found');
-    const fullThumbPath = path.join(downloadFolder, thumbFile);
-
     if (skipVideo) {
       const audioArgs = [
         url,
@@ -86,15 +61,71 @@ function createWindow() {
         '--audio-quality', '0',
         '--embed-thumbnail',
         '--add-metadata',
-        '--no-playlist',
-        '-o', path.join(downloadFolder, '%(title)s.%(ext)s')
+        '--parse-metadata', 'uploader:%(meta_artist)s',
+        '--parse-metadata', 'playlist_title:%(meta_album)s',
+        '--windows-filenames',
+        '--restrict-filenames',
+        '--ignore-errors',
+        '--no-overwrites',
+        '--retries', '10',
+        '--retry-sleep', 'exp=1:60',
+        '--sleep-interval', '5',
+        '--output', path.join(downloadFolder, '%(uploader|Unknown)s - %(title)s.%(ext)s')
       ];
 
+      await spawnSafe('yt-dlp', audioArgs);
+      const files = await fs.readdir(downloadFolder);
+      const mp3Paths = files
+        .filter(f => f.toLowerCase().endsWith('.mp3'))
+        .map(f => path.join(downloadFolder, f));
+
+      return {
+        success: true,
+        mp3Paths,
+        videoPath: null,
+        message: mp3Paths.length > 1 ? `Ripped ${mp3Paths.length} tracks (playlist)` : 'Audio-only done'
+      };
+    }
+
+    const tempVideoPath = path.join(downloadFolder, 'NEONKAT_TEMP.%(ext)s');
+    const thumbTemp = path.join(downloadFolder, 'NEONKAT_THUMB.%(ext)s');
+    let info;
+    try {
+      let output = '';
+      const infoProc = spawn('yt-dlp', ['--dump-single-json', '--no-playlist', url]);
+      infoProc.stdout.on('data', d => output += d.toString());
       await new Promise((resolve, reject) => {
-        const proc = spawn('yt-dlp', audioArgs);
-        proc.on('close', code => code === 0 ? resolve() : reject(new Error('Audio-only download failed')));
-        proc.on('error', reject);
+        infoProc.on('close', code => code === 0 ? resolve() : reject(new Error('Info failed')));
+        infoProc.on('error', reject);
       });
+      info = JSON.parse(output);
+    } catch (e) {
+      throw new Error('Failed to get video info - probably not a single video');
+    }
+
+    const formats = info.formats || [];
+    const hasVideo = formats.some(f => f && f.vcodec !== 'none');
+    let videoPath = null;
+    let mp3Path = null;
+    await spawnSafe('yt-dlp', [url, '--write-thumbnail', '--convert-thumbnails', 'jpg', '--skip-download', '--no-playlist', '-o', thumbTemp]);
+
+    const thumbFiles = await fs.readdir(downloadFolder);
+    const thumbFile = thumbFiles.find(f => f.startsWith('NEONKAT_THUMB.'));
+    if (!thumbFile) throw new Error('Thumbnail not found');
+    const fullThumbPath = path.join(downloadFolder, thumbFile);
+
+    if (!hasVideo) {
+      const audioArgs = [
+        url,
+        '--extract-audio',
+        '--audio-format', 'mp3',
+        '--audio-quality', '0',
+        '--embed-thumbnail',
+        '--add-metadata',
+        '--no-playlist',
+        '-o', path.join(downloadFolder, sanitizedTitle(info.title) + '.%(ext)s')
+      ];
+      await spawnSafe('yt-dlp', audioArgs);
 
       const files = await fs.readdir(downloadFolder);
       mp3Path = path.join(downloadFolder, files.find(f => f.toLowerCase().endsWith('.mp3')));
@@ -103,19 +134,7 @@ function createWindow() {
       return { success: true, mp3Path, videoPath: null };
     }
 
-    const downloadArgs = [
-      url,
-      '-f', 'bestvideo[height<=480]+bestaudio/best[height<=480]',
-      '--merge-output-format', 'mp4',
-      '--no-playlist',
-      '-o', tempVideoPath
-    ];
-
-    await new Promise((resolve, reject) => {
-      const proc = spawn('yt-dlp', downloadArgs);
-      proc.on('close', code => code === 0 ? resolve() : reject(new Error('Download failed')));
-      proc.on('error', reject);
-    });
+    await spawnSafe('yt-dlp', [url, '-f', 'bestvideo[height<=480]+bestaudio/best[height<=480]', '--merge-output-format', 'mp4', '--no-playlist', '-o', tempVideoPath]);
 
     const files = await fs.readdir(downloadFolder);
     const tempFile = files.find(f => f.startsWith('NEONKAT_TEMP.'));
@@ -126,48 +145,33 @@ function createWindow() {
       const ffprobe = spawn('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', fullTempPath]);
       let out = '';
       ffprobe.stdout.on('data', d => out += d);
-      ffprobe.on('close', code => code === 0 ? resolve(parseFloat(out)) : reject());
+      ffprobe.on('close', code => resolve(parseFloat(out) || 0));
       ffprobe.on('error', reject);
     });
 
     const startTime = Math.max(0, (duration / 2) - 7.5);
     videoPath = path.join(downloadFolder, sanitizedTitle(info.title) + '.mp4');
 
-    const previewArgs = [
+    await spawnSafe('ffmpeg', [
       '-nostdin', '-ss', startTime.toString(), '-i', fullTempPath,
       '-t', '30', '-vf', 'fps=30,scale=-1:-1:flags=lanczos', '-an',
       '-movflags', '+faststart', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '23', '-y',
       videoPath
-    ];
+    ]);
 
-    await new Promise((resolve, reject) => {
-      const ffmpeg = spawn('ffmpeg', previewArgs);
-      ffmpeg.on('close', code => code === 0 ? resolve() : reject(new Error('Preview failed')));
-      ffmpeg.on('error', reject);
-    });
 
     mp3Path = path.join(downloadFolder, sanitizedTitle(info.title) + '.mp3');
-
-    const audioArgs = [
+    await spawnSafe('ffmpeg', [
       '-i', fullTempPath,
       '-i', fullThumbPath,
-      '-map', '0:a',
-      '-map', '1:v',
-      '-c:a', 'libmp3lame',
-      '-q:a', '0',
+      '-map', '0:a', '-map', '1:v',
+      '-c:a', 'libmp3lame', '-q:a', '0',
       '-metadata', `title=${info.title}`,
       '-metadata', `artist=${info.uploader || 'Unknown'}`,
       '-metadata', `album=${info.album || info.title}`,
       '-disposition:v', 'attached_pic',
-      '-y',
-      mp3Path
-    ];
-
-    await new Promise((resolve, reject) => {
-      const ffmpeg = spawn('ffmpeg', audioArgs);
-      ffmpeg.on('close', code => code === 0 ? resolve() : reject(new Error('MP3 extraction/embed failed')));
-      ffmpeg.on('error', reject);
-    });
+      '-y', mp3Path
+    ]);
 
     await fs.unlink(fullTempPath);
     await fs.unlink(fullThumbPath);
@@ -175,7 +179,7 @@ function createWindow() {
     return { success: true, mp3Path, videoPath };
 
   } catch (err) {
-    console.error('Download failed:', err);
+    console.error('Download failed:', err.stack || err);
     return { success: false, message: `Error: ${err.message}` };
   }
 });
