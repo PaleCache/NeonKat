@@ -449,7 +449,7 @@ a {
     }
 
   body.mini-mode #visualizer {
-    height: 109px !important;
+    height: 105px !important;
     background-position: center !important;
     image-rendering: pixelated;
 }
@@ -685,9 +685,17 @@ body.mini-mode #visualizerVideo {
   </label>
 </div>
 <div class="vis-mode-toggle" id="bubblesToggle">
-  <span class="label">Visualizer Bubbles</span>
+  <span class="label">Music Note Bubbles</span>
   <label class="switch">
     <input type="checkbox" id="bubblesCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="vis-mode-toggle" id="katbubblesToggle">
+  <span class="label">Kat Bubbles</span>
+  <label class="switch">
+    <input type="checkbox" id="katbubblesCheckbox">
     <span class="slider"></span>
   </label>
 </div>
@@ -798,7 +806,12 @@ label img {
   new Image()
 ];
   bubbleImages[0].src = 'build/note.png'; 
-  bubbleImages[1].src = 'build/note1.png';  
+  bubbleImages[1].src = 'build/note1.png'; 
+  
+ const katbubbleImages = [
+  new Image()
+];
+katbubbleImages[0].src = 'build/kat.png';
   const filePickerBtn = document.getElementById('chooseFolder');
   const savePlaylistBtn = document.getElementById('savePlaylistBtn');
   const loadPlaylistBtn = document.getElementById('loadPlaylistBtn');
@@ -806,6 +819,7 @@ label img {
   let visualizerMode = localStorage.getItem('visualizerMode') || 'bars';
   const barsToggle = document.getElementById('barsToggle');
   const bubblesToggle = document.getElementById('bubblesToggle');
+  const katbubblesToggle = document.getElementById('katbubblesToggle');
   const barsCheckbox = document.getElementById('barsCheckbox');
   const bubblesCheckbox = document.getElementById('bubblesCheckbox');
   let skipVideo = localStorage.getItem('skipVideo') === 'true';
@@ -837,6 +851,7 @@ label img {
   const rainbowToggleBtn = document.getElementById('rainbowToggleBtn');
   const barsToggleBtn = document.getElementById('barsToggleBtn');
 const bubblesToggleBtn = document.getElementById('bubblesToggleBtn');
+const katbubblesToggleBtn = document.getElementById('katbubblesToggleBtn');
   let rainbowFrameId = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
@@ -865,16 +880,22 @@ analyser.connect(audioCtx.destination);
 
 
 function updateVisualizerModeUI() {
+  barsToggle.classList.remove('active');
+  bubblesToggle.classList.remove('active');
+  katbubblesToggle.classList.remove('active');
+  barsCheckbox.checked = false;
+  bubblesCheckbox.checked = false;
+  katbubblesCheckbox.checked = false;
+
   if (visualizerMode === 'bars') {
     barsToggle.classList.add('active');
-    bubblesToggle.classList.remove('active');
     barsCheckbox.checked = true;
-    bubblesCheckbox.checked = false;
-  } else {
+  } else if (visualizerMode === 'bubbles') {
     bubblesToggle.classList.add('active');
-    barsToggle.classList.remove('active');
-    barsCheckbox.checked = false;
     bubblesCheckbox.checked = true;
+  } else if (visualizerMode === 'katbubbles') {
+    katbubblesToggle.classList.add('active');
+    katbubblesCheckbox.checked = true;
   }
 }
 
@@ -888,6 +909,14 @@ barsToggle.addEventListener('click', () => {
 
 bubblesToggle.addEventListener('click', () => {
   visualizerMode = 'bubbles';
+  localStorage.setItem('visualizerMode', visualizerMode);
+  updateVisualizerModeUI();
+  if (visualizerToggle && !audio.paused) visualize();
+});
+
+
+katbubblesToggle.addEventListener('click', () => {
+  visualizerMode = 'katbubbles';
   localStorage.setItem('visualizerMode', visualizerMode);
   updateVisualizerModeUI();
   if (visualizerToggle && !audio.paused) visualize();
@@ -2168,11 +2197,13 @@ function draw(timestamp) {
             if (xRight < width) ctx.fillRect(xRight, y, barWidth, barHeight);
         }
    } else if (visualizerMode === 'bubbles') {
+     if (window.katBubbles) window.katBubbles = [];
         if (!window.bubbles) window.bubbles = [];
+       
         const MAX_BUBBLES = 25;
         const bassLevel = lowEnergy / 255;
         if (Math.random() < bassLevel * 0.35) {
-            const img = getRandomBubbleImage();
+            const img = getRandomBubbleImage(bubbleImages);
             if (img) {
                 window.bubbles.push({
                     x: Math.random() * width,
@@ -2188,7 +2219,7 @@ function draw(timestamp) {
         if (isBeat && window.bubbles.length < MAX_BUBBLES) {
             const burstCount = 3 + Math.floor(Math.random() * 5);
             for (let i = 0; i < burstCount; i++) {
-                const img = getRandomBubbleImage();
+                const img = getRandomBubbleImage(bubbleImages);
                 if (img) {
                     window.bubbles.push({
                         x: Math.random() * width,
@@ -2224,6 +2255,60 @@ function draw(timestamp) {
             }
         }
     }
+
+    else if (visualizerMode === 'katbubbles') {
+  if (window.bubbles) window.bubbles = [];
+  if (!window.katBubbles) window.katBubbles = [];
+  const MAX_KAT_BUBBLES = 25;
+  const bassLevel = lowEnergy / 255;
+
+  if (Math.random() < bassLevel * 0.35) {
+    const img = getRandomBubbleImage(katbubbleImages);
+    if (img) {
+      window.katBubbles.push({
+        x: Math.random() * width,
+        y: height + 30,
+        img: img,
+        size: 20 + Math.random() * 30,
+        speedY: 1.2 + Math.random() * 2,
+        speedX: (Math.random() - 0.5) * 1,
+        opacity: 0.7 + Math.random() * 0.3
+      });
+    }
+  }
+
+  if (isBeat && window.katBubbles.length < MAX_KAT_BUBBLES) {
+    const burstCount = 3 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < burstCount; i++) {
+      const img = getRandomBubbleImage(katbubbleImages);
+      if (img) {
+        window.katBubbles.push({
+          x: Math.random() * width,
+          y: height + 50,
+          img: img,
+          size: 50 + Math.random() * 60,
+          speedY: 3 + Math.random() * 5,
+          speedX: (Math.random() - 0.5) * 4,
+          opacity: 1
+        });
+      }
+    }
+  }
+
+  for (let i = window.katBubbles.length - 1; i >= 0; i--) {
+    const b = window.katBubbles[i];
+    b.y -= b.speedY;
+    b.x += b.speedX;
+    b.opacity -= 0.004;
+    ctx.globalAlpha = Math.max(0, b.opacity);
+    ctx.drawImage(b.img, b.x - b.size / 2, b.y - b.size / 2, b.size, b.size);
+    ctx.globalAlpha = 1;
+    if (b.y + b.size < -50 || b.opacity <= 0) {
+      window.katBubbles.splice(i, 1);
+    }
+  }
+
+}
 }
 
   animationFrameId = requestAnimationFrame(draw);
@@ -2245,8 +2330,8 @@ function drawTintedImage(ctx, originalImg, x, y, width, height) {
   ctx.fillRect(x, y, width, height);
   ctx.restore();
 }
-function getRandomBubbleImage() {
-  const loaded = bubbleImages.filter(img => img.complete);
+function getRandomBubbleImage(version) {
+  const loaded = version.filter(img => img.complete);
   if (loaded.length === 0) return null;
   return loaded[Math.floor(Math.random() * loaded.length)];
 }

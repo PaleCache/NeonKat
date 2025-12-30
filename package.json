@@ -5,18 +5,22 @@
   "author": "PaleCache",
   "homepage": "https://github.com/cx/muzik-electro",
   "main": "main.js",
+
   "scripts": {
-    "start": "electron .",
+    "start": "GTK_USE_PORTAL=0 GDK_BACKEND=x11 electron .",
     "build": "electron-builder",
-    "build:linux": "electron-builder --linux AppImage",
+    "build:linux": "electron-builder --linux",
     "build:win": "electron-builder --win"
   },
+
   "build": {
     "appId": "com.palecache.NeonKat",
     "productName": "NeonKat",
+
     "directories": {
       "output": "dist"
     },
+
     "files": [
       "main.js",
       "preload.js",
@@ -26,17 +30,42 @@
       "jsmediatags.min.js",
       "hls.js@latest"
     ],
+
     "asar": true,
+
     "win": {
       "target": ["nsis", "portable"],
       "icon": "build/kat.ico"
     },
+
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage",
+        "deb",
+        "pacman"
+      
+      ],
       "icon": "build/kat.png",
-      "category": "Audio"
+      "category": "Audio",
+      "maintainer": "PaleCache",
+      "desktop": {
+        "StartupWMClass": "NeonKat"
+      }
+    },
+
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0"
+      ]
     }
   },
+
   "devDependencies": {
     "electron": "^28.1.0",
     "electron-builder": "^24.13.3"
