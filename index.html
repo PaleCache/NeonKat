@@ -632,6 +632,14 @@ body.mini-mode #visualizerVideo {
   font-weight: bold;
 }
 
+.vis-mode-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.vis-mode-toggle > * {
+  pointer-events: none;
+}
 
 .sort-btn:hover {
   background: var(--primary-color);
@@ -717,6 +725,14 @@ body.mini-mode #visualizerVideo {
   <button id="aboutBtn" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer;">
     About NeonKat
   </button>
+
+<div class="vis-mode-toggle" id="autoUpdateAppToggle">
+  <span class="label">Auto-update app</span>
+  <label class="switch">
+    <input type="checkbox" id="autoUpdateAppCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
 
  <div class="vis-mode-toggle" id="barsToggle">
   <span class="label">Visualizer Bars</span>
@@ -997,6 +1013,9 @@ if (jellyfinConfig.token) {
 }
 
 updateJellyfinModalButtons();
+
+
+
 
 function quickSearchPlaylist() {
   const input = document.getElementById('playlistQuickSearch');
@@ -1565,7 +1584,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.6 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.7 alpha</p>
       </div>
   </div>
   `;
@@ -3102,6 +3121,51 @@ function stopRainbowLoop() {
       audio.pause();
     }
   });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleRow = document.getElementById('autoUpdateAppToggle');
+  const checkbox = document.getElementById('autoUpdateAppCheckbox');
+
+  if (!toggleRow || !checkbox) {
+    console.error("Toggle elements missing. Check these IDs in HTML: 'autoUpdateAppToggle' and 'autoUpdateAppCheckbox'");
+    return;
+  }
+
+  let isEnabled = localStorage.getItem('autoUpdateEnabled') === 'true';
+  checkbox.checked = isEnabled;
+  toggleRow.classList.toggle('active', isEnabled);
+  window.electronAPI?.setAutoUpdateEnabled?.(isEnabled);
+  toggleRow.addEventListener('click', (e) => {
+    if (e.target.closest('.switch')) return;
+
+    isEnabled = !isEnabled;
+    localStorage.setItem('autoUpdateEnabled', isEnabled ? 'true' : 'false');
+
+    checkbox.checked = isEnabled;
+    toggleRow.classList.toggle('active', isEnabled);
+    window.electronAPI?.setAutoUpdateEnabled?.(isEnabled);
+
+    if (isEnabled) {
+      window.electronAPI?.checkForUpdates?.();
+      if (notifyEnabled && Notification.permission === 'granted') {
+        window.electronAPI.notify("Auto-updates ON – checking now");
+      }
+    } else {
+      if (notifyEnabled && Notification.permission === 'granted') {
+        window.electronAPI.notify("Auto-updates OFF – no more bullshit checks");
+      }
+    }
+  });
+});
+
+function checkForUpdatesSilently() {
+  if (typeof autoUpdater !== 'undefined' && autoUpdater.checkForUpdates) {
+    autoUpdater.checkForUpdatesAndNotify().catch(() => {
+    });
+  }
+}
+
+
 </script>
 
 <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">

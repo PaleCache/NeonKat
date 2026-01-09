@@ -4,7 +4,21 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const { spawn } = require('child_process');
 const { shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
+autoUpdater.allowPrerelease = true;
 
+
+let logger = console;
+try {
+  logger = require('electron-log');
+  logger.transports.file.level = isDev ? 'warn' : 'info';
+} catch (e) {
+  console.warn("[AutoUpdate] electron-log not found - using console");
+}
+
+if (!isDev) {
+  autoUpdater.logger = logger;
+}
 const { Notification } = require('electron');
 let tray = null;
 let mainWindow = null;
@@ -194,6 +208,8 @@ ipcMain.handle('file-exists', async (event, filePath) => {
   }
 });
 
+
+
 ipcMain.on('open-external', (event, url) => {
   shell.openExternal(url);
 });
@@ -233,6 +249,7 @@ ipcMain.on('open-external', (event, url) => {
 }
 
 app.whenReady().then(() => {
+ 
   createWindow();
   const iconPath = path.join(__dirname, 'build', 'kat.png');
   const trayIcon = nativeImage.createFromPath(iconPath);
@@ -398,6 +415,29 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
   } catch (error) {
     console.error('Error getting file stats:', error);
     throw new Error(`Failed to get file stats: ${error.message}`);
+  }
+});
+
+
+
+function checkForUpdatesIfEnabled() {
+  autoUpdater.checkForUpdatesAndNotify().catch(err => {
+    logger.warn('Update check failed:', err);
+  });
+}
+
+ipcMain.on('set-auto-update-enabled', (event, enabled) => {
+  autoUpdateEnabled = enabled;
+  console.log(`Auto-update now ${enabled ? 'ENABLED' : 'DISABLED'}`);
+});
+
+ipcMain.on('check-for-updates', () => {
+  if (autoUpdateEnabled) {
+    autoUpdater.checkForUpdatesAndNotify().catch(err => {
+      console.log('Update check failed (harmless):', err.message);
+    });
+  } else {
+    console.log('Update check blocked - toggle is off');
   }
 });
 
