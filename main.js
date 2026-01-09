@@ -100,7 +100,7 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
       });
       info = JSON.parse(output);
     } catch (e) {
-      throw new Error('Failed to get video info - probably not a single video');
+      throw new Error('Failed to get video info - probably not a single video or ip is rate limited / detected as a bot');
     }
 
     const formats = info.formats || [];

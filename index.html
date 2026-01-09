@@ -360,7 +360,12 @@ a {
 
     #streamUrlInput:focus,
       #streamNameInput:focus,
-      #ytUrlInput {
+      #ytUrlInput,
+      #jellyfinServerInput,
+      #jellyfinUserInput,
+      #jellyfinPassInput,
+      #jellyfinSearchInput,
+      #playlistQuickSearch {
         outline: none !important;
     }
 
@@ -439,7 +444,8 @@ a {
     body.mini-mode #chooseFolder,
     body.mini-mode #addStreamBtn,
     body.mini-mode #hamburgerMenu,
-    body.mini-mode #hamburgerBtn
+    body.mini-mode #hamburgerBtn,
+    body.mini-mode #connectJellyfinBtn
     {
       display: none !important;
     }
@@ -626,13 +632,48 @@ body.mini-mode #visualizerVideo {
   font-weight: bold;
 }
 
+
+.sort-btn:hover {
+  background: var(--primary-color);
+  color: #000;
+  transform: translateY(-1px);
+}
+
+#sortMenu #closeSortMenuBtn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: #444;       
+  color: #000 !important;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  transition: background 0.18s ease, transform 0.15s ease;
+}
+
+#sortMenu #closeSortMenuBtn:hover {
+  background: var(--primary-color) !important;
+  color: #000 !important;
+  transform: translateY(-1px);
+}
+
+#sortMenu #closeSortMenuBtn:active {
+  transform: translateY(0);
+  opacity: 0.92;
+}
+
+
   </style>
 </head>
 <body>
   <div id="titlebar" style="-webkit-app-region: drag; height: 20px; position: absolute; top: 0; left: 0; right: 0; z-index: 1;">
+   
   </div>
   <div id="rainbow-helper"></div>
   <div id="container">
+   
   <div id="topControls" style="width: 100%; justify-content: space-between;">
   <div style="display: flex; align-items: center; gap: 0px;">
     <button id="notifyToggleBtn" style="background: none; border: none; cursor: pointer;" title="Notifications">
@@ -707,6 +748,7 @@ body.mini-mode #visualizerVideo {
  <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
   <button id="chooseFolder" style="flex: 1;">Choose Folder</button>
   <button id="addStreamBtn" class="control-btn" style="flex: 1;">Add Stream</button>
+  <button id="connectJellyfinBtn" class="control-btn" style="flex: 1;">Jellyfin</button>
 </div>
 
     <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px; background: rgba(0,0,0,0.8); border-radius: 10px; justify-content: center; align-items: center; z-index: 9999;">
@@ -725,14 +767,64 @@ body.mini-mode #visualizerVideo {
     </div>
   </div>
 </div>
+
+
+<div id="jellyfinModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
+  <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white; border: 3px solid var(--primary-color);">
+    <h3 style="margin-top: 0; color: var(--primary-color);">Connect to Jellyfin</h3>
+    <label>Server URL:</label>
+    <input type="text" id="jellyfinServerInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="http://192.168.1.100:8096" />
+    
+    <label>Username:</label>
+    <input type="text" id="jellyfinUserInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" />
+    
+    <label>Password:</label>
+    <input type="password" id="jellyfinPassInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" />
+<label>Search (optional):</label>
+    <input type="text" id="jellyfinSearchInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="e.g. EDM, Country, etc..." />
+  <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+      <button id="cancelJellyfinBtn" style="background: #444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
+      <button id="refreshJellyfinBtn" style="background: #212121; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: none;">Refresh Library</button>
+      <button id="disconnectJellyfinBtn" style="background: #800000; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; display: none;">Disconnect</button>
+      <button id="connectJellyfinConfirmBtn" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Connect</button>
+    </div>
+         <div id="jellyfinStatus" style="font-size: 12px; color: var(--primary-color); text-align: center; margin-bottom: 10px; display: none;top: 26px;
+    position: relative;">Disconnected</div>
+  </div>
+</div>
     <div style="position: relative;">
-      <button id="sortBtn">Sort Playlist</button>
-      <div id="sortMenu">
-        <button id="sortNameAsc">Name (A-Z)</button>
-        <button id="sortNameDesc">Name (Z-A)</button>
-        <button id="sortDateDesc">Date (Newest)</button>
-        <button id="sortDateAsc">Date (Oldest)</button>
-      </div>
+      <button id="sortBtn">Playlist Options</button>
+      <div id="sortMenu" style="position: absolute; background: #222; border-radius: 8px; box-shadow: 0 0 12px rgba(0,0,0,0.8); z-index: 10; display: none; width: 260px; padding: 10px; border: 2px solid var(--primary-color); max-height: 400px; overflow-y: auto; right: 1px;">
+  
+  
+  <div style="margin-bottom: 12px; position: relative;">
+    <input 
+      type="text" 
+      id="playlistQuickSearch" 
+      placeholder="Find song..." 
+      style="width: 100%; padding: 10px 40px 10px 12px; background: #282828; border: none; border-radius: 6px; color: #fff; font-size: 13px; box-sizing: border-box;"
+    />
+    <button id="clearQuickSearch" 
+      style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #777; font-size: 18px; cursor: pointer; display: none;">
+      ×
+    </button>
+  </div>
+
+ 
+  <div style="margin-bottom: 10px;">
+    <button id="sortNameAsc" class="sort-btn">Name (A-Z)</button>
+    <button id="sortNameDesc" class="sort-btn">Name (Z-A)</button>
+    <button id="sortDateDesc" class="sort-btn">Date (Newest)</button>
+    <button id="sortDateAsc" class="sort-btn">Date (Oldest)</button>
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #444; margin: 8px 0;">
+
+ 
+  <button id="closeSortMenuBtn" style="width: 100%; padding: 8px; background: #333; border: none; border-radius: 6px; color: white; cursor: pointer;">
+    Close
+  </button>
+</div>
     </div>
 
     <div id="contextMenu" style="position: fixed; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 6px 0; display: none; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
@@ -741,9 +833,17 @@ body.mini-mode #visualizerVideo {
 </button>
 </div>
     <ul id="playlist"></ul>
+   
     <div class="controls" style="display: flex; gap: 10px; margin-bottom: 10px;">
       <button id="playPauseBtn" class="control-btn">
         <img id="playPauseIcon" src="build/play.svg" alt="Play/Pause" class="icon" />
+      </button>
+      <button id="prevBtn" class="control-btn">
+        <img id="playPauseIcon" src="build/skip-back.svg" alt="SkipBack" class="icon" />
+      </button>
+
+         <button id="nextBtn" class="control-btn">
+        <img id="playPauseIcon" src="build/skip-next.svg" alt="SkipNext" class="icon" />
       </button>
       <button id="repeatBtn" class="control-btn">
         <img src="build/repeat.svg" alt="Repeat" class="icon" />
@@ -751,6 +851,7 @@ body.mini-mode #visualizerVideo {
       <button id="shuffleBtn" class="control-btn">
         <img src="build/shuffle.svg" alt="Shuffle" class="icon" />
       </button>
+
     </div>
     <div id="playlistControls" style="display: flex; gap: 10px; margin-bottom: 10px;">
       <button id="savePlaylistBtn" class="control-btn">Save</button>
@@ -763,6 +864,7 @@ body.mini-mode #visualizerVideo {
         <input type="range" id="volume" min="0" max="1" step="0.01" value="1" />
         <span id="volumePercent">100%</span>
       <div id="selectedFolderName"></div>
+   
     </div>
     <div id="progressContainer">
       <span id="currentTime">0:00</span>
@@ -879,6 +981,342 @@ analyser.connect(audioCtx.destination);
     let isMini = false;
 
 
+   let jellyfinConfig = {
+  server: localStorage.getItem('jellyfinServer') || '',
+  token: localStorage.getItem('jellyfinToken') || '',
+  userId: localStorage.getItem('jellyfinUserId') || '',
+  deviceId: 'neonkat-' + Math.random().toString(36).substring(7)
+};
+
+const jellyfinStatus = document.getElementById('jellyfinStatus');
+if (jellyfinConfig.token) {
+  jellyfinStatus.style.display = 'block';
+  jellyfinStatus.textContent = 'Connected to Jellyfin';
+} else {
+  jellyfinStatus.style.display = 'none';
+}
+
+updateJellyfinModalButtons();
+
+function quickSearchPlaylist() {
+  const input = document.getElementById('playlistQuickSearch');
+  const clearBtn = document.getElementById('clearQuickSearch');
+  const term = input.value.toLowerCase().trim();
+  clearBtn.style.display = term ? 'block' : 'none';
+  const lis = document.querySelectorAll('#playlist li');
+  
+  lis.forEach((li, idx) => {
+    const item = audioFiles[idx];
+    let text = '';
+    
+    if (typeof item === 'string') {
+      text = item.split(/[\\/]/).pop().toLowerCase();
+    } else if (item.isStream || item.isJellyfin) {
+      text = (item.name || '').toLowerCase();
+    }
+    
+    if (!term || text.includes(term)) {
+      li.style.display = '';
+    } else {
+      li.style.display = 'none';
+    }
+  });
+}
+
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+  if (currentIndex > 0) {
+    currentIndex--;
+    playTrack(currentIndex);
+  } else if (repeatTrack) {
+    currentIndex = audioFiles.length - 1;
+    playTrack(currentIndex);
+  } else {
+    console.log("Already at the beginning");
+  }
+});
+
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  if (currentIndex < audioFiles.length - 1) {
+    currentIndex++;
+    playTrack(currentIndex);
+  } else if (repeatTrack) {
+    currentIndex = 0;
+    playTrack(currentIndex);
+  } else {
+    console.log("End of the playlist");
+  }
+});
+
+
+document.getElementById('playlistQuickSearch').addEventListener('input', quickSearchPlaylist);
+
+
+document.getElementById('clearQuickSearch').addEventListener('click', () => {
+  document.getElementById('playlistQuickSearch').value = '';
+  quickSearchPlaylist();
+});
+
+
+document.getElementById('closeSortMenuBtn').addEventListener('click', () => {
+  document.getElementById('sortMenu').style.display = 'none';
+    
+    const clearBtn = document.getElementById('clearQuickSearch');
+
+    document.getElementById('playlistQuickSearch').value = '';
+    clearBtn.style.display = 'none';
+    document.getElementById('sortMenu').style.display = 'none';
+});
+
+
+document.getElementById('playlistQuickSearch').addEventListener('click', e => e.stopPropagation());
+
+document.getElementById('playlistQuickSearch').addEventListener('keydown', (e) => {
+ if (e.key === 'Enter') {
+    e.preventDefault();
+    const input = e.target;
+    const clearBtn = document.getElementById('clearQuickSearch');
+    input.value = '';
+    clearBtn.style.display = 'none';
+    input.blur();
+    document.getElementById('sortMenu').style.display = 'none';
+  }
+});
+
+const connectJellyfinBtn = document.getElementById('connectJellyfinBtn');
+const jellyfinModal = document.getElementById('jellyfinModal');
+const serverInput = document.getElementById('jellyfinServerInput');
+const userInput = document.getElementById('jellyfinUserInput');
+const passInput = document.getElementById('jellyfinPassInput');
+const cancelBtn = document.getElementById('cancelJellyfinBtn');
+const confirmBtn = document.getElementById('connectJellyfinConfirmBtn');
+
+connectJellyfinBtn.addEventListener('click', () => {
+  serverInput.value = jellyfinConfig.server;
+  jellyfinModal.style.display = 'flex';
+});
+
+cancelBtn.addEventListener('click', () => jellyfinModal.style.display = 'none');
+jellyfinModal.addEventListener('click', (e) => { if (e.target === jellyfinModal) jellyfinModal.style.display = 'none'; });
+
+confirmBtn.addEventListener('click', async () => {
+  const server = serverInput.value.trim().replace(/\/$/, '');
+  const username = userInput.value.trim();
+  const password = passInput.value;
+  if (notifyEnabled && Notification.permission === 'granted') {
+    window.electronAPI.notify('Connecting To Jellyfin Server');
+  }
+  else{alert('Connecting To Jellyfin Server');}
+  if (!server || !username || !password) {
+    alert('Fill in all the fucking fields!');
+    return;
+  }
+
+  try {
+    const authResponse = await fetch(`${server}/Users/AuthenticateByName`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Emby-Authorization': `MediaBrowser Client="NeonKat", Device="Desktop", DeviceId="${jellyfinConfig.deviceId}", Version="0.1.6 alpha"` },
+      body: JSON.stringify({ Username: username, Pw: password })
+    });
+
+    if (!authResponse.ok) throw new Error('Auth failed – wrong creds?');
+
+    const authData = await authResponse.json();
+    jellyfinConfig = {
+      server,
+      token: authData.AccessToken,
+      userId: authData.User.Id,
+      deviceId: jellyfinConfig.deviceId
+    };
+
+    localStorage.setItem('jellyfinServer', server);
+    localStorage.setItem('jellyfinToken', jellyfinConfig.token);
+    localStorage.setItem('jellyfinUserId', jellyfinConfig.userId);
+    jellyfinStatus.style.display = 'block';
+    jellyfinStatus.textContent = `Connected as ${authData.User.Name}`;
+    await loadJellyfinLibrary();
+    updateJellyfinModalButtons();
+  } catch (err) {
+    alert(`Connection fucked up: ${err.message}`);
+  }
+});
+
+async function loadJellyfinLibrary() {
+  if (!jellyfinConfig.token) return;
+
+  try {
+    const viewsRes = await fetch(`${jellyfinConfig.server}/Users/${jellyfinConfig.userId}/Views?api_key=${jellyfinConfig.token}`);
+    if (!viewsRes.ok) throw new Error(`Views fetch failed: ${viewsRes.status}`);
+    const views = await viewsRes.json();
+    const musicView = views.Items.find(v => v.CollectionType === 'music' || v.Name.toLowerCase().includes('music'));
+    if (!musicView) throw new Error('No music library found – check your Jellyfin setup');
+
+    const fields = 'Name,Artists,AlbumArtists,ArtistItems,Album,AlbumPrimaryImageTag,ImageTags,MediaSources,Container,Path,ProductionLocations,SortName';
+    const searchInput = document.getElementById('jellyfinSearchInput');
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
+
+    let itemsUrl = `${jellyfinConfig.server}/Items?IncludeItemTypes=Audio&Recursive=true&Fields=${fields}&Limit=3000&SortBy=SortName&api_key=${jellyfinConfig.token}`;
+    let statusMsg = 'Loading all tracks...';
+
+    if (searchTerm) {
+      try {
+  const lowerSearch = searchTerm.toLowerCase();
+  const genresRes = await fetch(`${jellyfinConfig.server}/MusicGenres?searchTerm=${encodeURIComponent(lowerSearch)}&api_key=${jellyfinConfig.token}`);
+  const genresData = await genresRes.json();
+  let foundGenres = genresData.Items || [];
+  if (foundGenres.length === 0) {
+    const exactRes = await fetch(`${jellyfinConfig.server}/MusicGenres?nameStartsWith=${encodeURIComponent(searchTerm)}&api_key=${jellyfinConfig.token}`);
+    const exactData = await exactRes.json();
+    foundGenres = exactData.Items || [];
+  }
+  
+  if (foundGenres.length > 0) {
+    const genreIds = foundGenres.map(item => item.Id).join(',');
+    itemsUrl += `&GenreIds=${genreIds}&ParentId=${musicView.Id}`;
+    statusMsg = `Loading ${foundGenres.length} genres matching "${searchTerm}"`;
+  } else {
+    itemsUrl += `&SearchTerm=${encodeURIComponent(searchTerm)}&ParentId=${musicView.Id}`;
+    statusMsg = `No genre found – searching titles/artists for: ${searchTerm}`;
+  }
+} catch (genreErr) {
+  console.warn('Genre fuckup, full fallback:', genreErr);
+  itemsUrl += `&SearchTerm=${encodeURIComponent(searchTerm)}&ParentId=${musicView.Id}`;
+}
+    } else {
+      itemsUrl += `&ParentId=${musicView.Id}`;
+    }
+
+    jellyfinStatus.textContent = statusMsg;
+    const itemsRes = await fetch(itemsUrl);
+    if (!itemsRes.ok) throw new Error(`Tracks fetch failed: ${itemsRes.status}`);
+    const data = await itemsRes.json();
+
+    audioFiles = [];
+
+    for (const item of data.Items) {
+      if (!item.MediaSources || item.MediaSources.length === 0) continue;
+
+      const mediaSource = item.MediaSources[0];
+      const container = mediaSource.Container || 'mp3';
+
+      const streamParams = new URLSearchParams({
+        api_key: jellyfinConfig.token,
+        UserId: jellyfinConfig.userId,
+        DeviceId: jellyfinConfig.deviceId,
+        static: 'true',
+        Container: container,
+        AudioCodec: mediaSource.AudioCodec || '',
+        PlaySessionId: 'neonkat-' + Date.now()
+      });
+
+      const streamUrl = `${jellyfinConfig.server}/Audio/${item.Id}/stream?${streamParams}`;
+      let fullName = item.Name || 'Unknown Track';
+      let artists = 'Unknown Artist';
+      let title = fullName.trim();
+
+      const firstDashMatch = fullName.match(/[-–—]\s*/);
+      if (firstDashMatch) {
+        const dashIndex = firstDashMatch.index;
+        const dashLength = firstDashMatch[0].length;
+        artists = fullName.substring(0, dashIndex).trim();
+        title = fullName.substring(dashIndex + dashLength).trim();
+      } else if (item.Path) {
+        const filename = item.Path.split(/[\\/]/).pop().replace(/\.[^.]+$/, '').trim();
+        const filenameMatch = filename.match(/[-–—]\s*/);
+        if (filenameMatch) {
+          const dashIndex = filenameMatch.index;
+          const dashLength = filenameMatch[0].length;
+          artists = filename.substring(0, dashIndex).trim();
+          title = filename.substring(dashIndex + dashLength).trim();
+        } else {
+          title = filename;
+        }
+      }
+
+      title = title
+        .replace(/\s*\(Audio\)$/i, '')
+        .replace(/\s*\(Music Video\).*?$/i, '')
+        .replace(/\s*-\s*YouTube$/i, '')
+        .replace(/\s*_\s*@[^@]+$/i, '')
+        .replace(/^["']|["']$/g, '')
+        .trim();
+
+      if (artists.startsWith('-') || artists === '') {
+        artists = 'Unknown Artist';
+      }
+
+      const displayName = `${artists} - ${title}`;
+      let albumArt = 'build/default-artwork.jpg';
+      if (item.AlbumPrimaryImageTag) {
+        albumArt = `${jellyfinConfig.server}/Items/${item.AlbumId || item.Id}/Images/Primary?tag=${item.AlbumPrimaryImageTag}&api_key=${jellyfinConfig.token}`;
+      } else if (item.ImageTags && item.ImageTags.Primary) {
+        albumArt = `${jellyfinConfig.server}/Items/${item.Id}/Images/Primary?api_key=${jellyfinConfig.token}`;
+      }
+
+      audioFiles.push({
+        url: streamUrl,
+        name: displayName,
+        isJellyfin: true,
+        itemId: item.Id,
+        albumArt: albumArt
+      });
+    }
+
+    jellyfinStatus.textContent = `Connected – Loaded ${audioFiles.length} tracks`;
+    renderPlaylist();
+    if (audioFiles.length > 0) {
+      currentIndex = 0;
+      playTrack(0);
+    }
+  } catch (err) {
+    console.error(err);
+    alert(`Load fucked up: ${err.message}`);
+    jellyfinStatus.textContent = 'Connected (load error)';
+  }
+}
+
+
+function updateJellyfinModalButtons() {
+  const connected = !!jellyfinConfig.token;
+  document.getElementById('connectJellyfinConfirmBtn').style.display = connected ? 'none' : 'block';
+  document.getElementById('refreshJellyfinBtn').style.display = connected ? 'block' : 'none';
+  document.getElementById('disconnectJellyfinBtn').style.display = connected ? 'block' : 'none';
+  document.getElementById('jellyfinServerInput').disabled = connected;
+  document.getElementById('jellyfinUserInput').disabled = connected;
+  document.getElementById('jellyfinPassInput').disabled = connected;
+}
+
+
+connectJellyfinBtn.addEventListener('click', () => {
+  serverInput.value = jellyfinConfig.server;
+  userInput.value = '';
+  passInput.value = '';
+  jellyfinModal.style.display = 'flex';
+  updateJellyfinModalButtons();
+});
+
+document.getElementById('refreshJellyfinBtn').addEventListener('click', async () => {
+  if (!jellyfinConfig.token) return;
+  jellyfinStatus.textContent = 'Refreshing...';
+  await loadJellyfinLibrary();
+});
+
+
+document.getElementById('disconnectJellyfinBtn').addEventListener('click', () => {
+  localStorage.removeItem('jellyfinServer');
+  localStorage.removeItem('jellyfinToken');
+  localStorage.removeItem('jellyfinUserId');
+  jellyfinConfig = { server: '', token: '', userId: '', deviceId: jellyfinConfig.deviceId };
+  jellyfinStatus.style.display = 'none';
+  audioFiles = audioFiles.filter(item => typeof item === 'string' || item.isStream);
+  renderPlaylist();
+  jellyfinModal.style.display = 'none';
+  alert('Disconnected from Jellyfin');
+  updateJellyfinModalButtons();
+});
+
+
 function updateVisualizerModeUI() {
   barsToggle.classList.remove('active');
   bubblesToggle.classList.remove('active');
@@ -979,7 +1417,6 @@ downloadYoutubeBtn.addEventListener('click', () => {
       <span id="selectedDlFolder" style="color: var(--primary-color); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 2;">No folder selected</span>
     </div>
 
-    <!-- Toggle switch -->
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
       <span style="color: white; font-size: 14px;">Audio only (skip gif preview)</span>
       <div id="skipVideoToggle" style="width: 40px; height: 20px; background: #444; border-radius: 10px; position: relative; cursor: pointer;">
@@ -1128,7 +1565,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.5 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.6 alpha</p>
       </div>
   </div>
   `;
@@ -1283,11 +1720,11 @@ shuffleBtn.addEventListener('click', () => {
   
   isShuffled = !isShuffled;
   shuffleBtn.classList.toggle('enabled', isShuffled);
-  if (isShuffled && Notification.permission === 'granted') {
+  if (notifyEnabled && isShuffled && Notification.permission === 'granted') {
     window.electronAPI.notify('Shuffle Enabled');
   }
 
-  if (!isShuffled && Notification.permission === 'granted') {
+  if (notifyEnabled && !isShuffled && Notification.permission === 'granted') {
     window.electronAPI.notify('Shuffle Disabled');
   }
 
@@ -1337,11 +1774,11 @@ function deepEqual(a, b) {
     repeatTrack = !repeatTrack;
     repeatBtn.classList.toggle('enabled', repeatTrack);
 
-    if (repeatTrack && Notification.permission === 'granted') {
+    if (notifyEnabled && repeatTrack && Notification.permission === 'granted') {
     window.electronAPI.notify('Repeat Enabled');
   }
 
-  if (!repeatTrack && Notification.permission === 'granted') {
+  if (notifyEnabled && !repeatTrack && Notification.permission === 'granted') {
     window.electronAPI.notify('Repeat Disabled');
   }
   });
@@ -1438,70 +1875,83 @@ document.addEventListener('click', (e) => {
     }
   });
 
-  async function sortPlaylist(criteria, ascending) {
-    if (audioFiles.length === 0) return 0;
+async function sortPlaylist(criteria, ascending) {
+  if (audioFiles.length === 0) return;
 
-    audioFiles = [...new Set(audioFiles)];
-    let sortedFiles = [...audioFiles];
+  let sortedFiles = [...audioFiles];
+  const currentItem = audioFiles[currentIndex];
 
-    const currentFile = audioFiles[currentIndex];
-
-    if (criteria === 'name') {
-      sortedFiles.sort((a, b) => {
-        const nameA = a.split(/[\\/]/).pop().toLowerCase();
-        const nameB = b.split(/[\\/]/).pop().toLowerCase();
-        return ascending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-      });
-    } else if (criteria === 'date') {
+  if (criteria === 'name') {
+    sortedFiles.sort((a, b) => {
+      const getName = (item) => {
+        if (typeof item === 'string') return item.split(/[\\/]/).pop().toLowerCase();
+        if (item.isStream || item.isJellyfin) return (item.name || 'unknown').toLowerCase();
+        return 'unknown';
+      };
+      const nameA = getName(a);
+      const nameB = getName(b);
+      return ascending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    });
+  } else if (criteria === 'date') {
+    const hasLocalFiles = audioFiles.some(item => typeof item === 'string');
+    if (hasLocalFiles) {
       try {
         const filesWithDates = await Promise.all(
-          audioFiles.map(async (file) => {
-            try {
-              const stats = await window.electronAPI.getFileStats(file);
-              const mtimeMs = stats?.mtimeMs ?? 0;
-              return { file, date: mtimeMs, name: file.split(/[\\/]/).pop().toLowerCase() };
-            } catch {
-              return { file, date: 0, name: file.split(/[\\/]/).pop().toLowerCase() };
+          sortedFiles.map(async (item) => {
+            if (typeof item === 'string') {
+              try {
+                const stats = await window.electronAPI.getFileStats(item);
+                return { item, date: stats?.mtimeMs ?? 0 };
+              } catch {
+                return { item, date: 0 };
+              }
+            } else {
+              return { item, date: ascending ? Infinity : -Infinity };
             }
           })
         );
-        filesWithDates.sort((a, b) => {
-          const diff = ascending ? a.date - b.date : b.date - a.date;
-          if (Math.abs(a.date - b.date) < 1000) {
-            return ascending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
-          }
-          return diff;
-        });
-        sortedFiles = filesWithDates.map(item => item.file);
+
+        filesWithDates.sort((a, b) => ascending ? a.date - b.date : b.date - a.date);
+
+        sortedFiles = filesWithDates.map(x => x.item);
       } catch (err) {
-        console.error('Sort failed:', err);
-        return 0;
+        console.error('Date sort failed:', err);
+        return sortPlaylist('name', ascending);
       }
+    } else {
+      return sortPlaylist('name', ascending);
     }
-
-    audioFiles = sortedFiles;
-    currentIndex = audioFiles.indexOf(currentFile);
-    if (currentIndex === -1) currentIndex = 0;
-
-    renderPlaylist();
-
-    localStorage.setItem('sortCriteria', criteria);
-    localStorage.setItem('sortOrder', ascending ? 'asc' : 'desc');
-    localStorage.setItem('sortedPlaylist', JSON.stringify(audioFiles));
-
-    return currentIndex;
   }
 
- 
-  const sortOptions = sortMenu.querySelectorAll('button');
-  sortOptions.forEach(btn => {
-    btn.addEventListener('click', () => {
-      sortOptions.forEach(b => b.textContent = b.textContent.replace(' ✓', ''));
-      btn.textContent += ' ✓';
-      selectedSort = btn.id;
-      sortMenu.style.display = 'none';
-    });
+  audioFiles = sortedFiles;
+  const newIndex = audioFiles.findIndex(item => {
+    if (currentItem === item) return true;
+    if (typeof currentItem === 'object' && typeof item === 'object') {
+      return currentItem.itemId === item.itemId || currentItem.url === item.url;
+    }
+    return false;
   });
+
+  currentIndex = newIndex !== -1 ? newIndex : 0;
+
+  renderPlaylist();
+  scrollToCurrentTrack();
+  localStorage.setItem('sortCriteria', criteria);
+  localStorage.setItem('sortOrder', ascending ? 'asc' : 'desc');
+}
+
+ 
+const sortOptions = document.querySelectorAll('#sortMenu .sort-btn');
+
+sortOptions.forEach(btn => {
+  btn.addEventListener('click', () => {
+    sortOptions.forEach(b => {
+      b.textContent = b.textContent.replace(' ✓', '');
+    });
+    btn.textContent += ' ✓';
+    document.getElementById('sortMenu').style.display = 'none';
+  });
+});
 
   function updateSortCheckmark(selectedId) {
     sortOptions.forEach(btn => {
@@ -1528,6 +1978,7 @@ document.addEventListener('click', (e) => {
     event.preventDefault();
     playlistElem.style.border = '';
   });
+  const SAFE_DROP_LIMIT = 50;
 
   playlistElem.addEventListener('drop', async (event) => {
     event.preventDefault();
@@ -1667,9 +2118,8 @@ function renderPlaylist() {
 
   if (typeof item === 'string') {
     li.textContent = item.split(/[\\/]/).pop();
-  } else if (item.isStream) {
+    } else if (item.isStream) {
     li.innerHTML = '';
-
     const icon = document.createElement('img');
     icon.src = 'build/radio.svg';
     icon.style.width = '16px';
@@ -1677,15 +2127,36 @@ function renderPlaylist() {
     icon.style.marginRight = '8px';
     icon.style.verticalAlign = 'middle';
     icon.style.filter = 'brightness(0) invert(1)';
-
     const text = document.createElement('span');
     text.textContent = item.name || 'Unknown Station';
-
     li.appendChild(icon);
     li.appendChild(text);
+  } else if (item.isJellyfin) {
+    li.textContent = item.name || 'Unknown Track';
   } else {
     li.textContent = 'Unknown Track';
   }
+
+  if (index === currentIndex && !audio.paused && audioFiles.length > 0) {
+      const gifWrapper = document.createElement('div');
+      gifWrapper.style.position = 'absolute';
+      gifWrapper.style.left = '9px';
+      gifWrapper.style.top = '42%';
+      gifWrapper.style.transform = 'translateY(-50%)';
+      gifWrapper.style.pointerEvents = 'none';
+      gifWrapper.style.zIndex = '10';       
+
+      const gifImg = document.createElement('img');
+      gifImg.src = 'build/bars.gif';
+      gifImg.style.width = '25px';
+      gifImg.style.height = '25px';
+      gifImg.style.objectFit = 'contain';
+
+      gifWrapper.appendChild(gifImg);
+      li.style.paddingLeft = '37px'
+      li.style.position = 'relative';
+      li.appendChild(gifWrapper);
+    }
 
   li.addEventListener('click', (e) => {
     if (contextMenuOpen) {
@@ -1839,7 +2310,6 @@ async function setVisualizerBackground(item) {
     visualizerVideo.style.display = 'block';
     visualizerVideo.currentTime = 0;
     visualizerVideo.play().catch(() => {});
-
     visualizerCanvas.style.backgroundImage = 'none';
     visualizerCanvas.style.backgroundColor = '#111111';
     return;
@@ -1853,7 +2323,10 @@ async function setVisualizerBackground(item) {
 
 
   async function playTrack(index) {
+
   if (index < 0 || index >= audioFiles.length) return;
+
+
 
   currentIndex = index;
   selectedIndices.clear();
@@ -1877,9 +2350,12 @@ async function setVisualizerBackground(item) {
   } else if (item.isStream) {
     src = item.url;
     displayName = item.name || 'Radio Stream';
-  } else {
+} else if (item.isJellyfin) {
+    src = item.url;
+    displayName = item.name;
+} else {
     return;
-  }
+}
 
  if (Hls.isSupported() && src.endsWith('.m3u8') || src.includes('.m3u8?')) {
     const hls = new Hls();
@@ -1914,6 +2390,14 @@ async function setVisualizerBackground(item) {
   updateSelectionVisuals();
   visualize();
   scrollToCurrentTrack();
+
+  if (item.isJellyfin) {
+  src = item.url;
+  displayName = item.name;
+  if (item.albumArt) {
+    visualizerCanvas.style.backgroundImage = `url(${item.albumArt})`;
+  }
+}
   if (item.isStream) {
     currentTimeElem.textContent = 'LIVE';
     durationElem.textContent = '∞';
@@ -1949,12 +2433,14 @@ playPauseBtn.addEventListener('click', () => {
 
 
 audio.addEventListener('play', () => {
+  renderPlaylist();
   playPauseIcon.src = 'build/pause.svg';
   playPauseIcon.alt = 'Pause';
   window.electronAPI.updateTrack({ isPlaying: true });
 });
 
 audio.addEventListener('pause', () => {
+  renderPlaylist();
   playPauseIcon.src = 'build/play.svg';
   playPauseIcon.alt = 'Play';
   window.electronAPI.updateTrack({ isPlaying: false });
@@ -2060,17 +2546,19 @@ function draw(timestamp) {
     }
 
     ctx.clearRect(0, 0, width, height);
-    let songName = 'No Track';
-    let isRadioStream = false;
-    const currentItem = audioFiles[currentIndex];
-    if (currentItem) {
-        if (typeof currentItem === 'string') {
-            songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
-        } else if (currentItem.isStream) {
-            isRadioStream = true;
-            songName = currentItem.name?.trim() || (new URL(currentItem.url).hostname || 'Radio Stream');
-        }
+   let songName = 'No Track';
+let isRadioStream = false;
+const currentItem = audioFiles[currentIndex];
+if (currentItem) {
+    if (typeof currentItem === 'string') {
+        songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
+    } else if (currentItem.isStream) {
+        isRadioStream = true;
+        songName = currentItem.name?.trim() || (new URL(currentItem.url).hostname || 'Radio Stream');
+    } else if (currentItem.isJellyfin) {
+        songName = currentItem.name || 'Unknown Track';
     }
+}
     if (songName.length > 50) songName = songName.slice(0, 47) + '...';
 
     const isMini = document.body.classList.contains('mini-mode');

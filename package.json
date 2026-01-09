@@ -1,6 +1,6 @@
 {
   "name": "neonkat",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
   "homepage": "https://github.com/cx/muzik-electro",
@@ -41,8 +41,8 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb",
-        "pacman"
+        "deb"
+       
       
       ],
       "icon": "build/kat.png",
