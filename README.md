@@ -12,6 +12,7 @@
 - **Radio streams support**
 - **Neon Mode (changes colors to the beat)**
 - **Canvas Mode (Short mp4 video previews)** - plays short videos in the visualizer, similar to spotify’s canvas feature.
+- **Supports Jellyfin Servers For Music Streaming**
 - **Zero outside connections. Runs 100% locally on your device.** --  Your music and your data stays with you as it always should.
   No cloud bullshit, no tracking, no compromises.
  
