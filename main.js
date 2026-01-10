@@ -5,9 +5,9 @@ const fsSync = require('fs');
 const { spawn } = require('child_process');
 const { shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
-autoUpdater.allowPrerelease = true;
 
-
+let autoUpdateEnabled = false
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let logger = console;
 try {
   logger = require('electron-log');
@@ -249,7 +249,9 @@ ipcMain.on('open-external', (event, url) => {
 }
 
 app.whenReady().then(() => {
- 
+ if (autoUpdateEnabled) {
+    startPeriodicUpdateChecks();
+  }
   createWindow();
   const iconPath = path.join(__dirname, 'build', 'kat.png');
   const trayIcon = nativeImage.createFromPath(iconPath);
@@ -427,8 +429,18 @@ function checkForUpdatesIfEnabled() {
 }
 
 ipcMain.on('set-auto-update-enabled', (event, enabled) => {
-  autoUpdateEnabled = enabled;
+  autoUpdateEnabled = !!enabled;
   console.log(`Auto-update now ${enabled ? 'ENABLED' : 'DISABLED'}`);
+
+  if (enabled) {
+    startPeriodicUpdateChecks();
+  } else {
+    if (updateCheckInterval) {
+      clearInterval(updateCheckInterval);
+      updateCheckInterval = null;
+      console.log('Periodic update checks stopped');
+    }
+  }
 });
 
 ipcMain.on('check-for-updates', () => {
@@ -441,3 +453,29 @@ ipcMain.on('check-for-updates', () => {
   }
 });
 
+let updateCheckInterval = null;
+
+function startPeriodicUpdateChecks() {
+  if (updateCheckInterval) {
+    clearInterval(updateCheckInterval);
+  }
+
+  const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+  updateCheckInterval = setInterval(() => {
+    if (autoUpdateEnabled) {
+      console.log('Running scheduled update check...');
+      autoUpdater.checkForUpdatesAndNotify()
+        .catch(err => {
+          console.log('Scheduled update check failed (normal):', err.message);
+        });
+    }
+  }, CHECK_INTERVAL_MS);
+
+  setTimeout(() => {
+    if (autoUpdateEnabled) {
+      console.log('Initial startup update check');
+      autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+    }
+  }, 10000);
+}

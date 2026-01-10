@@ -1584,7 +1584,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.7 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.8 alpha</p>
       </div>
   </div>
   `;
@@ -3125,11 +3125,6 @@ function stopRainbowLoop() {
 document.addEventListener('DOMContentLoaded', () => {
   const toggleRow = document.getElementById('autoUpdateAppToggle');
   const checkbox = document.getElementById('autoUpdateAppCheckbox');
-
-  if (!toggleRow || !checkbox) {
-    console.error("Toggle elements missing. Check these IDs in HTML: 'autoUpdateAppToggle' and 'autoUpdateAppCheckbox'");
-    return;
-  }
 
   let isEnabled = localStorage.getItem('autoUpdateEnabled') === 'true';
   checkbox.checked = isEnabled;
