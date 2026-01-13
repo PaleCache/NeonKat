@@ -41,7 +41,7 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 ---
 
 ## 🤗 Special Thanks
-- Friends who helped with artwork 
+- Friends who helped with the artwork 
 - [YT-dlp team](https://github.com/yt-dlp/yt-dlp) for their amazing project
 
 ---
