@@ -20,6 +20,7 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 - **Neon Mode** (color changes to the beat)
 - **Canvas Mode** (short MP4 previews)
 - **Supports Jellyfin servers for music streaming**
+- **Auto Updates (disabled by default for privacy reasons)**
 - **Zero outside connections** – your music and data stay with you.
 
 ---
