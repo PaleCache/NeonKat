@@ -34,9 +34,9 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 |-----------|---------------|----------------|
 | <img src="./assets/mini-mode.png" width="200"> | <img src="./assets/radio-streams.png" width="200"> | <img src="./assets/yt-dlp-support.png" width="210"> |
 
-| Canvas Mode |
-|-------------|
-| <img src="./assets/gifPreview.gif" width="200"> |
+| Canvas Mode | Jellyfin Support |
+|-------------|-------------|
+| <img src="./assets/gifPreview.gif" width="200"> | <img src="./assets/jellyfin-support.png" width="200"> |
 
 ---
 
