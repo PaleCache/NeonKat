@@ -1,41 +1,55 @@
 <p align="center">
-  <img src="./build/kat.png" alt="NeonKat Banner" width="10%"> <br>NeonKat: A simple electron music player for linux and windows based systems
+  <img src="./build/kat.png" alt="NeonKat Banner" width="10%">
 </p>
 
-<br><br>
+# NeonKat – Cross-Platform Electron Music Player
+
+**NeonKat** is a lightweight, **cross-platform Electron music player** for Linux and Windows. It features **playlist management, a real-time music visualizer, an always-on-top miniplayer, and support for streaming from Jellyfin servers**. NeonKat runs entirely locally - no cloud, no tracking, your music stays on your device. Advanced features include **YT-dlp integration**, **radio streams**, **Neon Mode visualizations synced to the beat**, and **Canvas Mode short video previews**, similar to Spotify’s Canvas feature.  
+
+NeonKat is perfect for users who want a **fast, private, and visually engaging music player** on Linux and Windows systems.
+
+---
+
 ## 🛠️ Key Features
-- **Playlist loading and saving**<br> 
-- **Music visualizer**<br> 
+- **Playlist loading and saving**
+- **Music visualizer**
 - **Always on top mini mode**
-- **Seek, volume, and other simple features you would expect from a music player** <br>
-- **Yt-dlp support (need to have yt-dlp and ffmpeg installed in your system path https://github.com/yt-dlp/yt-dlp/wiki/Installation)**<br>
+- **Seek, volume, and other simple features you would expect from a music player**
+- **YT-dlp support** (need to have yt-dlp and ffmpeg installed in your system path https://github.com/yt-dlp/yt-dlp/wiki/Installation - if using windows i recommend using scoop for this)
 - **Radio streams support**
-- **Neon Mode (changes colors to the beat)**
-- **Canvas Mode (Short mp4 video previews)** - plays short videos in the visualizer, similar to spotify’s canvas feature.
-- **Supports Jellyfin Servers For Music Streaming**
-- **Zero outside connections. Runs 100% locally on your device.** --  Your music and your data stays with you as it always should.
-  No cloud bullshit, no tracking, no compromises.
- 
+- **Neon Mode** (color changes to the beat)
+- **Canvas Mode** (short MP4 previews)
+- **Supports Jellyfin servers for music streaming**
+- **Zero outside connections** – your music and data stay with you.
+
+---
+
 ## Previews
 
 | Visualizer | Color Selector | Neon Mode |
-|--------------|----------------|-----------------------------------------|
-| <img src="./assets/visualizer.png" width="200" style="object-fit: cover;"> | <img src="./assets/color-selector.png" width="200" style="object-fit: cover;"> | <img src="./assets/neonmode.gif" width="210"  style="object-fit: cover;"> |
+|------------|----------------|-----------|
+| <img src="./assets/visualizer.png" width="200"> | <img src="./assets/color-selector.png" width="200"> | <img src="./assets/neonmode.gif" width="210"> |
 
-| Mini Mode | Radio Streams | Yt-dlp Support |
-|--------------|----------------|-----------------------------------------|
-| <img src="./assets/mini-mode.png" width="200"  style="object-fit: cover;"> | <img src="./assets/radio-streams.png" width="200"  style="object-fit: cover;"> | <img src="./assets/yt-dlp-support.png" width="210" style="object-fit: cover;"> |
+| Mini Mode | Radio Streams | YT-dlp Support |
+|-----------|---------------|----------------|
+| <img src="./assets/mini-mode.png" width="200"> | <img src="./assets/radio-streams.png" width="200"> | <img src="./assets/yt-dlp-support.png" width="210"> |
 
 | Canvas Mode |
-|--------------|
-| <img src="./assets/gifPreview.gif" width="200"  style="object-fit: cover;"> | <img src="./assets/radio-streams.png" width="200"  style="object-fit: cover;"> | <img src="./assets/yt-dlp-support.png" width="210" style="object-fit: cover;"> |
+|-------------|
+| <img src="./assets/gifPreview.gif" width="200"> |
+
+---
 
 ## 🤗 Special Thanks
-- Some friends who helped with the artwork you know who you are, thanks a lot :)<br>
-- yt-dlp team for giving us such an amazing project, you're awesome
-  
-## 💰 Wanna Help Support Development 
-monero(xmr): 455KNy55xW9cK4sGknaHwEHD7s3RYcS1nb3bdACZVNpJDey47BegHWpjUghbPu64xxMi2fZwqG95wfextdwDcXbbALSDFVw
+- Friends who helped with artwork 
+- [YT-dlp team](https://github.com/yt-dlp/yt-dlp) for their amazing project
 
-## 🧑‍💻 Developer 
+---
+
+## 💰 Support Development
+`monero(xmr): 455KNy55xW9cK4sGknaHwEHD7s3RYcS1nb3bdACZVNpJDey47BegHWpjUghbPu64xxMi2fZwqG95wfextdwDcXbbALSDFVw`
+
+---
+
+## 🧑‍💻 Developer
 - PaleCache
