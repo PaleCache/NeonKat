@@ -968,11 +968,12 @@ katbubbleImages[0].src = 'build/kat.png';
   rainbowIcon.src = isRainbowActive ? 'build/flash.svg' : 'build/flashoff.svg';
   const rainbowToggleBtn = document.getElementById('rainbowToggleBtn');
   const barsToggleBtn = document.getElementById('barsToggleBtn');
-const bubblesToggleBtn = document.getElementById('bubblesToggleBtn');
-const katbubblesToggleBtn = document.getElementById('katbubblesToggleBtn');
+  const bubblesToggleBtn = document.getElementById('bubblesToggleBtn');
+  const katbubblesToggleBtn = document.getElementById('katbubblesToggleBtn');
   let rainbowFrameId = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
+  let currentSearchTerm = '';
   analyser.fftSize = 128;
   const source = audioCtx.createMediaElementSource(audio);
   source.connect(analyser);
@@ -1020,26 +1021,11 @@ updateJellyfinModalButtons();
 function quickSearchPlaylist() {
   const input = document.getElementById('playlistQuickSearch');
   const clearBtn = document.getElementById('clearQuickSearch');
-  const term = input.value.toLowerCase().trim();
-  clearBtn.style.display = term ? 'block' : 'none';
-  const lis = document.querySelectorAll('#playlist li');
   
-  lis.forEach((li, idx) => {
-    const item = audioFiles[idx];
-    let text = '';
-    
-    if (typeof item === 'string') {
-      text = item.split(/[\\/]/).pop().toLowerCase();
-    } else if (item.isStream || item.isJellyfin) {
-      text = (item.name || '').toLowerCase();
-    }
-    
-    if (!term || text.includes(term)) {
-      li.style.display = '';
-    } else {
-      li.style.display = 'none';
-    }
-  });
+  currentSearchTerm = input.value.toLowerCase().trim();
+  clearBtn.style.display = currentSearchTerm ? 'block' : 'none';
+
+  renderPlaylist();
 }
 
 
@@ -1073,18 +1059,16 @@ document.getElementById('playlistQuickSearch').addEventListener('input', quickSe
 
 
 document.getElementById('clearQuickSearch').addEventListener('click', () => {
-  document.getElementById('playlistQuickSearch').value = '';
-  quickSearchPlaylist();
+  const input = document.getElementById('playlistQuickSearch');
+  input.value = '';
+  currentSearchTerm = '';
+  document.getElementById('clearQuickSearch').style.display = 'none';
+  renderPlaylist();
+  scrollToCurrentTrack();
 });
 
 
 document.getElementById('closeSortMenuBtn').addEventListener('click', () => {
-  document.getElementById('sortMenu').style.display = 'none';
-    
-    const clearBtn = document.getElementById('clearQuickSearch');
-
-    document.getElementById('playlistQuickSearch').value = '';
-    clearBtn.style.display = 'none';
     document.getElementById('sortMenu').style.display = 'none';
 });
 
@@ -1283,6 +1267,15 @@ async function loadJellyfinLibrary() {
     }
 
     jellyfinStatus.textContent = `Connected – Loaded ${audioFiles.length} tracks`;
+    const input = document.getElementById('playlistQuickSearch');
+    input.value = '';
+    currentSearchTerm = '';
+    document.getElementById('clearQuickSearch').style.display = 'none';
+    savedSortedOrder = [];
+    isShuffled = false;
+    shuffleBtn.classList.remove('enabled');
+
+    currentIndex = 0;
     renderPlaylist();
     if (audioFiles.length > 0) {
       currentIndex = 0;
@@ -1584,7 +1577,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.8 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.9 alpha</p>
       </div>
   </div>
   `;
@@ -1736,36 +1729,77 @@ let isShuffled = false;
 shuffleBtn.classList.toggle('enabled', isShuffled);
 
 shuffleBtn.addEventListener('click', () => {
-  
   isShuffled = !isShuffled;
   shuffleBtn.classList.toggle('enabled', isShuffled);
-  if (notifyEnabled && isShuffled && Notification.permission === 'granted') {
-    window.electronAPI.notify('Shuffle Enabled');
+
+  if (notifyEnabled && Notification.permission === 'granted') {
+    window.electronAPI.notify(isShuffled ? 'Shuffle Enabled' : 'Shuffle Disabled');
   }
 
-  if (notifyEnabled && !isShuffled && Notification.permission === 'granted') {
-    window.electronAPI.notify('Shuffle Disabled');
-  }
+  if (audioFiles.length === 0) return;
+  const currentSong = audioFiles[currentIndex];
 
   if (isShuffled) {
-    savedSortedOrder = [...audioFiles];
-    const currentTrack = audioFiles[currentIndex];
-    let remaining = audioFiles.filter((_, i) => i !== currentIndex);
-    shuffleArray(remaining);
-    audioFiles = [currentTrack, ...remaining];
-    currentIndex = 0;
+    if (savedSortedOrder.length === 0) {
+      savedSortedOrder = [...audioFiles];
+    }
+    shuffleArray(audioFiles);
+    const newIndex = audioFiles.findIndex(song => {
+      if (typeof song === 'string' && typeof currentSong === 'string') {
+        return song === currentSong;
+      }
+      if (song && currentSong && typeof song === 'object') {
+        if (song.isStream && currentSong.isStream) {
+          return song.url === currentSong.url;
+        }
+        if (song.isJellyfin && currentSong.isJellyfin) {
+          return song.itemId === currentSong.itemId;
+        }
+      }
+      return false;
+    });
+
+    currentIndex = newIndex !== -1 ? newIndex : 0;
 
   } else {
+    
     audioFiles = [...savedSortedOrder];
-    const currentTrack = audioFiles[currentIndex];
-    const restoredIndex = audioFiles.findIndex(item => deepEqual(item, currentTrack));
-    currentIndex = restoredIndex !== -1 ? restoredIndex : 0;
+    const newIndex = audioFiles.findIndex(song => {
+      if (typeof song === 'string' && typeof currentSong === 'string') {
+        return song === currentSong;
+      }
+      if (song && currentSong && typeof song === 'object') {
+        if (song.isStream && currentSong.isStream) return song.url === currentSong.url;
+        if (song.isJellyfin && currentSong.isJellyfin) return song.itemId === currentSong.itemId;
+      }
+      return false;
+    });
+
+    currentIndex = newIndex !== -1 ? newIndex : 0;
   }
 
   renderPlaylist();
   updateSelectionVisuals();
   scrollToCurrentTrack();
+  if (!audio.paused) {
+    playTrack(currentIndex);
+  }
 });
+
+
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+
+  if (typeof a === 'string' && typeof b === 'string') return a === b;
+
+  if (a && b && typeof a === 'object') {
+    if (a.isStream && b.isStream) return a.url === b.url && a.name === b.name;
+    if (a.isJellyfin && b.isJellyfin) return a.itemId === b.itemId && a.url === b.url;
+  }
+
+  return false;
+}
 
 
 function shuffleArray(array) {
@@ -1776,15 +1810,7 @@ function shuffleArray(array) {
 }
 
 
-function deepEqual(a, b) {
-  if (a === b) return true;
-  if (typeof a !== typeof b) return false;
-  if (typeof a === 'string') return a === b;
-  if (a.isStream && b.isStream) {
-    return a.url === b.url && a.name === b.name;
-  }
-  return false;
-}
+
 
   repeatBtn.addEventListener('click', () => {
     
@@ -2057,18 +2083,24 @@ sortOptions.forEach(btn => {
     }
 
     
-      audioFiles = audioFilePaths;
+    audioFiles = audioFilePaths;
     savedSortedOrder = [];
     isShuffled = false;
     shuffleBtn.classList.remove('enabled');
+    const input = document.getElementById('playlistQuickSearch');
+    input.value = '';
+    currentSearchTerm = '';
+    document.getElementById('clearQuickSearch').style.display = 'none';
+    renderPlaylist();
 
-    currentIndex = 0;
+    
     await applySavedSort();
 
     updateStoredPlaylist();
     renderPlaylist();
+    currentIndex = 0;
     playTrack(0);
-    scrollToCurrentTrack();
+    scrollToCurrentTrack(true);
   } catch (err) {
     console.error('Folder load error:', err);
     alert('Error: ' + err.message);
@@ -2101,6 +2133,10 @@ sortOptions.forEach(btn => {
       return;
     }
 
+    savedSortedOrder = [];
+    isShuffled = false;
+    shuffleBtn.classList.remove('enabled');
+
     currentIndex = 0;
     renderPlaylist();
     playTrack(currentIndex);
@@ -2132,88 +2168,107 @@ sortOptions.forEach(btn => {
 
 function renderPlaylist() {
   playlistElem.innerHTML = '';
-  audioFiles.forEach((item, index) => {
-  const li = document.createElement('li');
-
-  if (typeof item === 'string') {
-    li.textContent = item.split(/[\\/]/).pop();
+  
+  audioFiles.forEach((item, realIndex) => {
+    let text = '';
+    
+    if (typeof item === 'string') {
+      text = item.split(/[\\/]/).pop().toLowerCase();
+    } else if (item.isStream || item.isJellyfin) {
+      text = (item.name || '').toLowerCase();
+    }
+    
+    if (currentSearchTerm && !text.includes(currentSearchTerm)) {
+      return;
+    }
+    
+    const li = document.createElement('li');
+    if (typeof item === 'string') {
+      li.textContent = item.split(/[\\/]/).pop();
     } else if (item.isStream) {
-    li.innerHTML = '';
-    const icon = document.createElement('img');
-    icon.src = 'build/radio.svg';
-    icon.style.width = '16px';
-    icon.style.height = '16px';
-    icon.style.marginRight = '8px';
-    icon.style.verticalAlign = 'middle';
-    icon.style.filter = 'brightness(0) invert(1)';
-    const text = document.createElement('span');
-    text.textContent = item.name || 'Unknown Station';
-    li.appendChild(icon);
-    li.appendChild(text);
-  } else if (item.isJellyfin) {
-    li.textContent = item.name || 'Unknown Track';
-  } else {
-    li.textContent = 'Unknown Track';
-  }
-
-  if (index === currentIndex && !audio.paused && audioFiles.length > 0) {
+      li.innerHTML = '';
+      const icon = document.createElement('img');
+      icon.src = 'build/radio.svg';
+      icon.style.width = '16px';
+      icon.style.height = '16px';
+      icon.style.marginRight = '8px';
+      icon.style.verticalAlign = 'middle';
+      icon.style.filter = 'brightness(0) invert(1)';
+      const textSpan = document.createElement('span');
+      textSpan.textContent = item.name || 'Unknown Station';
+      li.appendChild(icon);
+      li.appendChild(textSpan);
+    } else if (item.isJellyfin) {
+      li.textContent = item.name || 'Unknown Track';
+    } else {
+      li.textContent = 'Unknown Track';
+    }
+    
+    const isActive = (realIndex === currentIndex);
+    const isPlaying = isActive && !audio.paused && audioFiles.length > 0;
+    
+    if (isPlaying) {
       const gifWrapper = document.createElement('div');
       gifWrapper.style.position = 'absolute';
       gifWrapper.style.left = '9px';
       gifWrapper.style.top = '42%';
       gifWrapper.style.transform = 'translateY(-50%)';
       gifWrapper.style.pointerEvents = 'none';
-      gifWrapper.style.zIndex = '10';       
-
+      gifWrapper.style.zIndex = '10';
       const gifImg = document.createElement('img');
       gifImg.src = 'build/bars.gif';
       gifImg.style.width = '25px';
       gifImg.style.height = '25px';
       gifImg.style.objectFit = 'contain';
-
       gifWrapper.appendChild(gifImg);
-      li.style.paddingLeft = '37px'
+      li.style.paddingLeft = '37px';
       li.style.position = 'relative';
       li.appendChild(gifWrapper);
     }
-
-  li.addEventListener('click', (e) => {
-    if (contextMenuOpen) {
-      contextMenu.style.display = 'none';
-      contextMenuOpen = false;
-      e.stopPropagation();
-      return;
+    
+    li.dataset.realIndex = realIndex;
+    
+    li.addEventListener('click', (e) => {
+      if (contextMenuOpen) {
+        contextMenu.style.display = 'none';
+        contextMenuOpen = false;
+        e.stopPropagation();
+        return;
+      }
+      
+      const realIdx = parseInt(li.dataset.realIndex);
+      
+      if (e.shiftKey && lastSelectedIndex !== null) {
+        const start = Math.min(lastSelectedIndex, realIdx);
+        const end = Math.max(lastSelectedIndex, realIdx);
+        selectedIndices.clear();
+        for (let i = start; i <= end; i++) selectedIndices.add(i);
+      } else if (e.ctrlKey || e.metaKey) {
+        if (selectedIndices.has(realIdx)) selectedIndices.delete(realIdx);
+        else selectedIndices.add(realIdx);
+        lastSelectedIndex = realIdx;
+      } else {
+        selectedIndices.clear();
+        selectedIndices.add(realIdx);
+        lastSelectedIndex = realIdx;
+        currentIndex = realIdx;
+        playTrack(realIdx);
+      }
+      
+      updateSelectionVisuals();
+    });
+    
+    if (selectedIndices.has(realIndex)) {
+      li.classList.add('selected');
     }
-
-    if (e.shiftKey && lastSelectedIndex !== null) {
-      const start = Math.min(lastSelectedIndex, index);
-      const end = Math.max(lastSelectedIndex, index);
-      selectedIndices.clear();
-      for (let i = start; i <= end; i++) selectedIndices.add(i);
-    } else if (e.ctrlKey || e.metaKey) {
-      if (selectedIndices.has(index)) selectedIndices.delete(index);
-      else selectedIndices.add(index);
-      lastSelectedIndex = index;
-    } else {
-      selectedIndices.clear();
-      selectedIndices.add(index);
-      lastSelectedIndex = index;
-      currentIndex = index;
-      playTrack(index);
+    if (isActive) {
+      li.classList.add('active');
     }
-
-    updateSelectionVisuals();
+    
+    playlistElem.appendChild(li);
   });
-
-  if (selectedIndices.has(index)) {
-    li.classList.add('selected');
-  }
-  if (index === currentIndex) {
-    li.classList.add('active');
-  }
-
-  playlistElem.appendChild(li);
-});
+  
+  updateSelectionVisuals();
 }
 
 
@@ -2221,18 +2276,10 @@ const selectedIndices = new Set();
 
 function updateSelectionVisuals() {
   const items = playlistElem.querySelectorAll('li');
-  items.forEach((li, i) => {
-    if (selectedIndices.has(i)) {
-      li.classList.add('selected');
-    } else {
-      li.classList.remove('selected');
-    }
-    
-    if (i === currentIndex) {
-      li.classList.add('active');
-    } else {
-      li.classList.remove('active');
-    }
+  items.forEach(li => {
+    const idx = parseInt(li.dataset.realIndex);
+    li.classList.toggle('selected', selectedIndices.has(idx));
+    li.classList.toggle('active', idx === currentIndex);
   });
 }
 
@@ -2256,9 +2303,6 @@ function updateSelectionVisuals() {
 
  async function getAlbumArtUrl(filePath) {
   const defaultImage = 'build/default-artwork.jpg';
-  if (typeof filePath !== 'string' || !['.mp3', '.m4a', '.flac', '.opus'].some(ext => filePath.toLowerCase().endsWith(ext))) {
-    return defaultImage;
-  }
 
   try {
     const buffer = await window.electronAPI.readFileBuffer(filePath);
@@ -2266,31 +2310,36 @@ function updateSelectionVisuals() {
     const blob = new Blob([arrayBuffer]);
 
     return new Promise((resolve) => {
-      window.jsmediatags.read(blob, {
-        onSuccess: function(tag) {
-          const tags = tag.tags;
-          if (tags.picture) {
-            const picture = tags.picture;
-            const uint8Array = new Uint8Array(picture.data);
-            let binary = '';
-            const chunkSize = 8192;
-            for (let i = 0; i < uint8Array.length; i += chunkSize) {
-              binary += String.fromCharCode(...uint8Array.subarray(i, i + chunkSize));
+      jsmediatags.read(blob, {
+        onSuccess: function (tag) {
+          const picture = tag.tags?.picture;
+          if (picture) {
+            try {
+              const uint8Array = new Uint8Array(picture.data);
+              let binary = '';
+              const chunkSize = 8192;
+              for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                binary += String.fromCharCode(...uint8Array.subarray(i, i + chunkSize));
+              }
+              const base64 = btoa(binary);
+              const mime = picture.format || 'image/jpeg';
+              resolve(`data:${mime};base64,${base64}`);
+            } catch (e) {
+              console.error('Base64 conversion failed:', e);
+              resolve(defaultImage);
             }
-            const base64String = btoa(binary);
-            resolve(`data:${picture.format};base64,${base64String}`);
           } else {
             resolve(defaultImage);
           }
         },
-        onError: function(error) {
-          console.error('jsmediatags error:', error);
+        onError: function (error) {
+          console.warn('jsmediatags failed to read tags:', error);
           resolve(defaultImage);
         }
       });
     });
   } catch (err) {
-    console.error('Failed to read file for tags:', err);
+    console.error('Failed to read file buffer for tags:', err);
     return defaultImage;
   }
 }
@@ -2311,33 +2360,42 @@ function clearBackground() {
 const visualizerVideo = document.getElementById('visualizerVideo');
 
 async function setVisualizerBackground(item) {
-  if (typeof item !== 'string') {
-    stopVideo();
-    clearBackground();
-    return;
-  }
-
-  const mp3Path = item;
-  const videoPath = mp3Path.replace(/\.mp3$/i, '.mp4');
-
-  const videoExists = await window.electronAPI.fileExists(videoPath);
-
-  if (videoExists && gifPreviewEnabled) {
-    const normalized = videoPath.replace(/\\/g, '/');
-    const encoded = encodeURI(normalized).replace(/#/g, '%23');
-    visualizerVideo.src = `file://${encoded}`;
-    visualizerVideo.style.display = 'block';
-    visualizerVideo.currentTime = 0;
-    visualizerVideo.play().catch(() => {});
-    visualizerCanvas.style.backgroundImage = 'none';
-    visualizerCanvas.style.backgroundColor = '#111111';
-    return;
-  }
-
   stopVideo();
-  const imageUrl = await getAlbumArtUrl(item);
-  visualizerCanvas.style.backgroundImage = `url(${imageUrl})`;
+  visualizerCanvas.style.backgroundImage = 'none';
   visualizerCanvas.style.backgroundColor = '#111111';
+  if (typeof item === 'string') {
+    const filePath = item;
+    const videoPath = filePath.replace(/\.([a-zA-Z0-9]+)$/i, '.mp4');
+    const videoExists = await window.electronAPI.fileExists(videoPath);
+
+    if (videoExists && gifPreviewEnabled) {
+      const normalized = videoPath.replace(/\\/g, '/');
+      const encoded = encodeURI(normalized).replace(/#/g, '%23');
+      visualizerVideo.src = `file://${encoded}`;
+      visualizerVideo.style.display = 'block';
+      visualizerVideo.currentTime = 0;
+      visualizerVideo.play().catch(() => {});
+      return;
+    }
+    const imageUrl = await getAlbumArtUrl(filePath);
+    if (imageUrl && imageUrl !== 'build/default-artwork.jpg') {
+      visualizerCanvas.style.backgroundImage = `url(${imageUrl})`;
+      visualizerCanvas.style.backgroundSize = 'cover';
+      visualizerCanvas.style.backgroundPosition = 'center';
+      return;
+    }
+  }
+
+  if (item?.isJellyfin && item.albumArt) {
+    visualizerCanvas.style.backgroundImage = `url(${item.albumArt})`;
+    visualizerCanvas.style.backgroundSize = 'cover';
+    visualizerCanvas.style.backgroundPosition = 'center';
+    return;
+  }
+
+  visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+  visualizerCanvas.style.backgroundSize = 'cover';
+  visualizerCanvas.style.backgroundPosition = 'center';
 }
 
 
@@ -3004,11 +3062,30 @@ audio.addEventListener('ended', () => {
     }
   }
 
-function scrollToCurrentTrack() {
-  const items = playlistElem.querySelectorAll('li');
-  const currentItem = items[currentIndex];
-  if (currentItem) {
-    currentItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+function scrollToCurrentTrack(forceTop = false) {
+  const currentItem = playlistElem.querySelector(`li[data-real-index="${currentIndex}"]`);
+  
+  if (!currentItem) return;
+
+  if (forceTop) {
+    playlistElem.scrollTop = 0;
+    return;
+  }
+
+  const isShortList = playlistElem.scrollHeight <= playlistElem.clientHeight + 50;
+  const searchActive = currentSearchTerm !== '';
+
+  if (isShortList || searchActive) {
+    currentItem.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center', 
+      inline: 'nearest'
+    });
+  } else {
+    currentItem.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
   }
 }
 

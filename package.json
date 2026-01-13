@@ -1,6 +1,6 @@
 {
   "name": "neonkat",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
   "homepage": "https://github.com/cx/muzik-electro",
@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "com.palecache.NeonKat",
-    "productName": "NeonKat",
+    "productName": "NeonKat-Setup",
     "directories": {
       "output": "dist"
     },
@@ -40,6 +40,7 @@
         "nsis",
         "portable"
       ],
+      "artifactName": "${productName}-${version}.${ext}",
       "icon": "build/kat.ico"
     },
     "linux": {
