@@ -1,3 +1,4 @@
+//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
 const { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
@@ -421,7 +422,7 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
 });
 
 
-
+//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
 function checkForUpdatesIfEnabled() {
   autoUpdater.checkForUpdatesAndNotify().catch(err => {
     logger.warn('Update check failed:', err);
@@ -479,3 +480,4 @@ function startPeriodicUpdateChecks() {
     }
   }, 10000);
 }
+//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
