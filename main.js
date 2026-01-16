@@ -273,7 +273,7 @@ app.whenReady().then(() => {
       },
     },
   ]);
-
+  //neonkat-src-tag: nk_7f29a
   tray.setToolTip('NeonKat');
   tray.setContextMenu(contextMenu);
 
@@ -411,7 +411,7 @@ ipcMain.handle('read-file-buffer', async (event, filePath) => {
     throw new Error(`Failed to read file: ${error.message}`);
   }
 });
-
+//neonkat-src-tag: nk_7f29a
 ipcMain.handle('get-file-stats', async (event, filePath) => {
   try {
     return await fs.stat(filePath);
