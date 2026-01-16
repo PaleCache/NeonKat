@@ -1017,7 +1017,7 @@ updateJellyfinModalButtons();
 
 
 
-
+//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
 function quickSearchPlaylist() {
   const input = document.getElementById('playlistQuickSearch');
   const clearBtn = document.getElementById('clearQuickSearch');
@@ -1810,7 +1810,7 @@ function shuffleArray(array) {
 }
 
 
-
+//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
 
   repeatBtn.addEventListener('click', () => {
     
@@ -2650,7 +2650,7 @@ if (currentItem) {
     ctx.shadowBlur = 3;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
-
+//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
     let displayText = songName;
     let textWidth = ctx.measureText(displayText).width;
     if (textWidth > maxWidth) {
@@ -2888,7 +2888,7 @@ if (currentItem) {
 
   animationFrameId = requestAnimationFrame(draw);
 }
-
+//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
 function drawTintedImage(ctx, originalImg, x, y, width, height) {
   if (!originalImg || !originalImg.complete) {
     ctx.drawImage(originalImg, x, y, width, height);
@@ -3190,7 +3190,7 @@ function stopRainbowLoop() {
       playTrack(currentIndex);
     }
   });
-
+//ee349391b1b258924e287a2d60dd979fd15cde9399273a7ca4d0d5ffe7033159
   window.electronAPI.onTogglePlay(() => {
     if (audio.paused) {
       audio.play();
