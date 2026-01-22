@@ -74,5 +74,3 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
     return () => ipcRenderer.removeAllListeners('seek-from-mini');
   }
 });
-
-//ee349391b1b258924e287a2d60dd979fd15cde9399273a7ca4d0d5ffe7033159

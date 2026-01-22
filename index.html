@@ -167,6 +167,8 @@ a {
   background: #222;
   border-radius: 5px;
   -webkit-app-region: no-drag;
+    background: rgba(33, 33, 33, 0.5) !important;
+  backdrop-filter: blur(4px) !important; 
 }
     #playlist li {
       padding: 10px;
@@ -193,6 +195,8 @@ a {
     #playlist::-webkit-scrollbar-track {
       background: #111;
       border-radius: 5px;
+      background: rgba(33, 33, 33, 0.5) !important;
+      backdrop-filter: blur(4px) !important; 
     }
     #playlist::-webkit-scrollbar-thumb {
       background: linear-gradient(to bottom, #212121, var(--primary-color));
@@ -365,7 +369,8 @@ a {
       #jellyfinUserInput,
       #jellyfinPassInput,
       #jellyfinSearchInput,
-      #playlistQuickSearch {
+      #playlistQuickSearch,
+      #customBgInput {
         outline: none !important;
     }
 
@@ -492,7 +497,6 @@ body.mini-mode #visualizerVideo {
     height: 225px;
     overflow: initial;
     border-radius: 8px;
-    background: #111;
 }
 
 #skipVideoToggle {
@@ -673,6 +677,103 @@ body.mini-mode #visualizerVideo {
 }
 
 
+#customBgToggle {
+    margin-right: auto !important;
+    width: 91%;
+}
+
+#customBgToggle:hover {
+  background: rgba(var(--primary-color), 0.15);
+}
+
+button, .control-btn, .vis-mode-toggle button {
+  background: rgba(33, 33, 33, 0.5) !important;   
+  backdrop-filter: blur(4px) !important;          
+  color: white !important;
+}
+
+
+button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
+  background: var(--primary-color) !important; 
+}
+
+
+#notifyToggleBtn,
+#gifPreviewToggleBtn,
+#visualizerToggleBtn,
+#rainbowToggleBtn,
+#miniPlayerBtn,
+#hamburgerBtn,
+#clearQuickSearch {
+  background: none !important; 
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+#notifyToggleBtn:hover,
+#gifPreviewToggleBtn:hover,
+#visualizerToggleBtn:hover,
+#rainbowToggleBtn:hover,
+#miniPlayerBtn:hover,
+#hamburgerBtn:hover,
+#clearQuickSearch:hover {
+  background: none !important;
+  transform: none !important;
+}
+
+/* FIX ME */
+#hamburgerMenu #customBgToggle button {
+  background: #434242 !important;
+  color: white !important;
+  transition: background 0.2s ease !important;
+}
+
+#hamburgerMenu #customBgToggle button:hover {
+  background: var(--primary-color) !important;
+  color: white !important;
+}
+
+
+#container.custom-bg::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 17, 17, 0.65);
+  border-radius: 0px;               
+  pointer-events: none;               
+  z-index: 1;                         
+}
+
+#container.custom-bg {
+  position: relative;         
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+
+#container > * {
+  position: relative;
+  z-index: 2;
+}
+
+
+.sort-wrapper {
+  z-index: 100 !important;  
+}
+
+
+#sortMenu {
+  z-index: 101 !important;
+  pointer-events: auto !important;
+}
+
+
+
   </style>
 </head>
 <body>
@@ -756,7 +857,28 @@ body.mini-mode #visualizerVideo {
     <span class="slider"></span>
   </label>
 </div>
+
+<div class="vis-mode-toggle" id="nukebubblesToggle">
+  <span class="label">Nuke Bubbles</span>
+  <label class="switch">
+    <input type="checkbox" id="nukebubblesCheckbox">
+    <span class="slider"></span>
+  </label>
 </div>
+
+<div class="vis-mode-toggle" id="customBgToggle">
+  <span class="label">Custom Background</span>
+<button style="
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+">Set</button>
+</div>
+</div>
+
+
     <h1 style="display: flex; align-items: center; gap: 8px; ">
       NeonKat
       <img src="build/kat.png" style="height: 54px;" />
@@ -785,6 +907,22 @@ body.mini-mode #visualizerVideo {
 </div>
 
 
+<div id="customBgModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 99999;">
+  <div style="background: #111; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color); color: white; text-align: center;">
+    <h3 style="margin-top: 0; color: var(--primary-color);">✨ Set Custom Background ✨</h3>
+    <p style="margin: 10px 0 20px;">Paste an image URL or local file path~<br><small>(leave empty to remove current bg ♡)</small></p>
+    
+    <input type="text" id="customBgInput" placeholder="https://... or file:///C:/.../cute.jpg" 
+           style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px; margin-bottom: 20px;">
+    
+    <div style="display: flex; gap: 15px; justify-content: center;">
+      <button id="cancelBgBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
+      <button id="applyBgBtn" style="padding: 10px 25px; background: var(--primary-color); color: black; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Apply ♡</button>
+    </div>
+  </div>
+</div>
+
+
 <div id="jellyfinModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
   <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white; border: 3px solid var(--primary-color);">
     <h3 style="margin-top: 0; color: var(--primary-color);">Connect to Jellyfin</h3>
@@ -808,9 +946,9 @@ body.mini-mode #visualizerVideo {
     position: relative;">Disconnected</div>
   </div>
 </div>
-    <div style="position: relative;">
-      <button id="sortBtn">Playlist Options</button>
-      <div id="sortMenu" style="position: absolute; background: #222; border-radius: 8px; box-shadow: 0 0 12px rgba(0,0,0,0.8); z-index: 10; display: none; width: 260px; padding: 10px; border: 2px solid var(--primary-color); max-height: 400px; overflow-y: auto; right: 1px;">
+    <div class="sort-wrapper" style="position: relative;">
+  <button id="sortBtn">Playlist Options</button>
+    <div id="sortMenu" style="position: absolute; background: #222; border-radius: 8px; box-shadow: 0 0 12px rgba(0,0,0,0.8); z-index: 10; display: none; width: 260px; padding: 10px; border: 2px solid var(--primary-color); max-height: 400px; overflow-y: auto; right: 1px;">
   
   
   <div style="margin-bottom: 12px; position: relative;">
@@ -821,7 +959,7 @@ body.mini-mode #visualizerVideo {
       style="width: 100%; padding: 10px 40px 10px 12px; background: #282828; border: none; border-radius: 6px; color: #fff; font-size: 13px; box-sizing: border-box;"
     />
     <button id="clearQuickSearch" 
-      style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #777; font-size: 18px; cursor: pointer; display: none;">
+      style="position: absolute; right: 10px; top: 0%; background: none; border: none; color: #777; font-size: 18px; cursor: pointer; display: none;">
       ×
     </button>
   </div>
@@ -929,6 +1067,11 @@ label img {
  const katbubbleImages = [
   new Image()
 ];
+
+ const nukebubbleImages = [
+  new Image()
+];
+nukebubbleImages[0].src = 'build/nuke.png';
 katbubbleImages[0].src = 'build/kat.png';
   const filePickerBtn = document.getElementById('chooseFolder');
   const savePlaylistBtn = document.getElementById('savePlaylistBtn');
@@ -938,6 +1081,7 @@ katbubbleImages[0].src = 'build/kat.png';
   const barsToggle = document.getElementById('barsToggle');
   const bubblesToggle = document.getElementById('bubblesToggle');
   const katbubblesToggle = document.getElementById('katbubblesToggle');
+  const nukebubblesToggle = document.getElementById('nukebubblesToggle');
   const barsCheckbox = document.getElementById('barsCheckbox');
   const bubblesCheckbox = document.getElementById('bubblesCheckbox');
   let skipVideo = localStorage.getItem('skipVideo') === 'true';
@@ -951,7 +1095,7 @@ katbubbleImages[0].src = 'build/kat.png';
   const durationElem = document.getElementById('duration');
   const sortBtn = document.getElementById('sortBtn');
   const sortMenu = document.getElementById('sortMenu');
- //neonkat-src-tag: nk_7f29a
+ 
   let audioFiles = [];
   let rainbowIntervalId = null;
   let currentIndex = 0;
@@ -970,6 +1114,7 @@ katbubbleImages[0].src = 'build/kat.png';
   const barsToggleBtn = document.getElementById('barsToggleBtn');
   const bubblesToggleBtn = document.getElementById('bubblesToggleBtn');
   const katbubblesToggleBtn = document.getElementById('katbubblesToggleBtn');
+  const nukebubblesToggleBtn = document.getElementById('nukebubblesToggleBtn');
   let rainbowFrameId = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
@@ -1015,9 +1160,85 @@ if (jellyfinConfig.token) {
 
 updateJellyfinModalButtons();
 
+const customBgToggle = document.getElementById('customBgToggle');
+const customBgModal = document.getElementById('customBgModal');
+const customBgInput = document.getElementById('customBgInput');
+const applyBgBtn = document.getElementById('applyBgBtn');
+const cancelBgBtn = document.getElementById('cancelBgBtn');
+const container = document.getElementById('container');
+
+function applyCustomBackground(url = null) {
+    const container = document.getElementById('container');
+
+    if (!url || url.trim() === '') {
+        container.style.backgroundImage = 'none';
+        container.style.backgroundColor = '#111';
+        container.classList.remove('custom-bg');          
+        localStorage.removeItem('customBackgroundUrl');
+        return;
+    }
+
+    const img = new Image();
+    img.onload = () => {
+        container.style.backgroundImage = `url("${url}")`;
+        container.style.backgroundSize = 'contain';
+        container.style.backgroundPosition = 'center';
+        container.style.backgroundRepeat = 'no-repeat';
+        container.classList.add('custom-bg');            
+        localStorage.setItem('customBackgroundUrl', url);
+        if (notifyEnabled && Notification.permission === 'granted') {
+        window.electronAPI.notify('Background set! ♡(>ᴗ<)♡');
+        }
+        else{
+        alert("Background set! ♡(>ᴗ<)♡");
+        }
+    };
+    img.onerror = () => {
+      if (notifyEnabled && Notification.permission === 'granted') {
+        window.electronAPI.notify("Oopsie~! Couldn't load that image... (´；ω；`) Check the URL please~");
+        }
+        else{
+        alert("Oopsie~! Couldn't load that image... (´；ω；`) Check the URL please~");
+        }
+    };
+    img.src = url;
+}
+
+const savedCustomBg = localStorage.getItem('customBackgroundUrl');
+if (savedCustomBg) {
+    const container = document.getElementById('container');
+    container.style.backgroundImage = `url("${savedCustomBg}")`;
+    container.style.backgroundSize = 'contain';
+    
+    container.style.backgroundPosition = 'center';
+    container.style.backgroundRepeat = 'no-repeat';
+    container.classList.add('custom-bg');
+}
 
 
-//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
+customBgToggle.addEventListener('click', () => {
+    customBgInput.value = localStorage.getItem('customBackgroundUrl') || '';
+    customBgModal.style.display = 'flex';
+    customBgInput.focus();
+});
+
+
+applyBgBtn.addEventListener('click', () => {
+    const url = customBgInput.value.trim();
+    applyCustomBackground(url);
+    customBgModal.style.display = 'none';
+});
+
+
+cancelBgBtn.addEventListener('click', () => {
+    customBgModal.style.display = 'none';
+});
+
+
+customBgModal.addEventListener('click', (e) => {
+    if (e.target === customBgModal) customBgModal.style.display = 'none';
+});
+
 function quickSearchPlaylist() {
   const input = document.getElementById('playlistQuickSearch');
   const clearBtn = document.getElementById('clearQuickSearch');
@@ -1333,9 +1554,14 @@ function updateVisualizerModeUI() {
   barsToggle.classList.remove('active');
   bubblesToggle.classList.remove('active');
   katbubblesToggle.classList.remove('active');
+  nukebubblesToggle.classList.remove('active');
+
+
   barsCheckbox.checked = false;
   bubblesCheckbox.checked = false;
   katbubblesCheckbox.checked = false;
+  nukebubblesCheckbox.checked = false;
+
 
   if (visualizerMode === 'bars') {
     barsToggle.classList.add('active');
@@ -1346,6 +1572,9 @@ function updateVisualizerModeUI() {
   } else if (visualizerMode === 'katbubbles') {
     katbubblesToggle.classList.add('active');
     katbubblesCheckbox.checked = true;
+  } else if (visualizerMode === 'nukebubbles') {
+    nukebubblesToggle.classList.add('active');
+    nukebubblesCheckbox.checked = true;
   }
 }
 
@@ -1367,6 +1596,13 @@ bubblesToggle.addEventListener('click', () => {
 
 katbubblesToggle.addEventListener('click', () => {
   visualizerMode = 'katbubbles';
+  localStorage.setItem('visualizerMode', visualizerMode);
+  updateVisualizerModeUI();
+  if (visualizerToggle && !audio.paused) visualize();
+});
+
+nukebubblesToggle.addEventListener('click', () => {
+  visualizerMode = 'nukebubbles';
   localStorage.setItem('visualizerMode', visualizerMode);
   updateVisualizerModeUI();
   if (visualizerToggle && !audio.paused) visualize();
@@ -1394,7 +1630,7 @@ document.addEventListener('click', () => {
     hamburgerMenu.style.display = 'none';
   }
 });
-//neonkat-src-tag: nk_7f29a
+
 
 hamburgerMenu.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -1577,7 +1813,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.1.9 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.0 alpha</p>
       </div>
   </div>
   `;
@@ -1810,7 +2046,7 @@ function shuffleArray(array) {
 }
 
 
-//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
+
 
   repeatBtn.addEventListener('click', () => {
     
@@ -1886,7 +2122,7 @@ function showContextMenu(x, y, index) {
   contextMenu.style.display = 'block';
 }
 
-//neonkat-src-tag: nk_7f29a
+
 document.addEventListener('click', (e) => {
   if (contextMenuOpen && !contextMenu.contains(e.target)) {
     contextMenu.style.display = 'none';
@@ -2650,7 +2886,7 @@ if (currentItem) {
     ctx.shadowBlur = 3;
     ctx.shadowOffsetX = 1;
     ctx.shadowOffsetY = 1;
-//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
+
     let displayText = songName;
     let textWidth = ctx.measureText(displayText).width;
     if (textWidth > maxWidth) {
@@ -2773,6 +3009,7 @@ if (currentItem) {
         }
    } else if (visualizerMode === 'bubbles') {
      if (window.katBubbles) window.katBubbles = [];
+     if (window.nukeBubbles) window.nukeBubbles = [];
         if (!window.bubbles) window.bubbles = [];
        
         const MAX_BUBBLES = 25;
@@ -2833,6 +3070,7 @@ if (currentItem) {
 
     else if (visualizerMode === 'katbubbles') {
   if (window.bubbles) window.bubbles = [];
+  if (window.nukeBubbles) window.nukeBubbles = [];
   if (!window.katBubbles) window.katBubbles = [];
   const MAX_KAT_BUBBLES = 25;
   const bassLevel = lowEnergy / 255;
@@ -2869,7 +3107,7 @@ if (currentItem) {
       }
     }
   }
-//neonkat-src-tag: nk_7f29a
+
   for (let i = window.katBubbles.length - 1; i >= 0; i--) {
     const b = window.katBubbles[i];
     b.y -= b.speedY;
@@ -2884,11 +3122,68 @@ if (currentItem) {
   }
 
 }
+
+
+
+else if (visualizerMode === 'nukebubbles') {
+  if (window.bubbles) window.bubbles = [];
+  if (window.katBubbles) window.katBubbles = [];
+  if (!window.nukeBubbles) window.nukeBubbles = [];
+  const MAX_NUKE_BUBBLES = 25;
+  const bassLevel = lowEnergy / 255;
+
+  if (Math.random() < bassLevel * 0.35) {
+    const img = getRandomBubbleImage(nukebubbleImages);
+    if (img) {
+      window.nukeBubbles.push({
+        x: Math.random() * width,
+        y: height + 30,
+        img: img,
+        size: 20 + Math.random() * 30,
+        speedY: 1.2 + Math.random() * 2,
+        speedX: (Math.random() - 0.5) * 1,
+        opacity: 0.7 + Math.random() * 0.3
+      });
+    }
+  }
+
+  if (isBeat && window.nukeBubbles.length < MAX_NUKE_BUBBLES) {
+    const burstCount = 3 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < burstCount; i++) {
+      const img = getRandomBubbleImage(nukebubbleImages);
+      if (img) {
+        window.nukeBubbles.push({
+          x: Math.random() * width,
+          y: height + 50,
+          img: img,
+          size: 50 + Math.random() * 60,
+          speedY: 3 + Math.random() * 5,
+          speedX: (Math.random() - 0.5) * 4,
+          opacity: 1
+        });
+      }
+    }
+  }
+
+  for (let i = window.nukeBubbles.length - 1; i >= 0; i--) {
+    const b = window.nukeBubbles[i];
+    b.y -= b.speedY;
+    b.x += b.speedX;
+    b.opacity -= 0.004;
+    ctx.globalAlpha = Math.max(0, b.opacity);
+    ctx.drawImage(b.img, b.x - b.size / 2, b.y - b.size / 2, b.size, b.size);
+    ctx.globalAlpha = 1;
+    if (b.y + b.size < -50 || b.opacity <= 0) {
+      window.nukeBubbles.splice(i, 1);
+    }
+  }
+
+}
 }
 
   animationFrameId = requestAnimationFrame(draw);
 }
-//55f30c9d716344eecad6c6bcf70a1605717a30fa9672cfad76337f6a9b6371b1
+
 function drawTintedImage(ctx, originalImg, x, y, width, height) {
   if (!originalImg || !originalImg.complete) {
     ctx.drawImage(originalImg, x, y, width, height);
@@ -3190,7 +3485,7 @@ function stopRainbowLoop() {
       playTrack(currentIndex);
     }
   });
-//ee349391b1b258924e287a2d60dd979fd15cde9399273a7ca4d0d5ffe7033159
+
   window.electronAPI.onTogglePlay(() => {
     if (audio.paused) {
       audio.play();
