@@ -1215,6 +1215,14 @@ function applyCustomBackground(url = null) {
     img.src = url;
 }
 
+
+const saved = localStorage.getItem('autoUpdateEnabled');
+const isEnabled = saved === 'true'; 
+
+if (window.electronAPI && window.electronAPI.sendAutoUpdateState) {
+  window.electronAPI.sendAutoUpdateState(isEnabled);
+}
+
 const savedCustomBg = localStorage.getItem('customBackgroundUrl');
 if (savedCustomBg) {
     const container = document.getElementById('container');

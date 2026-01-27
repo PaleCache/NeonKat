@@ -411,6 +411,15 @@ ipcMain.handle('read-file-buffer', async (event, filePath) => {
   }
 });
 
+ipcMain.on('init-auto-update-state', (event, enabled) => {
+  autoUpdateEnabled = !!enabled;
+  console.log(`Auto-update state loaded from localStorage: ${autoUpdateEnabled ? 'ENABLED' : 'DISABLED'}`);
+
+  if (autoUpdateEnabled) {
+    startPeriodicUpdateChecks();
+  }
+});
+
 ipcMain.handle('get-file-stats', async (event, filePath) => {
   try {
     return await fs.stat(filePath);

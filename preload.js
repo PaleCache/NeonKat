@@ -27,6 +27,7 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   seekFromMini: (time) => ipcRenderer.send('seek-from-mini', time),
   fileExists: (path) => ipcRenderer.invoke('file-exists', path),
   setAutoUpdateEnabled: (enabled) => ipcRenderer.send('set-auto-update-enabled', enabled),
+  sendAutoUpdateState: (enabled) => ipcRenderer.send('init-auto-update-state', enabled),
   checkForUpdates: () => ipcRenderer.send('check-for-updates'),
 
   onUpdateTrack: (callback) => {
