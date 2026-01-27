@@ -680,6 +680,7 @@ body.mini-mode #visualizerVideo {
 #customBgToggle {
     margin-right: auto !important;
     width: 91%;
+    font-size: 14px;
 }
 
 #customBgToggle:hover {
@@ -722,17 +723,7 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   transform: none !important;
 }
 
-/* FIX ME */
-#hamburgerMenu #customBgToggle button {
-  background: #434242 !important;
-  color: white !important;
-  transition: background 0.2s ease !important;
-}
 
-#hamburgerMenu #customBgToggle button:hover {
-  background: var(--primary-color) !important;
-  color: white !important;
-}
 
 
 #container.custom-bg::before {
@@ -772,7 +763,23 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   pointer-events: auto !important;
 }
 
+#hamburgerMenu #custom-set-btn,
+#hamburgerMenu button#custom-set-btn,
+#custom-set-btn,
+#customBgToggle button {
+  background: #434242 !important;
+  color: white !important;
+  pointer-events: auto !important;
+}
 
+#hamburgerMenu #custom-set-btn:hover,
+#hamburgerMenu button#custom-set-btn:hover,
+#custom-set-btn:hover,
+#customBgToggle button:hover {
+  background: var(--primary-color) !important;
+  color: #000000 !important;
+  outline: none !important;
+}
 
   </style>
 </head>
@@ -866,15 +873,19 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   </label>
 </div>
 
-<div class="vis-mode-toggle" id="customBgToggle">
+<div id="customBgToggle" style="padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
   <span class="label">Custom Background</span>
-<button style="
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  border: none;
-">Set</button>
+  <button id="custom-set-btn" style="
+    padding: 8px 20px;
+    background: #434242;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    pointer-events: auto;
+    position: relative;
+    z-index: 999;
+  ">Set</button>
 </div>
 </div>
 
@@ -1823,7 +1834,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.1 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.2 alpha</p>
       </div>
   </div>
   `;
@@ -1988,6 +1999,7 @@ shuffleBtn.addEventListener('click', () => {
   if (isShuffled) {
     if (savedSortedOrder.length === 0) {
       savedSortedOrder = [...audioFiles];
+      
     }
 
     let remaining = [...audioFiles];
@@ -1995,6 +2007,8 @@ shuffleBtn.addEventListener('click', () => {
     shuffleArray(remaining);
     audioFiles = [currentSong, ...remaining];
     currentIndex = 0;
+    selectedIndices.clear();
+    selectedIndices.add(currentIndex);
 
   } else {
     audioFiles = [...savedSortedOrder];
@@ -2012,6 +2026,8 @@ shuffleBtn.addEventListener('click', () => {
     });
 
     currentIndex = newIndex !== -1 ? newIndex : 0;
+    selectedIndices.clear();
+    selectedIndices.add(currentIndex);
   }
 
   renderPlaylist();
