@@ -885,7 +885,7 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
     </h1>
  <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
   <button id="chooseFolder" style="flex: 1;">Choose Folder</button>
-  <button id="addStreamBtn" class="control-btn" style="flex: 1;">Add Stream</button>
+  <button id="addStreamBtn" class="control-btn" style="flex: 1;">Radio Stream</button>
   <button id="connectJellyfinBtn" class="control-btn" style="flex: 1;">Jellyfin</button>
 </div>
 
@@ -1545,6 +1545,16 @@ document.getElementById('disconnectJellyfinBtn').addEventListener('click', () =>
   audioFiles = audioFiles.filter(item => typeof item === 'string' || item.isStream);
   renderPlaylist();
   jellyfinModal.style.display = 'none';
+  audioFiles = [];
+  currentIndex = 0;
+  audio.pause();
+  audio.src = '';
+  visualizerCanvas.style.backgroundImage = 'none';
+  visualizerCanvas.style.backgroundColor = '#111111';
+  renderPlaylist();
+  stopVideo();
+  clearBackground();
+  window.electronAPI.updateTrack({ songName: 'No Track', artUrl: null, isPlaying: false });
   alert('Disconnected from Jellyfin');
   updateJellyfinModalButtons();
 });
@@ -1808,12 +1818,12 @@ aboutBtn.addEventListener('click', () => {
      
       <p style="font-size: 16px; margin: 15px 0;">Made With ❤️ By <strong>PaleCache</strong></p>
       
-      <p style="font-size: 14px; margin-bottom: 20px;">A music player with YouTube ripping, streams, and neon vibes. Check out the source and star it if you love it!</p>
+      <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
        
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.0 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.1 alpha</p>
       </div>
   </div>
   `;
@@ -1979,34 +1989,24 @@ shuffleBtn.addEventListener('click', () => {
     if (savedSortedOrder.length === 0) {
       savedSortedOrder = [...audioFiles];
     }
-    shuffleArray(audioFiles);
-    const newIndex = audioFiles.findIndex(song => {
-      if (typeof song === 'string' && typeof currentSong === 'string') {
-        return song === currentSong;
-      }
-      if (song && currentSong && typeof song === 'object') {
-        if (song.isStream && currentSong.isStream) {
-          return song.url === currentSong.url;
-        }
-        if (song.isJellyfin && currentSong.isJellyfin) {
-          return song.itemId === currentSong.itemId;
-        }
-      }
-      return false;
-    });
 
-    currentIndex = newIndex !== -1 ? newIndex : 0;
+    let remaining = [...audioFiles];
+    remaining.splice(currentIndex, 1);
+    shuffleArray(remaining);
+    audioFiles = [currentSong, ...remaining];
+    currentIndex = 0;
 
   } else {
-    
     audioFiles = [...savedSortedOrder];
     const newIndex = audioFiles.findIndex(song => {
       if (typeof song === 'string' && typeof currentSong === 'string') {
         return song === currentSong;
       }
-      if (song && currentSong && typeof song === 'object') {
-        if (song.isStream && currentSong.isStream) return song.url === currentSong.url;
-        if (song.isJellyfin && currentSong.isJellyfin) return song.itemId === currentSong.itemId;
+      if (song?.isStream && currentSong?.isStream) {
+        return song.url === currentSong.url;
+      }
+      if (song?.isJellyfin && currentSong?.isJellyfin) {
+        return song.itemId === currentSong.itemId;
       }
       return false;
     });
@@ -2017,9 +2017,6 @@ shuffleBtn.addEventListener('click', () => {
   renderPlaylist();
   updateSelectionVisuals();
   scrollToCurrentTrack();
-  if (!audio.paused) {
-    playTrack(currentIndex);
-  }
 });
 
 

@@ -420,26 +420,13 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
   }
 });
 
-
-
-function checkForUpdatesIfEnabled() {
-  autoUpdater.checkForUpdatesAndNotify().catch(err => {
-    logger.warn('Update check failed:', err);
-  });
-}
-
 ipcMain.on('set-auto-update-enabled', (event, enabled) => {
   autoUpdateEnabled = !!enabled;
   console.log(`Auto-update now ${enabled ? 'ENABLED' : 'DISABLED'}`);
-
-  if (enabled) {
-    startPeriodicUpdateChecks();
-  } else {
-    if (updateCheckInterval) {
-      clearInterval(updateCheckInterval);
-      updateCheckInterval = null;
-      console.log('Periodic update checks stopped');
-    }
+  if (!enabled && updateCheckInterval) {
+    clearInterval(updateCheckInterval);
+    updateCheckInterval = null;
+    console.log('Periodic update checks stopped');
   }
 });
 
