@@ -12,6 +12,7 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 
 ## 🛠️ Key Features
 - **Playlist loading and saving**
+- **Supports embedded and image file cover art**
 - **Music visualizer**
 - **Always on top mini mode**
 - **Seek, volume, and other simple features you would expect from a music player**
