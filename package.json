@@ -1,9 +1,9 @@
 {
   "name": "neonkat",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
-  "homepage": "https://github.com/cx/muzik-electro",
+  "homepage": "https://github.com/palecache/neonkat",
   "main": "main.js",
   "scripts": {
     "start": "GTK_USE_PORTAL=0 GDK_BACKEND=x11 electron .",

@@ -133,16 +133,17 @@ a {
     }
     #sortMenu {
       position: absolute;
-      background: #222;
+      background: rgba(34, 34, 34, 0.51) !important;
       border-radius: 5px;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
       z-index: 10;
       display: none;
       width: 150px;
       -webkit-app-region: no-drag;
+      backdrop-filter: blur(28px) !important;
     }
     #sortMenu button {
-      background: #212121;
+      background: rgba(34, 34, 34, 0);
       color: white;
       border: none;
       padding: 10px;
@@ -151,6 +152,7 @@ a {
       cursor: pointer;
       font-size: 14px;
       -webkit-app-region: no-drag;
+      border-radius: 10px;
     }
     #sortMenu button:hover {
       background: var(--primary-color);
@@ -483,6 +485,13 @@ body.mini-mode #visualizerVideo {
   color: black !important;
 }
 
+#hamburgerMenu {
+
+  backdrop-filter: blur(28px) !important;
+background: rgba(34, 34, 34, 0.51) !important;
+    border-radius: 10px !important;
+}
+
 #hamburgerBtn svg {
   filter: brightness(0) invert(1);
 }
@@ -651,12 +660,11 @@ body.mini-mode #visualizerVideo {
   transform: translateY(-1px);
 }
 
-#sortMenu #closeSortMenuBtn {
+#closeSortMenuBtn {
   width: 100%;
   padding: 10px;
-  margin-top: 8px;
-  background: #444;       
-  color: #000 !important;
+  margin-top: 8px;       
+  color: white !important;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -667,7 +675,6 @@ body.mini-mode #visualizerVideo {
 
 #sortMenu #closeSortMenuBtn:hover {
   background: var(--primary-color) !important;
-  color: #000 !important;
   transform: translateY(-1px);
 }
 
@@ -687,10 +694,14 @@ body.mini-mode #visualizerVideo {
   background: rgba(var(--primary-color), 0.15);
 }
 
-button, .control-btn, .vis-mode-toggle button {
-  background: rgba(33, 33, 33, 0.5) !important;   
+ #loadPlaylistBtn, #savePlaylistBtn, #chooseFolder, #sortBtn, .control-btn, .vis-mode-toggle button {
+  background: rgba(33, 33, 33, 0.5);   
   backdrop-filter: blur(4px) !important;          
   color: white !important;
+}
+
+#jellyfinModal, #streamModal, #aboutModal, #ytModal,#customBgModal {
+  border-radius: 9px;
 }
 
 
@@ -826,7 +837,7 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
 </div>
 
 
-<div id="hamburgerMenu" style="position: absolute; top: 70px; right: 15px; background: #222; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 2px solid var(--primary-color); display: none; z-index: 9999; min-width: 200px; -webkit-app-region: no-drag;">
+<div id="hamburgerMenu" style="position: absolute; top: 70px; right: 15px; background: #222; border-radius: 3px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 2px solid var(--primary-color); display: none; z-index: 9999; min-width: 200px; -webkit-app-region: no-drag;">
   <button id="downloadYoutubeBtn" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer;">
     Download With Yt-Dlp
   </button>
@@ -986,7 +997,7 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   <hr style="border: none; border-top: 1px solid #444; margin: 8px 0;">
 
  
-  <button id="closeSortMenuBtn" style="width: 100%; padding: 8px; background: #333; border: none; border-radius: 6px; color: white; cursor: pointer;">
+  <button id="closeSortMenuBtn" style="width: 100%; padding: 8px; background: #28282878; border: none; border-radius: 6px; color: white; cursor: pointer;">
     Close
   </button>
 </div>
@@ -1046,6 +1057,7 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   ></video>
 
   <canvas id="visualizer"></canvas>
+  <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
 </div>
 
     <footer>
@@ -1127,6 +1139,7 @@ katbubbleImages[0].src = 'build/kat.png';
   const katbubblesToggleBtn = document.getElementById('katbubblesToggleBtn');
   const nukebubblesToggleBtn = document.getElementById('nukebubblesToggleBtn');
   let rainbowFrameId = null;
+  let currentArtImage = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
   let currentSearchTerm = '';
@@ -1842,7 +1855,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.2 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.3 alpha</p>
       </div>
   </div>
   `;
@@ -2235,9 +2248,17 @@ async function sortPlaylist(criteria, ascending) {
   });
 
   currentIndex = newIndex !== -1 ? newIndex : 0;
+console.log(
+  "After sort → currentIndex:", currentIndex,
+  "current song:", audioFiles[currentIndex]?.name || audioFiles[currentIndex]
+);
 
+  selectedIndices.clear();
+  selectedIndices.add(currentIndex);
   renderPlaylist();
   scrollToCurrentTrack();
+  updateSelectionVisuals();
+
   localStorage.setItem('sortCriteria', criteria);
   localStorage.setItem('sortOrder', ascending ? 'asc' : 'desc');
 }
@@ -2560,45 +2581,69 @@ function updateSelectionVisuals() {
 
  async function getAlbumArtUrl(filePath) {
   const defaultImage = 'build/default-artwork.jpg';
-
+  if (typeof filePath !== 'string') return defaultImage;
+  let embeddedArt = null;
   try {
     const buffer = await window.electronAPI.readFileBuffer(filePath);
     const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     const blob = new Blob([arrayBuffer]);
 
-    return new Promise((resolve) => {
+    embeddedArt = await new Promise((resolve) => {
       jsmediatags.read(blob, {
-        onSuccess: function (tag) {
+        onSuccess: (tag) => {
           const picture = tag.tags?.picture;
           if (picture) {
-            try {
-              const uint8Array = new Uint8Array(picture.data);
-              let binary = '';
-              const chunkSize = 8192;
-              for (let i = 0; i < uint8Array.length; i += chunkSize) {
-                binary += String.fromCharCode(...uint8Array.subarray(i, i + chunkSize));
-              }
-              const base64 = btoa(binary);
-              const mime = picture.format || 'image/jpeg';
-              resolve(`data:${mime};base64,${base64}`);
-            } catch (e) {
-              console.error('Base64 conversion failed:', e);
-              resolve(defaultImage);
-            }
-          } else {
-            resolve(defaultImage);
-          }
+            let binary = '';
+            const uint8Array = new Uint8Array(picture.data);
+            for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
+            const base64 = btoa(binary);
+            const mime = picture.format || 'image/jpeg';
+            resolve(`data:${mime};base64,${base64}`);
+          } else resolve(null);
         },
-        onError: function (error) {
-          console.warn('jsmediatags failed to read tags:', error);
-          resolve(defaultImage);
+        onError: (err) => {
+          console.debug(`No embedded art in ${filePath.split('/').pop()}: ${err.info}`);
+          resolve(null);
         }
       });
     });
   } catch (err) {
-    console.error('Failed to read file buffer for tags:', err);
-    return defaultImage;
+    console.debug('jsmediatags skipped or failed (normal for many files)');
   }
+
+  if (embeddedArt) return embeddedArt;
+  try {
+    const ext      = await window.electronAPI.pathExtname(filePath);
+    const baseName = await window.electronAPI.pathBasename(filePath, ext);
+    const dir      = await window.electronAPI.pathDirname(filePath);
+
+    const candidates = [
+      baseName + '.jpg',
+      baseName + '.jpeg',
+      baseName + '.png',
+      baseName + '.webp',
+      baseName + '.gif',
+      'cover.jpg',
+      'folder.jpg',
+      'albumart.jpg',
+      'front.jpg',
+      'cover.png',
+      'folder.png'
+    ];
+
+    for (const name of candidates) {
+      const candidatePath = await window.electronAPI.pathJoin(dir, name);
+      if (await window.electronAPI.fileExists(candidatePath)) {
+        const normalized = candidatePath.replace(/\\/g, '/');
+        const url = `file://${encodeURI(normalized).replace(/#/g, '%23')}`;
+        console.log(`♡ Found external art → ${name}`);
+        return url;
+      }
+    }
+  } catch (err) {
+    console.warn('External art search failed:', err);
+  }
+  return defaultImage;
 }
 
 
@@ -2612,6 +2657,7 @@ function stopVideo() {
 function clearBackground() {
   visualizerCanvas.style.backgroundImage = 'none';
   visualizerCanvas.style.backgroundColor = '#111111';
+  currentArtImage = null;
 }
 
 const visualizerVideo = document.getElementById('visualizerVideo');
@@ -2620,6 +2666,11 @@ async function setVisualizerBackground(item) {
   stopVideo();
   visualizerCanvas.style.backgroundImage = 'none';
   visualizerCanvas.style.backgroundColor = '#111111';
+
+  currentArtImage = null;
+
+  let artUrl = null;
+
   if (typeof item === 'string') {
     const filePath = item;
     const videoPath = filePath.replace(/\.([a-zA-Z0-9]+)$/i, '.mp4');
@@ -2634,25 +2685,37 @@ async function setVisualizerBackground(item) {
       visualizerVideo.play().catch(() => {});
       return;
     }
-    const imageUrl = await getAlbumArtUrl(filePath);
-    if (imageUrl && imageUrl !== 'build/default-artwork.jpg') {
-      visualizerCanvas.style.backgroundImage = `url(${imageUrl})`;
-      visualizerCanvas.style.backgroundSize = 'cover';
-      visualizerCanvas.style.backgroundPosition = 'center';
-      return;
-    }
+
+    artUrl = await getAlbumArtUrl(filePath);
+  } else if (item?.isJellyfin && item.albumArt) {
+    artUrl = item.albumArt;
   }
 
-  if (item?.isJellyfin && item.albumArt) {
-    visualizerCanvas.style.backgroundImage = `url(${item.albumArt})`;
+  if (!artUrl || artUrl === 'build/default-artwork.jpg') {
+    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
     visualizerCanvas.style.backgroundSize = 'cover';
     visualizerCanvas.style.backgroundPosition = 'center';
     return;
   }
 
-  visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-  visualizerCanvas.style.backgroundSize = 'cover';
-  visualizerCanvas.style.backgroundPosition = 'center';
+  const loader = document.getElementById('artLoader');
+  if (!loader) {
+    console.error('[ART] No <img id="artLoader"> found in HTML!');
+    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+    return;
+  }
+
+  loader.src = artUrl;
+
+  loader.onload = () => {
+    currentArtImage = loader;
+    console.log('[ART] Art loaded & assigned for persistent drawing ♡');
+  };
+
+  loader.onerror = (err) => {
+    console.error('[ART] Loader failed to display art:', err);
+    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+  };
 }
 
 
@@ -2849,6 +2912,7 @@ function visualize() {
   const canvas = visualizerCanvas;
   const width = canvas.offsetWidth;
   const height = canvas.offsetHeight;
+
   if (width !== lastWidth || height !== lastHeight) {
     canvas.width = width;
     canvas.height = height;
@@ -2863,43 +2927,54 @@ function visualize() {
   let frameCounter = 0;
   let lastTime = 0;
 
-function draw(timestamp) {
+  function draw(timestamp) {
     animationFrameId = requestAnimationFrame(draw);
     if (lastTime && (timestamp - lastTime) < 33) return;
     lastTime = timestamp || performance.now();
-
-    const canvas = visualizerCanvas;
-    const ctx = canvas.getContext('2d');
-    const width = canvas.offsetWidth;
-    const height = canvas.offsetHeight;
-    if (width !== lastWidth || height !== lastHeight) {
-        canvas.width = width;
-        canvas.height = height;
-        lastWidth = width;
-        lastHeight = height;
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
     }
 
     ctx.clearRect(0, 0, width, height);
-   let songName = 'No Track';
-let isRadioStream = false;
-const currentItem = audioFiles[currentIndex];
-if (currentItem) {
-    if (typeof currentItem === 'string') {
+    if (currentArtImage && currentArtImage.complete && currentArtImage.naturalWidth > 0) {
+      try {
+        const scale = Math.max(
+          width / currentArtImage.naturalWidth,
+          height / currentArtImage.naturalHeight
+        );
+        const drawW = currentArtImage.naturalWidth * scale;
+        const drawH = currentArtImage.naturalHeight * scale;
+        const offsetX = (width - drawW) / 2;
+        const offsetY = (height - drawH) / 2;
+
+        ctx.globalAlpha = 0.4;
+        ctx.drawImage(currentArtImage, offsetX, offsetY, drawW, drawH);
+        ctx.globalAlpha = 1.0;
+      } catch (e) {
+        console.warn('[VISUALIZER] Failed to draw art this frame:', e);
+      }
+    }
+
+    let songName = 'No Track';
+    let isRadioStream = false;
+    const currentItem = audioFiles[currentIndex];
+    if (currentItem) {
+      if (typeof currentItem === 'string') {
         songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
-    } else if (currentItem.isStream) {
+      } else if (currentItem.isStream) {
         isRadioStream = true;
         songName = currentItem.name?.trim() || (new URL(currentItem.url).hostname || 'Radio Stream');
-    } else if (currentItem.isJellyfin) {
+      } else if (currentItem.isJellyfin) {
         songName = currentItem.name || 'Unknown Track';
+      }
     }
-}
     if (songName.length > 50) songName = songName.slice(0, 47) + '...';
 
     const isMini = document.body.classList.contains('mini-mode');
     const iconSize = isMini ? 10 : 14;
     const textY = isMini ? 14 : 18;
     const maxWidth = width * 0.92;
-
     ctx.font = isMini ? '10.5px Arial' : '14px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#FFFFFF';
@@ -2911,28 +2986,29 @@ if (currentItem) {
     let displayText = songName;
     let textWidth = ctx.measureText(displayText).width;
     if (textWidth > maxWidth) {
-        const ellipsis = '...';
-        let availableWidth = maxWidth - ctx.measureText(ellipsis).width;
-        let low = 0, high = songName.length;
-        while (low < high) {
-            let mid = Math.floor((low + high + 1) / 2);
-            let testText = songName.slice(0, mid);
-            if (ctx.measureText(testText).width <= availableWidth) low = mid;
-            else high = mid - 1;
-        }
-        displayText = songName.slice(0, low) + ellipsis;
+      const ellipsis = '...';
+      let availableWidth = maxWidth - ctx.measureText(ellipsis).width;
+      let low = 0, high = songName.length;
+      while (low < high) {
+        let mid = Math.floor((low + high + 1) / 2);
+        let testText = songName.slice(0, mid);
+        if (ctx.measureText(testText).width <= availableWidth) low = mid;
+        else high = mid - 1;
+      }
+      displayText = songName.slice(0, low) + ellipsis;
     }
 
     let textX = width / 2;
     if (isRadioStream && radioIconImg.complete) {
-        const totalWidth = ctx.measureText(displayText).width + iconSize + 8;
-        const startX = width / 2 - totalWidth / 2;
-        ctx.save();
-        ctx.filter = 'brightness(0) invert(1)';
-        ctx.drawImage(radioIconImg, startX, textY - iconSize + 2, iconSize, iconSize);
-        ctx.restore();
-        textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
+      const totalWidth = ctx.measureText(displayText).width + iconSize + 8;
+      const startX = width / 2 - totalWidth / 2;
+      ctx.save();
+      ctx.filter = 'brightness(0) invert(1)';
+      ctx.drawImage(radioIconImg, startX, textY - iconSize + 2, iconSize, iconSize);
+      ctx.restore();
+      textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
     }
+    ctx.globalAlpha = 1.0;
     ctx.fillText(displayText, textX, textY);
 
     ctx.shadowColor = 'transparent';
@@ -2941,13 +3017,11 @@ if (currentItem) {
     ctx.shadowOffsetY = 0;
 
     if (!visualizerToggle || !analyser || !isMainWindowVisible) return;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyser.getByteFrequencyData(dataArray);
 
+    analyser.getByteFrequencyData(dataArray);
     frameCounter++;
     if (frameCounter % 2 === 0 && window.electronAPI?.updateVisualizer) {
-        window.electronAPI.updateVisualizer(Array.from(dataArray));
+      window.electronAPI.updateVisualizer(Array.from(dataArray));
     }
 
     let lowEnergy = 0;
@@ -2961,145 +3035,85 @@ if (currentItem) {
 
     let isBeat = false;
     if (lowEnergy > Math.max(avgEnergy * 1.0, 80) && !window.lastBeat) {
-        isBeat = true;
-        window.lastBeat = true;
+      isBeat = true;
+      window.lastBeat = true;
     } else if (lowEnergy < avgEnergy * 1.2) {
-        window.lastBeat = false;
+      window.lastBeat = false;
     }
 
     const currentPrimaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
 
     if (isRainbowActive) {
-        let bass = 0, mids = 0;
-        for (let i = 0; i < 6; i++) bass += dataArray[i];
-        for (let i = 12; i < 22; i++) mids += dataArray[i];
-        bass /= 6; mids /= 10;
+      let bass = 0, mids = 0;
+      for (let i = 0; i < 6; i++) bass += dataArray[i];
+      for (let i = 12; i < 22; i++) mids += dataArray[i];
+      bass /= 6; mids /= 10;
 
-        if (window.prevBass === undefined) window.prevBass = bass;
-        if (window.prevMids === undefined) window.prevMids = mids;
-        const bassDelta = bass - window.prevBass;
-        const midDelta = mids - window.prevMids;
-        window.prevBass = bass;
-        window.prevMids = mids;
+      if (window.prevBass === undefined) window.prevBass = bass;
+      if (window.prevMids === undefined) window.prevMids = mids;
 
-        if (!window.bassDeltaHist) window.bassDeltaHist = [];
-        window.bassDeltaHist.push(bassDelta);
-        if (window.bassDeltaHist.length > 20) window.bassDeltaHist.shift();
-        const avgBassDelta = window.bassDeltaHist.reduce((a, b) => a + b, 0) / window.bassDeltaHist.length;
+      const bassDelta = bass - window.prevBass;
+      const midDelta = mids - window.prevMids;
+      window.prevBass = bass;
+      window.prevMids = mids;
 
-        const now = performance.now();
-        if (!window.lastBeatTime) window.lastBeatTime = 0;
-        let triggerBeat = false;
-        if (bassDelta > avgBassDelta * 1.8 && bassDelta > 4 && bassDelta > midDelta * 1.5 && now - window.lastBeatTime > 1) {
-            triggerBeat = true;
-            window.lastBeatTime = now;
-        }
+      if (!window.bassDeltaHist) window.bassDeltaHist = [];
+      window.bassDeltaHist.push(bassDelta);
+      if (window.bassDeltaHist.length > 20) window.bassDeltaHist.shift();
 
-        if (window.rainbowHue === undefined) window.rainbowHue = Math.floor(Math.random() * 360);
-        if (triggerBeat) window.rainbowHue = (window.rainbowHue + 60) % 360;
+      const avgBassDelta = window.bassDeltaHist.reduce((a, b) => a + b, 0) / window.bassDeltaHist.length;
+      const now = performance.now();
+      if (!window.lastBeatTime) window.lastBeatTime = 0;
 
-        const color = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 70 : 55}%)`;
-        const darkColor = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 40 : 30}%)`;
-        document.documentElement.style.setProperty('--primary-color', color);
-        document.documentElement.style.setProperty('--primary-dark', darkColor);
+      let triggerBeat = false;
+      if (bassDelta > avgBassDelta * 1.8 && bassDelta > 4 && bassDelta > midDelta * 1.5 && now - window.lastBeatTime > 1) {
+        triggerBeat = true;
+        window.lastBeatTime = now;
+      }
+
+      if (window.rainbowHue === undefined) window.rainbowHue = Math.floor(Math.random() * 360);
+      if (triggerBeat) window.rainbowHue = (window.rainbowHue + 60) % 360;
+
+      const color = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 70 : 55}%)`;
+      const darkColor = `hsl(${window.rainbowHue}, 100%, ${triggerBeat ? 40 : 30}%)`;
+      document.documentElement.style.setProperty('--primary-color', color);
+      document.documentElement.style.setProperty('--primary-dark', darkColor);
     }
 
- 
     if (visualizerMode === 'bars') {
-        const barCount = isMini ? 48 : 64;
-        const step = Math.max(1, Math.floor(bufferLength / barCount));
-        const barWidth = Math.max(1.5, (width / barCount) * 0.8);
-        const centerX = width / 2;
-        const spacing = 1;
+      const barCount = isMini ? 48 : 64;
+      const step = Math.max(1, Math.floor(bufferLength / barCount));
+      const barWidth = Math.max(1.5, (width / barCount) * 0.8);
+      const centerX = width / 2;
+      const spacing = 1;
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, currentPrimaryColor);
+      gradient.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
+      gradient.addColorStop(1, currentPrimaryColor);
+      ctx.fillStyle = gradient;
 
-        const gradient = ctx.createLinearGradient(0, 0, 0, height);
-        gradient.addColorStop(0, currentPrimaryColor);
-        gradient.addColorStop(0.5, adjustColor(currentPrimaryColor, -20));
-        gradient.addColorStop(1, currentPrimaryColor);
-        ctx.fillStyle = gradient;
+      for (let i = 0; i < barCount; i++) {
+        const value = dataArray[i * step] || 0;
+        const barHeight = value * (height / 255) * (isMini ? 0.7 : 0.55);
+        const xLeft = centerX - (i + 1) * (barWidth + spacing);
+        const xRight = centerX + i * (barWidth + spacing);
+        const y = height - barHeight;
 
-        for (let i = 0; i < barCount; i++) {
-            const value = dataArray[i * step] || 0;
-            const barHeight = value * (height / 255) * (isMini ? 0.7 : 0.55);
-            const xLeft = centerX - (i + 1) * (barWidth + spacing);
-            const xRight = centerX + i * (barWidth + spacing);
-            const y = height - barHeight;
-
-            if (xLeft + barWidth > 0) ctx.fillRect(xLeft, y, barWidth, barHeight);
-            if (xRight < width) ctx.fillRect(xRight, y, barWidth, barHeight);
-        }
-   } else if (visualizerMode === 'bubbles') {
-     if (window.katBubbles) window.katBubbles = [];
-     if (window.nukeBubbles) window.nukeBubbles = [];
+        if (xLeft + barWidth > 0) ctx.fillRect(xLeft, y, barWidth, barHeight);
+        if (xRight < width) ctx.fillRect(xRight, y, barWidth, barHeight);
+      }
+    }  else if (visualizerMode === 'bubbles') {
+        if (window.katBubbles) window.katBubbles = [];
+        if (window.nukeBubbles) window.nukeBubbles = [];
         if (!window.bubbles) window.bubbles = [];
-       
+
         const MAX_BUBBLES = 25;
         const bassLevel = lowEnergy / 255;
-        if (Math.random() < bassLevel * 0.35) {
-            const img = getRandomBubbleImage(bubbleImages);
-            if (img) {
-                window.bubbles.push({
-                    x: Math.random() * width,
-                    y: height + 30,
-                    img: img,
-                    size: 20 + Math.random() * 30,
-                    speedY: 1.2 + Math.random() * 2,
-                    speedX: (Math.random() - 0.5) * 1,
-                    opacity: 0.7 + Math.random() * 0.3
-                });
-            }
-        }
-        if (isBeat && window.bubbles.length < MAX_BUBBLES) {
-            const burstCount = 3 + Math.floor(Math.random() * 5);
-            for (let i = 0; i < burstCount; i++) {
-                const img = getRandomBubbleImage(bubbleImages);
-                if (img) {
-                    window.bubbles.push({
-                        x: Math.random() * width,
-                        y: height + 50,
-                        img: img,
-                        size: 50 + Math.random() * 60,
-                        speedY: 3 + Math.random() * 5,
-                        speedX: (Math.random() - 0.5) * 4,
-                        opacity: 1
-                    });
-                }
-            }
-        }
-        for (let i = window.bubbles.length - 1; i >= 0; i--) {
-            const b = window.bubbles[i];
-            b.y -= b.speedY;
-            b.x += b.speedX;
-            b.opacity -= 0.004;
-
-           ctx.globalAlpha = Math.max(0, b.opacity);
-            drawTintedImage(
-              ctx,
-              b.img,
-              b.x - b.size / 2,
-              b.y - b.size / 2,
-              b.size,
-              b.size
-            );
-            ctx.globalAlpha = 1;
-
-            if (b.y + b.size < -50 || b.opacity <= 0) {
-                window.bubbles.splice(i, 1);
-            }
-        }
-    }
-
-    else if (visualizerMode === 'katbubbles') {
-  if (window.bubbles) window.bubbles = [];
-  if (window.nukeBubbles) window.nukeBubbles = [];
-  if (!window.katBubbles) window.katBubbles = [];
-  const MAX_KAT_BUBBLES = 25;
-  const bassLevel = lowEnergy / 255;
 
   if (Math.random() < bassLevel * 0.35) {
-    const img = getRandomBubbleImage(katbubbleImages);
+    const img = getRandomBubbleImage(bubbleImages);
     if (img) {
-      window.katBubbles.push({
+      window.bubbles.push({
         x: Math.random() * width,
         y: height + 30,
         img: img,
@@ -3111,12 +3125,12 @@ if (currentItem) {
     }
   }
 
-  if (isBeat && window.katBubbles.length < MAX_KAT_BUBBLES) {
+  if (isBeat && window.bubbles.length < MAX_BUBBLES) {
     const burstCount = 3 + Math.floor(Math.random() * 5);
     for (let i = 0; i < burstCount; i++) {
-      const img = getRandomBubbleImage(katbubbleImages);
+      const img = getRandomBubbleImage(bubbleImages);
       if (img) {
-        window.katBubbles.push({
+        window.bubbles.push({
           x: Math.random() * width,
           y: height + 50,
           img: img,
@@ -3129,78 +3143,167 @@ if (currentItem) {
     }
   }
 
-  for (let i = window.katBubbles.length - 1; i >= 0; i--) {
-    const b = window.katBubbles[i];
-    b.y -= b.speedY;
-    b.x += b.speedX;
-    b.opacity -= 0.004;
-    ctx.globalAlpha = Math.max(0, b.opacity);
-    ctx.drawImage(b.img, b.x - b.size / 2, b.y - b.size / 2, b.size, b.size);
-    ctx.globalAlpha = 1;
-    if (b.y + b.size < -50 || b.opacity <= 0) {
-      window.katBubbles.splice(i, 1);
-    }
-  }
+  for (let i = window.bubbles.length - 1; i >= 0; i--) {
+  const b = window.bubbles[i];
+  b.y -= b.speedY;
+  b.x += b.speedX;
+  b.opacity -= 0.004;
 
+  const x = b.x - b.size / 2;
+  const y = b.y - b.size / 2;
+
+  ctx.globalAlpha = Math.max(0, b.opacity);
+
+  ctx.save();
+  ctx.drawImage(b.img, x, y, b.size, b.size);
+  const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
+  ctx.shadowColor = primary;
+  ctx.shadowBlur = b.size * 0.4;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(b.img, x, y, b.size, b.size);
+  ctx.shadowBlur = 0;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  if (b.y + b.size < -50 || b.opacity <= 0) {
+    window.bubbles.splice(i, 1);
+  }
 }
 
+    } else if (visualizerMode === 'katbubbles') {
+      if (window.bubbles) window.bubbles = [];
+      if (window.nukeBubbles) window.nukeBubbles = [];
+      if (!window.katBubbles) window.katBubbles = [];
 
+      const MAX_KAT_BUBBLES = 25;
+      const bassLevel = lowEnergy / 255;
 
-else if (visualizerMode === 'nukebubbles') {
-  if (window.bubbles) window.bubbles = [];
-  if (window.katBubbles) window.katBubbles = [];
-  if (!window.nukeBubbles) window.nukeBubbles = [];
-  const MAX_NUKE_BUBBLES = 25;
-  const bassLevel = lowEnergy / 255;
+      if (Math.random() < bassLevel * 0.35) {
+        const img = getRandomBubbleImage(katbubbleImages);
+        if (img) {
+          window.katBubbles.push({
+            x: Math.random() * width,
+            y: height + 30,
+            img: img,
+            size: 15 + Math.random() * 20,
+            speedY: 1.2 + Math.random() * 2,
+            speedX: (Math.random() - 0.5) * 1,
+            opacity: 0.7 + Math.random() * 0.3
+          });
+        }
+      }
 
-  if (Math.random() < bassLevel * 0.35) {
-    const img = getRandomBubbleImage(nukebubbleImages);
-    if (img) {
-      window.nukeBubbles.push({
-        x: Math.random() * width,
-        y: height + 30,
-        img: img,
-        size: 20 + Math.random() * 30,
-        speedY: 1.2 + Math.random() * 2,
-        speedX: (Math.random() - 0.5) * 1,
-        opacity: 0.7 + Math.random() * 0.3
-      });
-    }
-  }
+      if (isBeat && window.katBubbles.length < MAX_KAT_BUBBLES) {
+        const burstCount = 3 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < burstCount; i++) {
+          const img = getRandomBubbleImage(katbubbleImages);
+          if (img) {
+            window.katBubbles.push({
+              x: Math.random() * width,
+              y: height + 50,
+              img: img,
+              size: 30 + Math.random() * 40,
+              speedY: 3 + Math.random() * 5,
+              speedX: (Math.random() - 0.5) * 4,
+              opacity: 1
+            });
+          }
+        }
+      }
 
-  if (isBeat && window.nukeBubbles.length < MAX_NUKE_BUBBLES) {
-    const burstCount = 3 + Math.floor(Math.random() * 5);
-    for (let i = 0; i < burstCount; i++) {
-      const img = getRandomBubbleImage(nukebubbleImages);
-      if (img) {
-        window.nukeBubbles.push({
-          x: Math.random() * width,
-          y: height + 50,
-          img: img,
-          size: 50 + Math.random() * 60,
-          speedY: 3 + Math.random() * 5,
-          speedX: (Math.random() - 0.5) * 4,
-          opacity: 1
-        });
+      for (let i = window.katBubbles.length - 1; i >= 0; i--) {
+        const b = window.katBubbles[i];
+        b.y -= b.speedY;
+        b.x += b.speedX;
+        b.opacity -= 0.004;
+        ctx.save();
+        ctx.drawImage(b.img, b.x, b.y, b.size, b.size);
+        const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
+        ctx.shadowColor = primary;
+        ctx.shadowBlur = b.size * 0.4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.globalAlpha = 0.3;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(b.img, b.x, b.y, b.size, b.size);
+        ctx.shadowBlur = 0;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 0.11;
+        ctx.restore();
+        if (b.y + b.size < -50 || b.opacity <= 0) {
+          window.katBubbles.splice(i, 1);
+        }
+      }
+    } else if (visualizerMode === 'nukebubbles') {
+      if (window.bubbles) window.bubbles = [];
+      if (window.katBubbles) window.katBubbles = [];
+      if (!window.nukeBubbles) window.nukeBubbles = [];
+
+      const MAX_NUKE_BUBBLES = 25;
+      const bassLevel = lowEnergy / 255;
+
+      if (Math.random() < bassLevel * 0.35) {
+        const img = getRandomBubbleImage(nukebubbleImages);
+        if (img) {
+          window.nukeBubbles.push({
+            x: Math.random() * width,
+            y: height + 30,
+            img: img,
+            size: 15 + Math.random() * 20,
+            speedY: 1.2 + Math.random() * 2,
+            speedX: (Math.random() - 0.5) * 1,
+            opacity: 0.7 + Math.random() * 0.3
+          });
+        }
+      }
+
+      if (isBeat && window.nukeBubbles.length < MAX_NUKE_BUBBLES) {
+        const burstCount = 3 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < burstCount; i++) {
+          const img = getRandomBubbleImage(nukebubbleImages);
+          if (img) {
+            window.nukeBubbles.push({
+              x: Math.random() * width,
+              y: height + 50,
+              img: img,
+              size: 30 + Math.random() * 40,
+              speedY: 3 + Math.random() * 5,
+              speedX: (Math.random() - 0.5) * 4,
+              opacity: 1
+            });
+          }
+        }
+      }
+
+      for (let i = window.nukeBubbles.length - 1; i >= 0; i--) {
+        const b = window.nukeBubbles[i];
+        b.y -= b.speedY;
+        b.x += b.speedX;
+        b.opacity -= 0.004;
+        ctx.save();
+        ctx.drawImage(b.img, b.x, b.y, b.size, b.size);
+        const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
+        ctx.shadowColor = primary;
+        ctx.shadowBlur = b.size * 0.4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.globalAlpha = 0.5;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(b.img, b.x, b.y, b.size, b.size);
+        ctx.shadowBlur = 0;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 0.11;
+        ctx.restore();
+        if (b.y + b.size < -50 || b.opacity <= 0) {
+          window.nukeBubbles.splice(i, 1);
+        }
       }
     }
   }
-
-  for (let i = window.nukeBubbles.length - 1; i >= 0; i--) {
-    const b = window.nukeBubbles[i];
-    b.y -= b.speedY;
-    b.x += b.speedX;
-    b.opacity -= 0.004;
-    ctx.globalAlpha = Math.max(0, b.opacity);
-    ctx.drawImage(b.img, b.x - b.size / 2, b.y - b.size / 2, b.size, b.size);
-    ctx.globalAlpha = 1;
-    if (b.y + b.size < -50 || b.opacity <= 0) {
-      window.nukeBubbles.splice(i, 1);
-    }
-  }
-
-}
-}
 
   animationFrameId = requestAnimationFrame(draw);
 }

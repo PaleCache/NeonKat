@@ -29,6 +29,10 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   setAutoUpdateEnabled: (enabled) => ipcRenderer.send('set-auto-update-enabled', enabled),
   sendAutoUpdateState: (enabled) => ipcRenderer.send('init-auto-update-state', enabled),
   checkForUpdates: () => ipcRenderer.send('check-for-updates'),
+  pathDirname: (filePath) => ipcRenderer.invoke('path-dirname', filePath),
+  pathBasename: (filePath, ext) => ipcRenderer.invoke('path-basename', filePath, ext),
+  pathExtname: (filePath) => ipcRenderer.invoke('path-extname', filePath),
+  pathJoin: (...args) => ipcRenderer.invoke('path-join', ...args),
 
   onUpdateTrack: (callback) => {
     ipcRenderer.on('update-track', (event, data) => callback(data));

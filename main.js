@@ -209,6 +209,11 @@ ipcMain.handle('file-exists', async (event, filePath) => {
 });
 
 
+ipcMain.handle('path-dirname', (event, filePath) => path.dirname(filePath));
+ipcMain.handle('path-basename', (event, filePath, ext) => path.basename(filePath, ext));
+ipcMain.handle('path-extname', (event, filePath) => path.extname(filePath));
+ipcMain.handle('path-join', (event, ...args) => path.join(...args));
+
 
 ipcMain.on('open-external', (event, url) => {
   shell.openExternal(url);
