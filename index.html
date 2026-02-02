@@ -537,16 +537,6 @@ background: rgba(34, 34, 34, 0.51) !important;
   left: 21px;
 }
 
-#visualizerVideo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 164px;
-    object-fit: cover;
-    z-index: 0;
-    border-radius: inherit;
-}
-
 #visualizer {
   position: absolute;
   inset: 0;
@@ -798,6 +788,17 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   outline: none !important;
 }
 
+
+#visualizerVideo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 168px;          
+    object-fit: cover;
+    z-index: 0;
+    border-radius: inherit;
+    background: transparent;  
+}
 
 
   </style>
@@ -1846,7 +1847,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.4 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.5 alpha</p>
       </div>
   </div>
   `;
@@ -2638,10 +2639,13 @@ function updateSelectionVisuals() {
 
 
 function stopVideo() {
-  visualizerVideo.pause();
-  visualizerVideo.removeAttribute('src');
-  visualizerVideo.load();
-  visualizerVideo.style.display = 'none';
+    if (visualizerVideo) {
+        visualizerVideo.pause();
+        visualizerVideo.src = '';  
+        visualizerVideo.load();                      
+        visualizerVideo.style.display = 'none';      
+        visualizerVideo.style.opacity = '0';
+    }
 }
 
 function clearBackground() {
@@ -2676,25 +2680,31 @@ async function setVisualizerBackground(item) {
         ];
 
         for (const name of videoCandidates) {
-            const candidatePath = await window.electronAPI.pathJoin(dir, name);
-            if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
-                const normalized = candidatePath.replace(/\\/g, '/');
-                const encoded = encodeURI(normalized).replace(/#/g, '%23');
-                visualizerVideo.src = `file://${encoded}`;
-                visualizerVideo.style.display = 'block';
-                visualizerVideo.currentTime = 0;
-                visualizerVideo.loop = true;
-                visualizerVideo.muted = true;
-                visualizerVideo.playsInline = true;
-                try {
-                    await visualizerVideo.play();
-                } catch (err) {
-                    console.warn("Video play failed:", err);
-                }
-                usedGifOrVideo = true;
-                break;
-            }
+    const candidatePath = await window.electronAPI.pathJoin(dir, name);
+    if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
+        const normalized = candidatePath.replace(/\\/g, '/');
+        const encoded = encodeURI(normalized).replace(/#/g, '%23');
+        visualizerVideo.src = `file://${encoded}`;
+        visualizerVideo.style.display = 'block';          
+        visualizerVideo.style.opacity = '1';              
+        visualizerVideo.style.zIndex = '0';              
+        visualizerVideo.currentTime = 0;
+        visualizerVideo.loop = true;
+        visualizerVideo.muted = true;
+        visualizerVideo.playsInline = true;
+        try {
+            await visualizerVideo.play();
+            visualizerCanvas.style.backgroundColor = 'transparent';
+            visualizerCanvas.style.backgroundImage = 'none';
+            console.log("Video started playing → src:", visualizerVideo.src);
+        } catch (err) {
+            console.error("Video play failed:", err);
         }
+
+        usedGifOrVideo = true;
+        break;
+    }
+}
 
         if (usedGifOrVideo) return;
         const sameNameGif = baseName + '.gif';
