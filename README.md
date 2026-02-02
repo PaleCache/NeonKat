@@ -12,7 +12,7 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 
 ## 🛠️ Key Features
 - **Playlist loading and saving**
-- **Supports embedded and image / gif file cover art**: if you add a png / jpg to the song directory called cover.png / cover.gif it will draw for all the songs with no artwork
+- **Supports embedded and image / gif file cover art**: if you add a png / jpg to the song directory called cover.png / cover.gif it will draw for all the songs with no artwork. You can also have artwork matching the name of the song and it will load that for the corresponding song
 - **Music visualizer**
 - **Always on top mini mode**
 - **Seek, volume, and other simple features you would expect from a music player**
