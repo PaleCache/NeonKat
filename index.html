@@ -552,7 +552,7 @@ background: rgba(34, 34, 34, 0.51) !important;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background-color: transparent !important;
+  background-color: transparent;
     box-shadow: inset 0 0 250px #0000004a
 }
 
@@ -640,10 +640,7 @@ background: rgba(34, 34, 34, 0.51) !important;
   background-color: #111;
 }
 
-.vis-mode-toggle.active .label {
-  color: var(--primary-color);
-  font-weight: bold;
-}
+
 
 .vis-mode-toggle {
   cursor: pointer;
@@ -702,6 +699,15 @@ background: rgba(34, 34, 34, 0.51) !important;
 
 #jellyfinModal, #streamModal, #aboutModal, #ytModal,#customBgModal {
   border-radius: 9px;
+}
+
+#ytModal > div,
+#streamModal > div,
+#jellyfinModal > div,
+#customBgModal > div,
+#aboutModal > div {
+backdrop-filter: blur(28px) !important;
+background: rgba(34, 34, 34, 0.51) !important;
 }
 
 
@@ -791,6 +797,8 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   color: #000000 !important;
   outline: none !important;
 }
+
+
 
   </style>
 </head>
@@ -933,10 +941,8 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   <div style="background: #111; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color); color: white; text-align: center;">
     <h3 style="margin-top: 0; color: var(--primary-color);">✨ Set Custom Background ✨</h3>
     <p style="margin: 10px 0 20px;">Paste an image URL or local file path~<br><small>(leave empty to remove current bg ♡)</small></p>
-    
     <input type="text" id="customBgInput" placeholder="https://... or file:///C:/.../cute.jpg" 
            style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px; margin-bottom: 20px;">
-    
     <div style="display: flex; gap: 15px; justify-content: center;">
       <button id="cancelBgBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
       <button id="applyBgBtn" style="padding: 10px 25px; background: var(--primary-color); color: black; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Apply ♡</button>
@@ -1048,16 +1054,10 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
       <span id="duration">0:00</span>
     </div>
    <div id="visualizerWrapper">
-  <video
-    id="visualizerVideo"
-    muted
-    loop
-    playsinline
-    preload="metadata"
-  ></video>
-
+  <img id="visualizerBgGif">
+  <video id="visualizerVideo"></video>
   <canvas id="visualizer"></canvas>
-  <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
+   <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
 </div>
 
     <footer>
@@ -1838,29 +1838,19 @@ aboutBtn.addEventListener('click', () => {
 
   aboutModal = document.createElement('div');
   aboutModal.id = 'aboutModal';
-  aboutModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 99999;';
-
-  const innerDiv = document.createElement('div');
-  innerDiv.style.cssText = 'background: #111; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; border: 3px solid var(--primary-color); text-align: center; color: white;';
-
-  innerDiv.innerHTML = `
-  <div id="aboutModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); border-radius: 10px; display: flex; justify-content: center; align-items: center; z-index: 99999;">
+  aboutModal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 99999;';
+  aboutModal.innerHTML = `
     <div style="background: #111; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; border: 3px solid var(--primary-color); text-align: center; color: white;">
       <h3 style="margin-top: 0; color: var(--primary-color);">About NeonKat</h3>
-     
       <p style="font-size: 16px; margin: 15px 0;">Made With ❤️ By <strong>PaleCache</strong></p>
-      
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
-       
-      <button id="openGitHubBtn" style="padding: 12px 25px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
-      
+      <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.3 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.4 alpha</p>
       </div>
   </div>
   `;
 
-  aboutModal.appendChild(innerDiv);
   document.body.appendChild(aboutModal);
   const closeBtn = document.getElementById('closeAboutBtn');
   const gitHubBtn = document.getElementById('openGitHubBtn');
@@ -2658,64 +2648,125 @@ function clearBackground() {
   visualizerCanvas.style.backgroundImage = 'none';
   visualizerCanvas.style.backgroundColor = '#111111';
   currentArtImage = null;
+  visualizerCanvas.style.backgroundColor = 'transparent';
+  document.getElementById('visualizerBgGif').style.display = 'none';
 }
 
 const visualizerVideo = document.getElementById('visualizerVideo');
 
 async function setVisualizerBackground(item) {
-  stopVideo();
-  visualizerCanvas.style.backgroundImage = 'none';
-  visualizerCanvas.style.backgroundColor = '#111111';
+    stopVideo();
+    visualizerCanvas.style.backgroundImage = 'none';
+    visualizerCanvas.style.backgroundColor = '#111111';
+    currentArtImage = null;
 
-  currentArtImage = null;
+    let artUrl = null;
+    let usedGifOrVideo = false;
 
-  let artUrl = null;
+    if (typeof item === 'string') {
+        const filePath = item;
+        const dir = await window.electronAPI.pathDirname(filePath);
+        const ext = await window.electronAPI.pathExtname(filePath);
+        const baseName = await window.electronAPI.pathBasename(filePath, ext);
+        const videoCandidates = [
+            baseName + '.mp4',
+            baseName + '.webm',
+            baseName + '-video.mp4',
+            baseName + '-preview.mp4'
+        ];
 
-  if (typeof item === 'string') {
-    const filePath = item;
-    const videoPath = filePath.replace(/\.([a-zA-Z0-9]+)$/i, '.mp4');
-    const videoExists = await window.electronAPI.fileExists(videoPath);
+        for (const name of videoCandidates) {
+            const candidatePath = await window.electronAPI.pathJoin(dir, name);
+            if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
+                const normalized = candidatePath.replace(/\\/g, '/');
+                const encoded = encodeURI(normalized).replace(/#/g, '%23');
+                visualizerVideo.src = `file://${encoded}`;
+                visualizerVideo.style.display = 'block';
+                visualizerVideo.currentTime = 0;
+                visualizerVideo.loop = true;
+                visualizerVideo.muted = true;
+                visualizerVideo.playsInline = true;
+                try {
+                    await visualizerVideo.play();
+                } catch (err) {
+                    console.warn("Video play failed:", err);
+                }
+                usedGifOrVideo = true;
+                break;
+            }
+        }
 
-    if (videoExists && gifPreviewEnabled) {
-      const normalized = videoPath.replace(/\\/g, '/');
-      const encoded = encodeURI(normalized).replace(/#/g, '%23');
-      visualizerVideo.src = `file://${encoded}`;
-      visualizerVideo.style.display = 'block';
-      visualizerVideo.currentTime = 0;
-      visualizerVideo.play().catch(() => {});
-      return;
+        if (usedGifOrVideo) return;
+        const sameNameGif = baseName + '.gif';
+        const sameNameGifPath = await window.electronAPI.pathJoin(dir, sameNameGif);
+       if (await window.electronAPI.fileExists(sameNameGifPath) && gifPreviewEnabled) {
+        const normalized = sameNameGifPath.replace(/\\/g, '/');
+        const encoded = encodeURI(normalized).replace(/#/g, '%23');
+        const gifUrl = `file://${encoded}`;
+        visualizerVideo.style.display = 'none';
+        const gifElement = document.getElementById('visualizerBgGif');
+        if (gifElement) {
+            gifElement.src = gifUrl;
+            gifElement.style.display = 'block';
+            gifElement.style.objectFit = 'contain';
+            gifElement.style.objectPosition = 'center';
+        } else {
+            console.warn("visualizerBgGif element not found in DOM!");
+        }
+
+        usedGifOrVideo = true;
     }
 
-    artUrl = await getAlbumArtUrl(filePath);
-  } else if (item?.isJellyfin && item.albumArt) {
-    artUrl = item.albumArt;
-  }
+        if (usedGifOrVideo) return;
+        artUrl = await getAlbumArtUrl(filePath);
+        if (artUrl && artUrl !== 'build/default-artwork.jpg') {
+            const loader = document.getElementById('artLoader');
+            if (loader) {
+                loader.src = artUrl;
+                loader.onload = () => {
+                    currentArtImage = loader;
+                    console.log("[ART] Good album art loaded ♡");
+                };
+                loader.onerror = () => {
+                    console.warn("[ART] Album art failed to load");
+                    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+                };
+            }
+            return;
+        }
+        const coverGifName = 'cover.gif';
+        const coverGifPath = await window.electronAPI.pathJoin(dir, coverGifName);
+        if (await window.electronAPI.fileExists(coverGifPath) && gifPreviewEnabled) {
+            const normalized = coverGifPath.replace(/\\/g, '/');
+            const encoded = encodeURI(normalized).replace(/#/g, '%23');
+            visualizerVideo.style.display = 'none';
+            visualizerCanvas.style.backgroundImage = `url("file://${encoded}")`;
+            visualizerCanvas.style.backgroundSize = 'cover';          
+              visualizerCanvas.style.backgroundPosition = 'center';
+              visualizerCanvas.style.backgroundRepeat = 'no-repeat';
+              visualizerCanvas.style.imageRendering = 'auto';
+            usedGifOrVideo = true;
+        }
+    } 
+    else if (item?.isJellyfin && item.albumArt) {
+        artUrl = item.albumArt;
 
-  if (!artUrl || artUrl === 'build/default-artwork.jpg') {
-    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-    visualizerCanvas.style.backgroundSize = 'cover';
-    visualizerCanvas.style.backgroundPosition = 'center';
-    return;
-  }
+        const loader = document.getElementById('artLoader');
+        if (loader) {
+            loader.src = artUrl;
+            loader.onload = () => { currentArtImage = loader; };
+            loader.onerror = () => {
+                visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+            };
+        }
+        return;
+    }
 
-  const loader = document.getElementById('artLoader');
-  if (!loader) {
-    console.error('[ART] No <img id="artLoader"> found in HTML!');
-    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-    return;
-  }
-
-  loader.src = artUrl;
-
-  loader.onload = () => {
-    currentArtImage = loader;
-    console.log('[ART] Art loaded & assigned for persistent drawing ♡');
-  };
-
-  loader.onerror = (err) => {
-    console.error('[ART] Loader failed to display art:', err);
-    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-  };
+    if (!usedGifOrVideo && (!artUrl || artUrl === 'build/default-artwork.jpg')) {
+        visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+        visualizerCanvas.style.backgroundSize = 'cover';
+        visualizerCanvas.style.backgroundPosition = 'center';
+    }
 }
 
 
@@ -2899,7 +2950,8 @@ audio.addEventListener('timeupdate', () => {
     return `${m}:${s}`;
   }
 
-
+let energyHistory;
+let lastBeat = false;
 let lastWidth = 0;
 let lastHeight = 0;
 
@@ -3025,20 +3077,23 @@ function visualize() {
     }
 
     let lowEnergy = 0;
-    for (let i = 0; i < 10; i++) lowEnergy += dataArray[i];
-    lowEnergy /= 10;
+    for (let i = 0; i < 10; i++) lowEnergy += dataArray[i] * dataArray[i];
+    lowEnergy = Math.sqrt(lowEnergy / 10);
 
-    if (!window.energyHistory) window.energyHistory = [];
-    window.energyHistory.push(lowEnergy);
-    if (window.energyHistory.length > 32) window.energyHistory.shift();
-    const avgEnergy = window.energyHistory.reduce((a, b) => a + b) / window.energyHistory.length;
+    if (!energyHistory) energyHistory = [];
+    energyHistory.push(lowEnergy);
+    if (energyHistory.length > 32) energyHistory.shift();
+
+    const avgEnergy =
+      energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
 
     let isBeat = false;
-    if (lowEnergy > Math.max(avgEnergy * 1.0, 80) && !window.lastBeat) {
+
+    if (lowEnergy > Math.max(avgEnergy * 1.3, 80) && !lastBeat) {
       isBeat = true;
-      window.lastBeat = true;
-    } else if (lowEnergy < avgEnergy * 1.2) {
-      window.lastBeat = false;
+      lastBeat = true;
+    } else if (lowEnergy < avgEnergy * 1.1) {
+      lastBeat = false;
     }
 
     const currentPrimaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
