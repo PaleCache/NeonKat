@@ -5,7 +5,6 @@ const fsSync = require('fs');
 const { spawn } = require('child_process');
 const { shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
-
 let autoUpdateEnabled = false
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let logger = console;
@@ -59,52 +58,31 @@ const spawnSafe = (cmd, args) => {
   });
 };
 
-ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false }) => {
+ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false, artworkDuration = 30 }) => {
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
     return { success: false, message: 'Pick a valid folder' };
   }
 
   const sanitizedTitle = (title) => title.replace(/[/\\?%*:|"<>]/g, '').trim() || 'Unknown';
+  let targetDuration;
+  if (artworkDuration === 'full' || artworkDuration === Infinity) {
+    targetDuration = Infinity;
+  } else if (typeof artworkDuration === 'number' && artworkDuration > 0) {
+    targetDuration = artworkDuration;
+  } else {
+    targetDuration = 30;
+  }
+
+  const uniqueSuffix = Date.now();
+  const tempVideoPath = path.join(downloadFolder, `NEONKAT_TEMP_${uniqueSuffix}.%(ext)s`);
+  const thumbTemp = path.join(downloadFolder, `NEONKAT_THUMB_${uniqueSuffix}.%(ext)s`);
 
   try {
     if (skipVideo) {
-      const audioArgs = [
-        url,
-        '--extract-audio',
-        '--audio-format', 'mp3',
-        '--audio-quality', '0',
-        '--embed-thumbnail',
-        '--add-metadata',
-        '--parse-metadata', 'uploader:%(meta_artist)s',
-        '--parse-metadata', 'playlist_title:%(meta_album)s',
-        '--windows-filenames',
-        '--restrict-filenames',
-        '--ignore-errors',
-        '--no-overwrites',
-        '--retries', '10',
-        '--retry-sleep', 'exp=1:60',
-        '--sleep-interval', '5',
-        '--output', path.join(downloadFolder, '%(uploader|Unknown)s - %(title)s.%(ext)s')
-      ];
-
-      await spawnSafe('yt-dlp', audioArgs);
-      const files = await fs.readdir(downloadFolder);
-      const mp3Paths = files
-        .filter(f => f.toLowerCase().endsWith('.mp3'))
-        .map(f => path.join(downloadFolder, f));
-
-      return {
-        success: true,
-        mp3Paths,
-        videoPath: null,
-        message: mp3Paths.length > 1 ? `Ripped ${mp3Paths.length} tracks (playlist)` : 'Audio-only done'
-      };
     }
 
-    const tempVideoPath = path.join(downloadFolder, 'NEONKAT_TEMP.%(ext)s');
-    const thumbTemp = path.join(downloadFolder, 'NEONKAT_THUMB.%(ext)s');
     let info;
-    try {
+    {
       let output = '';
       const infoProc = spawn('yt-dlp', ['--dump-single-json', '--no-playlist', url]);
       infoProc.stdout.on('data', d => output += d.toString());
@@ -113,68 +91,74 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
         infoProc.on('error', reject);
       });
       info = JSON.parse(output);
-    } catch (e) {
-      throw new Error('Failed to get video info - probably not a single video or ip is rate limited / detected as a bot');
     }
 
-    const formats = info.formats || [];
-    const hasVideo = formats.some(f => f && f.vcodec !== 'none');
-    let videoPath = null;
-    let mp3Path = null;
+    const titleSafe = sanitizedTitle(info.title);
     await spawnSafe('yt-dlp', [url, '--write-thumbnail', '--convert-thumbnails', 'jpg', '--skip-download', '--no-playlist', '-o', thumbTemp]);
-
     const thumbFiles = await fs.readdir(downloadFolder);
-    const thumbFile = thumbFiles.find(f => f.startsWith('NEONKAT_THUMB.'));
+    const thumbFile = thumbFiles.find(f => f.startsWith(`NEONKAT_THUMB_${uniqueSuffix}`));
     if (!thumbFile) throw new Error('Thumbnail not found');
     const fullThumbPath = path.join(downloadFolder, thumbFile);
+    const hasVideo = (info.formats || []).some(f => f && f.vcodec !== 'none');
 
     if (!hasVideo) {
-      const audioArgs = [
-        url,
-        '--extract-audio',
-        '--audio-format', 'mp3',
-        '--audio-quality', '0',
-        '--embed-thumbnail',
-        '--add-metadata',
-        '--no-playlist',
-        '-o', path.join(downloadFolder, sanitizedTitle(info.title) + '.%(ext)s')
-      ];
-      await spawnSafe('yt-dlp', audioArgs);
-
-      const files = await fs.readdir(downloadFolder);
-      mp3Path = path.join(downloadFolder, files.find(f => f.toLowerCase().endsWith('.mp3')));
-      await fs.unlink(fullThumbPath);
-
-      return { success: true, mp3Path, videoPath: null };
     }
 
-    await spawnSafe('yt-dlp', [url, '-f', 'bestvideo[height<=480]+bestaudio/best[height<=480]', '--merge-output-format', 'mp4', '--no-playlist', '-o', tempVideoPath]);
-
-    const files = await fs.readdir(downloadFolder);
-    const tempFile = files.find(f => f.startsWith('NEONKAT_TEMP.'));
-    if (!tempFile) throw new Error('Temp file not found');
-    const fullTempPath = path.join(downloadFolder, tempFile);
-
-    const duration = await new Promise((resolve, reject) => {
-      const ffprobe = spawn('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', fullTempPath]);
-      let out = '';
-      ffprobe.stdout.on('data', d => out += d);
-      ffprobe.on('close', code => resolve(parseFloat(out) || 0));
-      ffprobe.on('error', reject);
-    });
-
-    const startTime = Math.max(0, (duration / 2) - 7.5);
-    videoPath = path.join(downloadFolder, sanitizedTitle(info.title) + '.mp4');
-
-    await spawnSafe('ffmpeg', [
-      '-nostdin', '-ss', startTime.toString(), '-i', fullTempPath,
-      '-t', '30', '-vf', 'fps=30,scale=-1:-1:flags=lanczos', '-an',
-      '-movflags', '+faststart', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '23', '-y',
-      videoPath
+    await spawnSafe('yt-dlp', [
+      url,
+      '-f', 'bestvideo[height<=480]+bestaudio/best[height<=480]',
+      '--merge-output-format', 'mp4',
+      '--no-playlist',
+      '-o', tempVideoPath
     ]);
 
+    const files = await fs.readdir(downloadFolder);
+    const tempFile = files.find(f => f.startsWith(`NEONKAT_TEMP_${uniqueSuffix}`));
+    if (!tempFile) throw new Error('Temp video not found');
+    const fullTempPath = path.join(downloadFolder, tempFile);
+    const fullDuration = await new Promise((resolve) => {
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'error',
+        '-show_entries', 'format=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        fullTempPath
+      ]);
+      let out = '';
+      ffprobe.stdout.on('data', d => out += d);
+      ffprobe.on('close', () => resolve(parseFloat(out) || 0));
+      ffprobe.on('error', () => resolve(0));
+    });
 
-    mp3Path = path.join(downloadFolder, sanitizedTitle(info.title) + '.mp3');
+    const videoPath = path.join(downloadFolder, `${titleSafe}.mp4`);
+    let clipDuration = fullDuration;
+    let startTime = 0;
+
+    if (targetDuration !== Infinity && targetDuration !== 'full') {
+      clipDuration = Math.min(targetDuration, fullDuration);
+      startTime = Math.max(0, (fullDuration / 2) - (clipDuration / 2));
+    } 
+    console.log(
+      `Export mode: ${targetDuration === Infinity || targetDuration === 'full' ? 'FULL' : targetDuration + 's'}`,
+      `→ start: ${startTime.toFixed(1)}s, length: ${clipDuration.toFixed(1)}s (original: ${fullDuration.toFixed(1)}s)`
+    );
+
+    const ffmpegArgs = [
+      '-nostdin',
+      '-ss', startTime.toFixed(2),
+      '-i', fullTempPath,
+      '-t', clipDuration.toFixed(2),
+      '-vf', 'fps=30,scale=480:-2:flags=lanczos',
+      '-an',
+      '-movflags', '+faststart',
+      '-pix_fmt', 'yuv420p',
+      '-preset', 'veryfast',
+      '-crf', '23',
+      '-y',
+      videoPath
+    ];
+
+    await spawnSafe('ffmpeg', ffmpegArgs);
+    const mp3Path = path.join(downloadFolder, `${titleSafe}.mp3`);
     await spawnSafe('ffmpeg', [
       '-i', fullTempPath,
       '-i', fullThumbPath,
@@ -186,15 +170,19 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
       '-disposition:v', 'attached_pic',
       '-y', mp3Path
     ]);
+    await fs.unlink(fullTempPath).catch(() => {});
+    await fs.unlink(fullThumbPath).catch(() => {});
 
-    await fs.unlink(fullTempPath);
-    await fs.unlink(fullThumbPath);
-
-    return { success: true, mp3Path, videoPath };
+    return {
+      success: true,
+      mp3Path,
+      videoPath,
+      actualDuration: targetDuration === Infinity ? 'full' : clipDuration
+    };
 
   } catch (err) {
-    console.error('Download failed:', err.stack || err);
-    return { success: false, message: `Error: ${err.message}` };
+    console.error('Download failed:', err);
+    return { success: false, message: err.message || 'Unknown error' };
   }
 });
 

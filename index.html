@@ -40,6 +40,10 @@
 #visualizerToggleBtn,
 #rainbowToggleBtn,
 button,
+#exportDurationSelect:focus,
+#exportDurationSelect:focus-visible,
+#customExportSeconds:focus,
+#customExportSeconds:focus-visible
 
 a {
   
@@ -140,7 +144,7 @@ a {
       display: none;
       width: 150px;
       -webkit-app-region: no-drag;
-      backdrop-filter: blur(28px) !important;
+      backdrop-filter: blur(8px) !important;
     }
     #sortMenu button {
       background: rgba(34, 34, 34, 0);
@@ -170,7 +174,7 @@ a {
   border-radius: 5px;
   -webkit-app-region: no-drag;
     background: rgba(33, 33, 33, 0.5) !important;
-  backdrop-filter: blur(4px) !important; 
+    backdrop-filter: blur(4px) !important; 
 }
     #playlist li {
       padding: 10px;
@@ -487,7 +491,7 @@ body.mini-mode #visualizerVideo {
 
 #hamburgerMenu {
 
-  backdrop-filter: blur(28px) !important;
+  backdrop-filter: blur(8px) !important;
 background: rgba(34, 34, 34, 0.51) !important;
     border-radius: 10px !important;
 }
@@ -543,7 +547,7 @@ background: rgba(34, 34, 34, 0.51) !important;
   z-index: 1;
   pointer-events: none;
   background-color: transparent;
-    box-shadow: inset 0 0 250px #0000004a
+  
 }
 
 #visualizerOverlay {
@@ -696,7 +700,7 @@ background: rgba(34, 34, 34, 0.51) !important;
 #jellyfinModal > div,
 #customBgModal > div,
 #aboutModal > div {
-backdrop-filter: blur(28px) !important;
+backdrop-filter: blur(8px) !important;
 background: rgba(34, 34, 34, 0.51) !important;
 }
 
@@ -793,11 +797,56 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
     position: absolute;
     inset: 0;
     width: 100%;
-    height: 168px;          
+    height: 164px;          
     object-fit: cover;
     z-index: 0;
     border-radius: inherit;
     background: transparent;  
+}
+
+body.minimized * {
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+
+body.low-perf #playlist,
+body.low-perf #sortMenu,
+body.low-perf #hamburgerMenu,
+body.low-perf button,
+body.low-perf .control-btn,
+body.low-perf .vis-mode-toggle button,
+body.low-perf #container,
+body.low-perf #container > * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+
+body.low-perf #playlist,
+body.low-perf #sortMenu,
+body.low-perf #hamburgerMenu,
+body.low-perf #streamModal > div,
+body.low-perf #jellyfinModal > div,
+body.low-perf #aboutModal > div,
+body.low-perf #ytModal > div,
+body.low-perf #customBgModal > div,
+body.low-perf #chooseFolder,
+body.low-perf #sortBtn,
+body.low-perf button.control-btn,
+body.low-perf .vis-mode-toggle button,
+body.low-perf #container {
+  background: #222 !important;        
+  background-image: none !important;
+  opacity: 1 !important;            
+}
+
+
+body.low-perf .bars-gif-wrapper,
+body.low-perf img[src*="bars.gif"],
+body.low-perf #visualizerBgGif {
+  display: none !important;
 }
 
 
@@ -858,6 +907,14 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   <span class="label">Auto-update app</span>
   <label class="switch">
     <input type="checkbox" id="autoUpdateAppCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="vis-mode-toggle" id="lowPerfToggle">
+  <span class="label">Low Performance UI</span>
+  <label class="switch">
+    <input type="checkbox" id="lowPerfCheckbox">
     <span class="slider"></span>
   </label>
 </div>
@@ -940,8 +997,8 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
 
 <div id="customBgModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 99999;">
   <div style="background: #111; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color); color: white; text-align: center;">
-    <h3 style="margin-top: 0; color: var(--primary-color);">✨ Set Custom Background ✨</h3>
-    <p style="margin: 10px 0 20px;">Paste an image URL or local file path~<br><small>(leave empty to remove current bg ♡)</small></p>
+    <h3 style="margin-top: 0; color: var(--primary-color);">Set Custom Background</h3>
+    <p style="margin: 10px 0 20px;">Paste an image URL or local file path <br><small>(leave empty to remove current bg ♡)</small></p>
     <input type="text" id="customBgInput" placeholder="https://... or file:///C:/.../cute.jpg" 
            style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px; margin-bottom: 20px;">
     <div style="display: flex; gap: 15px; justify-content: center;">
@@ -1148,13 +1205,12 @@ katbubbleImages[0].src = 'build/kat.png';
   const source = audioCtx.createMediaElementSource(audio);
   source.connect(analyser);
   const lowpass = audioCtx.createBiquadFilter();
-lowpass.type = 'lowpass';
-lowpass.frequency.value = 150;  
-lowpass.Q.value = 1;           
-
-source.connect(lowpass);
-lowpass.connect(analyser);
-analyser.connect(audioCtx.destination); 
+  lowpass.type = 'lowpass';
+  lowpass.frequency.value = 150;  
+  lowpass.Q.value = 1;           
+  source.connect(lowpass);
+  lowpass.connect(analyser);
+  analyser.connect(audioCtx.destination); 
   analyser.connect(audioCtx.destination);
   const radioIconImg = new Image();
   radioIconImg.src = 'build/radio.svg';
@@ -1184,6 +1240,26 @@ if (jellyfinConfig.token) {
 }
 
 updateJellyfinModalButtons();
+const artworkDurationSelect = document.getElementById('artworkDurationSelect');
+const customArtworkInput = document.getElementById('customArtworkSeconds');
+
+let selectedDuration = 30;
+
+function updateArtworkDuration() {
+    const val = artworkDurationSelect.value;
+    
+    if (val === 'custom') {
+        customArtworkInput.style.display = 'inline-block';
+        customArtworkInput.focus();
+        let sec = parseInt(customArtworkInput.value, 10);
+        selectedDuration = (isNaN(sec) || sec < 5) ? 30 : Math.min(sec, 600);
+    } else {
+        customArtworkInput.style.display = 'none';
+        selectedDuration = (val === 'full') ? Infinity : Number(val);
+    }
+}
+
+
 
 const customBgToggle = document.getElementById('customBgToggle');
 const customBgModal = document.getElementById('customBgModal');
@@ -1220,10 +1296,10 @@ function applyCustomBackground(url = null) {
     };
     img.onerror = () => {
       if (notifyEnabled && Notification.permission === 'granted') {
-        window.electronAPI.notify("Oopsie~! Couldn't load that image... (´；ω；`) Check the URL please~");
+        window.electronAPI.notify("Oopsie! Couldn't load that image... (´；ω；`) Check the URL please");
         }
         else{
-        alert("Oopsie~! Couldn't load that image... (´；ω；`) Check the URL please~");
+        alert("Oopsie! Couldn't load that image... (´；ω；`) Check the URL please");
         }
     };
     img.src = url;
@@ -1272,6 +1348,52 @@ customBgModal.addEventListener('click', (e) => {
     if (e.target === customBgModal) customBgModal.style.display = 'none';
 });
 
+
+let lowPerfMode = localStorage.getItem('lowPerfMode') === 'true';
+
+const lowPerfCheckbox = document.getElementById('lowPerfCheckbox');
+const lowPerfRow = document.getElementById('lowPerfToggle');
+
+
+if (lowPerfCheckbox) {
+  lowPerfCheckbox.checked = lowPerfMode;
+}
+
+applyLowPerfMode();
+function applyLowPerfMode() {
+  if (lowPerfMode) {
+    document.body.classList.add('low-perf');
+    localStorage.setItem('lowPerfMode', 'true');
+  } else {
+    document.body.classList.remove('low-perf');
+    localStorage.setItem('lowPerfMode', 'false');
+  }
+  renderPlaylist();
+}
+
+
+if (lowPerfRow) {
+  lowPerfRow.addEventListener('click', (e) => {
+    if (e.target.closest('.switch, input[type="checkbox"]')) return;
+
+    lowPerfMode = !lowPerfMode;
+    if (lowPerfCheckbox) lowPerfCheckbox.checked = lowPerfMode;
+    applyLowPerfMode();
+
+    if (notifyEnabled && Notification.permission === 'granted') {
+      window.electronAPI.notify(
+        lowPerfMode ? "Low Performance UI ON ♡" : "Low Performance UI OFF"
+      );
+    }
+  });
+}
+
+if (lowPerfCheckbox) {
+  lowPerfCheckbox.addEventListener('change', () => {
+    lowPerfMode = lowPerfCheckbox.checked;
+    applyLowPerfMode();
+  });
+}
 function quickSearchPlaylist() {
   const input = document.getElementById('playlistQuickSearch');
   const clearBtn = document.getElementById('clearQuickSearch');
@@ -1714,11 +1836,35 @@ downloadYoutubeBtn.addEventListener('click', () => {
         <div id="skipVideoThumb" style="width: 18px; height: 18px; background: #444; border-radius: 50%; position: absolute; top: 1px; left: 1px; transition: left 0.2s;"></div>
       </div>
     </div>
+<div style="display: flex; align-items: center; gap: 12px; margin: 8px 0; flex-wrap: wrap;">
+  <label style="color: #ccc; font-size: 13px;">Gif preview length:</label>
+  
+  <select id="exportDurationSelect" style="
+    background: #222;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+  ">
+    <option value="full">Full song</option>
+    <option value="15">15 seconds</option>
+    <option value="30" selected>30 seconds</option>
+    <option value="60">60 seconds</option>
+    <option value="90">90 seconds</option>
+    <option value="custom">Custom...</option>
+  </select>
+  <input type="number" id="customExportSeconds"
+         placeholder="seconds"
+         min="5" max="600"
+         style="display:none; width: 90px; background:#222; color:white; border:1px solid #444; border-radius:6px; padding:6px; font-size:13px;" />
+</div>
 
     <div style="display: flex; gap: 10px; justify-content: flex-end;">
       <button id="cancelYtBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
       <button id="downloadYtConfirmBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold;">Download</button>
     </div>
+    
   </div>
 </div>`;
 
@@ -1735,6 +1881,35 @@ downloadYoutubeBtn.addEventListener('click', () => {
   const confirmBtn = document.getElementById('downloadYtConfirmBtn');
   const chooseFolderBtn = document.getElementById('chooseDlFolderBtn');
   const selectedFolderSpan = document.getElementById('selectedDlFolder');
+
+  const artworkDurationSelect = document.getElementById('exportDurationSelect');
+  const customExportInput   = document.getElementById('customExportSeconds');
+
+  let selectedDuration = 30;
+
+  if (artworkDurationSelect) {
+    artworkDurationSelect.addEventListener('change', () => {
+      
+      const val = artworkDurationSelect.value;
+      console.log(`[DUR] ${val} `)
+      if (val === 'custom') {
+        customExportInput.style.display = 'inline-block';
+        let sec = parseInt(customExportInput.value) || 30;
+        selectedDuration = Math.max(5, Math.min(600, sec));
+      } else {
+        customExportInput.style.display = 'none';
+        selectedDuration = val === 'full' ? Infinity : Number(val);
+      }
+    });
+  }
+
+  if (customExportInput) {
+    customExportInput.addEventListener('input', () => {
+      let sec = parseInt(customExportInput.value) || 30;
+      selectedDuration = Math.max(5, Math.min(600, sec));
+    });
+  }
+
 
   let downloadFolder = null; 
 
@@ -1803,11 +1978,12 @@ skipToggle.addEventListener('click', () => {
   confirmBtn.textContent = 'Downloading...';
   confirmBtn.disabled = true;
 
-  const result = await window.electronAPI.downloadYoutube({
+const result = await window.electronAPI.downloadYoutube({
     url,
     downloadFolder,
-    skipVideo
-  });
+    skipVideo,
+    artworkDuration: selectedDuration
+});
 
   if (result.success) {
     renderPlaylist();
@@ -1845,9 +2021,9 @@ aboutBtn.addEventListener('click', () => {
       <h3 style="margin-top: 0; color: var(--primary-color);">About NeonKat</h3>
       <p style="font-size: 16px; margin: 15px 0;">Made With ❤️ By <strong>PaleCache</strong></p>
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
-      <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code</button>
+      <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.5 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.6 alpha</p>
       </div>
   </div>
   `;
@@ -2492,6 +2668,9 @@ function renderPlaylist() {
       gifWrapper.appendChild(gifImg);
       li.style.paddingLeft = '37px';
       li.style.position = 'relative';
+      if (lowPerfMode) {
+    gifWrapper.style.display = 'none';
+  }
       li.appendChild(gifWrapper);
     }
     
@@ -2781,7 +2960,7 @@ async function setVisualizerBackground(item) {
 
 
   async function playTrack(index) {
-
+  stopVideo()
   if (index < 0 || index >= audioFiles.length) return;
 
 
@@ -2944,15 +3123,30 @@ audio.addEventListener('timeupdate', () => {
 });
 
 
-  progressBar.addEventListener('input', () => {
-    isSeeking = true;
-  });
+progressBar.addEventListener('input', () => {
+    const newTime = parseFloat(progressBar.value);
+    if (!isNaN(newTime) && audio.duration) {
+        audio.currentTime = newTime;
+    }
+    if (gifPreviewEnabled && visualizerVideo.src && visualizerVideo.style.display !== 'none') {
+        if (!isNaN(visualizerVideo.duration) && isFinite(visualizerVideo.duration)) {
+            const target = newTime % visualizerVideo.duration;
+            if (Math.abs(visualizerVideo.currentTime - target) > 0.3) {
+                visualizerVideo.currentTime = target;
+            }
+        }
+    }
+});
 
-  progressBar.addEventListener('change', () => {
-    audio.currentTime = parseFloat(progressBar.value);
+
+progressBar.addEventListener('change', () => {
+    const newTime = parseFloat(progressBar.value);
+    if (!isNaN(newTime) && audio.duration) {
+        audio.currentTime = newTime;
+    }
+    
     isSeeking = false;
-    updateSliderBackground(progressBar);
-  });
+});
 
   function formatTime(seconds) {
     const m = Math.floor(seconds / 60);
@@ -3400,11 +3594,14 @@ let isMainWindowVisible = true;
 document.addEventListener('visibilitychange', () => {
   isMainWindowVisible = !document.hidden;
   if (!isMainWindowVisible) {
+       document.body.classList.add('minimized');
     stopVisualizer();
   } else {
+    document.body.classList.remove('minimized');
     if (visualizerToggle) visualize();
   }
 });
+
   function adjustColor(color, percent) {
     if (color.startsWith('hsl')) {
       const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
@@ -3458,13 +3655,80 @@ document.getElementById('gifIcon').src = 'build/gif.svg';
 updateGifIcon();
 
 gifPreviewToggleBtn.addEventListener('click', async () => {
-  gifPreviewEnabled = !gifPreviewEnabled;
-  localStorage.setItem('gifPreviewEnabled', gifPreviewEnabled);
-  updateGifIcon();
-  const currentTrack = audioFiles[currentIndex];
-  if (currentTrack && typeof currentTrack === 'string') {
-    await setVisualizerBackground(currentTrack);
-  }
+    const wasEnabled = gifPreviewEnabled;
+
+    gifPreviewEnabled = !gifPreviewEnabled;
+    localStorage.setItem('gifPreviewEnabled', gifPreviewEnabled);
+    updateGifIcon();
+    if (audio.paused || currentIndex >= audioFiles.length) return;
+
+    const currentTrack = audioFiles[currentIndex];
+    if (typeof currentTrack !== 'string') return;
+
+    if (gifPreviewEnabled && !wasEnabled) {
+        stopVideo(); 
+
+        const dir = await window.electronAPI.pathDirname(currentTrack);
+        const ext = await window.electronAPI.pathExtname(currentTrack);
+        const baseName = await window.electronAPI.pathBasename(currentTrack, ext);
+
+        const possibleVideos = [
+            baseName + '.mp4',
+            baseName + '.webm',
+            baseName + '-video.mp4',
+            baseName + '-preview.mp4'
+        ];
+
+        let videoLoaded = false;
+
+        for (const name of possibleVideos) {
+            const candidatePath = await window.electronAPI.pathJoin(dir, name);
+            if (await window.electronAPI.fileExists(candidatePath)) {
+                videoLoaded = true;
+                const url = `file://${candidatePath.replace(/\\/g, '/').replace(/#/g, '%23')}`;
+                visualizerVideo.src = url;
+                visualizerVideo.style.display = 'block';
+                visualizerVideo.style.opacity = '1';
+                visualizerVideo.style.zIndex = '1';
+                visualizerVideo.loop = true;
+                visualizerVideo.muted = true;
+                visualizerVideo.playsInline = true;
+                clearBackground()
+
+                visualizerVideo.onloadedmetadata = () => {
+                    const videoDuration = visualizerVideo.duration;
+                    const songDuration = audio.duration;
+
+                    if (isFinite(videoDuration) && isFinite(songDuration) &&
+                        Math.abs(videoDuration - songDuration) / songDuration <= 0.12) {
+                        const targetTime = audio.currentTime % videoDuration;
+                        visualizerVideo.currentTime = targetTime;
+                        console.log(`Video synced to ${targetTime.toFixed(1)}s (song at ${audio.currentTime.toFixed(1)}s)`);
+                    } else {
+                        visualizerVideo.currentTime = 0;
+                        console.log("Lengths don't match closely → starting from 0");
+                    }
+
+                    visualizerVideo.play().catch(err => {
+                        console.warn("Video play blocked:", err);
+                    });
+                };
+
+                break;
+            }
+        }
+
+        if (!videoLoaded) {
+            console.log("No matching video found");
+        }
+    }
+    else if (!gifPreviewEnabled && wasEnabled) {
+        stopVideo();
+        visualizerVideo.style.display = 'none';
+        visualizerVideo.style.opacity = '0';
+        visualizerVideo.style.zIndex = '-1';
+        await setVisualizerBackground(currentTrack);
+    }
 });
 
 function updateGifIcon() {
