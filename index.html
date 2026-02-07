@@ -376,7 +376,8 @@ a {
       #jellyfinPassInput,
       #jellyfinSearchInput,
       #playlistQuickSearch,
-      #customBgInput {
+      #customBgInput,
+      #videoQualitySelect {
         outline: none !important;
     }
 
@@ -850,10 +851,170 @@ body.low-perf #visualizerBgGif {
 }
 
 
+body.video-only {
+  background: #000 !important;
+  overflow: hidden !important;
+}
+
+body.video-only #container {
+  padding: 0 !important;
+  border: none !important;
+  background: #000 !important;
+  border-radius: 10 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+   -webkit-app-region: drag;
+ 
+}
+
+body.video-only #visualizerWrapper {
+  height: 100vh !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  position: relative !important;
+}
+
+body.video-only #visualizerVideo {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover !important;
+  z-index: 1 !important;
+  border-radius: 0 !important;
+  background: #000;
+}
+
+
+body.video-only #visualizer,
+body.video-only #visualizer canvas,
+body.video-only #visualizerBgGif,
+body.video-only #playlist,
+body.video-only h1,
+body.video-only #topControls,
+body.video-only #playlistControls,
+body.video-only #sortBtn,
+body.video-only #hamburgerBtn,
+body.video-only button:not(#popoutVideoBtn, #popoutVideoBtn img):not(.controls button) :not(.volume-control) :not(#progressContainer) {
+  display: none !important;
+}
+
+
+#popoutVideoBtn {
+  position: absolute;
+  top: 33px;
+  right: 11px;
+  z-index: 9999;
+  background: rgba(0,0,0,0.7);
+  border: none;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  transition: all 0.15s ease;
+   -webkit-app-region: no-drag;
+}
+
+#popoutVideoBtn:hover {
+  transform: scale(1.1);
+}
+
+body:not(.video-only) #popoutVideoBtn {
+  background: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+#popoutVideoBtn::before {
+  content: var(--close-x, '');
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.video-only footer {
+  position: fixed;  
+  bottom: 20px;         
+  left: 92%;             
+  transform: translateX(-50%);
+  z-index: 1000;       
+  display: flex;        
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  color: white;
+}
+
+body.video-only .controls,
+body.video-only .volume-control
+{
+    position: fixed;
+    top: 74%; 
+    left: 50%; 
+    transform: translateX(-50%);
+    width: 237px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000 !important;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+    gap: 10px;
+}
+
+body.video-only .controls,
+body.video-only .volume-control
+{
+    opacity: 0;                
+    pointer-events: none;      
+    transition: opacity 0.3s; 
+}
+
+
+body.video-only:hover .controls,
+body.video-only:hover .volume-control{
+    opacity: 1;              
+    pointer-events: auto;   
+}
+
+body.video-only #progressContainer {
+ position: fixed;
+    top: 91%; 
+    left: 50%; 
+    transform: translateX(-50%);
+    width: 237px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000 !important;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+    gap: 10px;
+
+}
+
+
+
+
+
   </style>
 </head>
 <body>
-  <div id="titlebar" style="-webkit-app-region: drag; height: 20px; position: absolute; top: 0; left: 0; right: 0; z-index: 1;">
+  <div id="titlebar" 
+     style="-webkit-app-region: drag; height: 20px; position: absolute; top: 0; left: 0; right: 0; z-index: 1; cursor: pointer;">
+</div>
    
   </div>
   <div id="rainbow-helper"></div>
@@ -885,6 +1046,8 @@ body.low-perf #visualizerBgGif {
 
 
 
+
+
   <button id="hamburgerBtn" style="background: none; border: none; cursor: pointer; padding: 8px; -webkit-app-region: no-drag;" title="Menu">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
       <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -893,6 +1056,8 @@ body.low-perf #visualizerBgGif {
     </svg>
   </button>
 </div>
+
+
 
 
 <div id="hamburgerMenu" style="position: absolute; top: 70px; right: 15px; background: #222; border-radius: 3px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 2px solid var(--primary-color); display: none; z-index: 9999; min-width: 200px; -webkit-app-region: no-drag;">
@@ -965,6 +1130,8 @@ body.low-perf #visualizerBgGif {
   ">Set</button>
 </div>
 </div>
+
+ 
 
 
     <h1 style="display: flex; align-items: center; gap: 8px; ">
@@ -1115,6 +1282,9 @@ body.low-perf #visualizerBgGif {
   <img id="visualizerBgGif">
   <video id="visualizerVideo"></video>
   <canvas id="visualizer"></canvas>
+   <button id="popoutVideoBtn" style="background:none; border:none; cursor:pointer; margin-left:6px;" title="Pop out video only">
+  <img src="build/pop-out.svg" height="12" alt="Popout" style="filter: invert(1);" />
+</button>
    <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
 </div>
 
@@ -1830,6 +2000,15 @@ downloadYoutubeBtn.addEventListener('click', () => {
       <span id="selectedDlFolder" style="color: var(--primary-color); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 2;">No folder selected</span>
     </div>
 
+    <div style="margin-bottom: 15px;">
+  <select id="videoQualitySelect" style="width: 100%; padding: 10px; background: #222; color: white; border: 1px solid #444; border-radius: 6px; font-size: 14px;">
+  <option value="bestvideo+bestaudio/best">Best quality (highest available)</option>
+  <option value="bestvideo[height<=1080]+bestaudio/best">1080p</option>
+  <option value="bestvideo[height<=720]+bestaudio/best">720p</option>
+  <option value="bestvideo[height<=480]+bestaudio/best" selected>480p (recommended)</option>
+</select>
+    </div>
+
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
       <span style="color: white; font-size: 14px;">Audio only (skip gif preview)</span>
       <div id="skipVideoToggle" style="width: 40px; height: 20px; background: #444; border-radius: 10px; position: relative; cursor: pointer;">
@@ -1884,6 +2063,19 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
   const artworkDurationSelect = document.getElementById('exportDurationSelect');
   const customExportInput   = document.getElementById('customExportSeconds');
+
+  let selectedQuality = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
+
+const qualitySelect = document.getElementById('videoQualitySelect');
+
+if (qualitySelect) {
+  qualitySelect.addEventListener('change', () => {
+    const val = qualitySelect.value;
+    console.log(`[QUALITY] Selected: ${val}`);
+    selectedQuality = val;
+  });
+  selectedQuality = qualitySelect.value || selectedQuality;
+}
 
   let selectedDuration = 30;
 
@@ -1953,48 +2145,37 @@ skipToggle.addEventListener('click', () => {
     return;
   }
 
-    if (url.includes('soundcloud.com') && !skipVideo) {
-    alert('Enable Audio Only For SoundCloud links');
-    return;
-  }
-
-  if (!url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('soundcloud.com')) {
-    alert('Stick to YouTube or SoundCloud links for now. Want more sites? Let me know :)');
-    return;
-  }
-
-  if (url.includes('youtube.com') || url.includes('youtu.be')) {
-    if (url.includes('list=')) {
-      alert('Playlists are disabled to avoid getting your IP rate-limited or banned by YouTube. Download single videos only');
-      return;
-    }
-  }
-
   if (!downloadFolder) {
-    alert('Pick a folder first');
+    alert('Pick a folder first!');
     return;
   }
+
+  const qualityFormat = document.getElementById('videoQualitySelect').value;
 
   confirmBtn.textContent = 'Downloading...';
   confirmBtn.disabled = true;
 
-const result = await window.electronAPI.downloadYoutube({
-    url,
-    downloadFolder,
-    skipVideo,
-    artworkDuration: selectedDuration
-});
+  try {
+    const result = await window.electronAPI.downloadYoutube({
+      url,
+      downloadFolder,
+      skipVideo: skipVideo,
+      format: qualityFormat,
+      artworkDuration: selectedDuration
+    });
 
-  if (result.success) {
-    renderPlaylist();
-     if (Notification.permission === 'granted') {
-    window.electronAPI.notify('Download Complete :)');
-  }
-
-  else{alert('Download complete :)');}
-
-  } else {
-    alert(`Download failed: ${result.message || 'Unknown fuckup'}`);
+    if (result.success) {
+      renderPlaylist();
+      if (Notification.permission === 'granted') {
+        window.electronAPI.notify('Download Complete :)');
+      } else {
+        alert('Download complete :)');
+      }
+    } else {
+      alert(`Download failed: ${result.message || 'Unknown error'}`);
+    }
+  } catch (err) {
+    alert('Something went wrong: ' + err.message);
   }
 
   confirmBtn.textContent = 'Download';
@@ -2783,9 +2964,9 @@ function updateSelectionVisuals() {
 
   if (embeddedArt) return embeddedArt;
   try {
-    const ext      = await window.electronAPI.pathExtname(filePath);
+    const ext = await window.electronAPI.pathExtname(filePath);
     const baseName = await window.electronAPI.pathBasename(filePath, ext);
-    const dir      = await window.electronAPI.pathDirname(filePath);
+    const dir = await window.electronAPI.pathDirname(filePath);
 
     const candidates = [
       baseName + '.jpg',
@@ -2836,6 +3017,47 @@ function clearBackground() {
 }
 
 const visualizerVideo = document.getElementById('visualizerVideo');
+
+let videoOnlyMode = false;
+let originalWindowWidth =  441;
+let originalWindowHeight = 743;
+
+document.getElementById('popoutVideoBtn').addEventListener('click', () => {
+  videoOnlyMode = !videoOnlyMode;
+
+  const btn = document.getElementById('popoutVideoBtn');
+  const img = btn.querySelector('img');
+
+  if (videoOnlyMode) {
+    document.body.classList.add('video-only');
+    img.src = 'build/pop-out.svg';
+    img.style.width = '12px';
+    img.style.height = '12px';
+   img.style.filter = 'invert(1)';
+    btn.style.backdropFilter = 'blur(10px)';
+    btn.style.borderRadius = '50%';
+    btn.style.padding = '12px';
+    btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.7)';
+  } else {
+  document.body.classList.remove('video-only');
+  void document.getElementById('container').offsetHeight;
+  img.src = 'build/pop-out.svg';
+  img.style.filter = 'invert(1)';
+  img.style.width = '12px';
+  img.style.height = '12px';
+  btn.style.background = 'none';
+  btn.style.backdropFilter = 'none';
+  btn.style.boxShadow = 'none';
+  btn.style.borderRadius = '0';
+  btn.style.padding = '0';
+  if (originalWindowWidth && originalWindowHeight) {
+    window.electronAPI?.resizeWindow?.(originalWindowWidth, originalWindowHeight);
+  }
+  setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, 120);
+}
+});
 
 async function setVisualizerBackground(item) {
     stopVideo();
@@ -3987,6 +4209,8 @@ function checkForUpdatesSilently() {
 
 
 </script>
+
+
 
 <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
   <div style="background: #222; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;">

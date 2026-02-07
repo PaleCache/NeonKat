@@ -58,7 +58,7 @@ const spawnSafe = (cmd, args) => {
   });
 };
 
-ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false, artworkDuration = 30 }) => {
+ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false, artworkDuration = 30, format = 'bestvideo[height<=480]+bestaudio/best[height<=480]', }) => {
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
     return { success: false, message: 'Pick a valid folder' };
   }
@@ -106,7 +106,7 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
 
     await spawnSafe('yt-dlp', [
       url,
-      '-f', 'bestvideo[height<=480]+bestaudio/best[height<=480]',
+      '-f', format || 'bestvideo[height<=480]+bestaudio/best[height<=480]',
       '--merge-output-format', 'mp4',
       '--no-playlist',
       '-o', tempVideoPath
@@ -147,7 +147,7 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
       '-ss', startTime.toFixed(2),
       '-i', fullTempPath,
       '-t', clipDuration.toFixed(2),
-      '-vf', 'fps=30,scale=480:-2:flags=lanczos',
+      '-vf', 'fps=30',
       '-an',
       '-movflags', '+faststart',
       '-pix_fmt', 'yuv420p',
@@ -229,6 +229,12 @@ ipcMain.on('open-external', (event, url) => {
     window.setBounds({ width: 441, height: 743 });
     window.setAlwaysOnTop(false);
   }
+});
+
+ipcMain.on('resize-window', (event, width, height) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+  win.setSize(width, height, true);
 });
 
   mainWindow.loadFile('index.html');
