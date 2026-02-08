@@ -910,8 +910,7 @@ body.video-only #chooseFolder,
 body.video-only #addStreamBtn,
 body.video-only #connectJellyfinBtn,
 body.video-only #visualizerBgGif,
-body.video-only #visualizer,
-body.video-only footer {
+body.video-only #visualizer {
   display: none !important;
 }
 
@@ -956,16 +955,24 @@ body:not(.video-only) #popoutVideoBtn {
 }
 
 body.video-only footer {
-  position: fixed;  
-  bottom: 20px;         
-  left: 92%;             
-  transform: translateX(-50%);
-  z-index: 1000;       
-  display: flex;        
-  justify-content: center;
-  padding: 8px 16px;
-  border-radius: 6px;
-  color: white;
+    position: fixed !important;
+    bottom: 6px;
+    right: 6px;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    padding: 9px 31px;
+    border-radius: 6px;
+    color: white;
+    height: 32px !important;
+    width: 61px !important;
+    font-size: 20px;
+    gap: 11px;
+}
+
+body.video-only footer > img {
+    width: 40px !important;
+    height: 23px !important;
 }
 
 body.video-only .controls,
@@ -1036,6 +1043,21 @@ body.video-only #videoSongName {
     z-index: 20;
     text-align: center;
     white-space: nowrap;
+}
+
+#artworkLayer {
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0 !important;
+  pointer-events: none;
+}
+
+
+#container > #artworkLayer {
+  z-index: 1 !important;
 }
 
 
@@ -3053,54 +3075,145 @@ let videoOnlyMode = false;
 let originalWindowWidth =  441;
 let originalWindowHeight = 743;
 
-document.getElementById('popoutVideoBtn').addEventListener('click', () => {
-  videoOnlyMode = !videoOnlyMode;
 
 
-const currentSongTitle = displayName || 'Unknown Track';
+async function setVideoOnlyBackground(item) {
+    let artworkEl = document.getElementById('artworkLayer');
+    if (!artworkEl) {
+        artworkEl = document.createElement('img');
+        artworkEl.id = 'artworkLayer';
+        artworkEl.style.cssText = `
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            pointer-events: none;
+            display: block;
+        `;
+    }
 
-if (videoOnlyMode) {
-  document.body.classList.add('video-only');
-  songNameOverlay.textContent = currentSongTitle;
-  songNameOverlay.style.display = 'block';
-} else {
-  document.body.classList.remove('video-only');
-  songNameOverlay.style.display = 'none';
+    artworkEl.src = '';
+    let usedGifOrVideo = false;
+
+    if (typeof item === 'string') {
+        const filePath = item;
+        const dir = await window.electronAPI.pathDirname(filePath);
+        const ext = await window.electronAPI.pathExtname(filePath);
+        const baseName = await window.electronAPI.pathBasename(filePath, ext);
+        const videoCandidates = [
+            baseName + '.mp4',
+            baseName + '.webm',
+            baseName + '-video.mp4',
+            baseName + '-preview.mp4'
+        ];
+
+        for (const name of videoCandidates) {
+            const candidatePath = await window.electronAPI.pathJoin(dir, name);
+            if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
+                const normalized = candidatePath.replace(/\\/g, '/');
+                const encoded = encodeURI(normalized).replace(/#/g, '%23');
+                artworkEl.src = `file://${encoded}`;
+                usedGifOrVideo = true;
+                break;
+            }
+        }
+
+        if (usedGifOrVideo) {
+            artworkEl.style.display = 'block';
+            return;
+        }
+
+        const sameNameGif = baseName + '.gif';
+        const sameNameGifPath = await window.electronAPI.pathJoin(dir, sameNameGif);
+        if (await window.electronAPI.fileExists(sameNameGifPath) && gifPreviewEnabled) {
+            const normalized = sameNameGifPath.replace(/\\/g, '/');
+            const encoded = encodeURI(normalized).replace(/#/g, '%23');
+            artworkEl.src = `file://${encoded}`;
+            usedGifOrVideo = true;
+        }
+
+        if (usedGifOrVideo) {
+            artworkEl.style.display = 'block';
+            return;
+        }
+
+        const artUrl = await getAlbumArtUrl(filePath);
+        if (artUrl && artUrl !== 'build/default-artwork.jpg') {
+            artworkEl.src = artUrl;
+            return;
+        }
+
+        const coverGifName = 'cover.gif';
+        const coverGifPath = await window.electronAPI.pathJoin(dir, coverGifName);
+        if (await window.electronAPI.fileExists(coverGifPath) && gifPreviewEnabled) {
+            const normalized = coverGifPath.replace(/\\/g, '/');
+            const encoded = encodeURI(normalized).replace(/#/g, '%23');
+            artworkEl.src = `file://${encoded}`;
+            usedGifOrVideo = true;
+        }
+
+        if (usedGifOrVideo) {
+            artworkEl.style.display = 'block';
+            return;
+        }
+    } 
+    else if (item?.isJellyfin && item.albumArt) {
+        artworkEl.src = item.albumArt;
+        return;
+    }
+    artworkEl.src = 'build/default-artwork.jpg';
+    artworkEl.style.display = 'block';
 }
 
-  const btn = document.getElementById('popoutVideoBtn');
-  const img = btn.querySelector('img');
+document.getElementById('popoutVideoBtn').addEventListener('click', () => {
+    videoOnlyMode = !videoOnlyMode;
 
-  if (videoOnlyMode) {
+    const container = document.getElementById('container');
+    const btn = document.getElementById('popoutVideoBtn');
+    const btnImg = btn.querySelector('img');
+    const currentSongTitle = displayName || 'Unknown Track';
+    const loader = document.getElementById('artLoader');
+    const artworkURL = loader.src ||'build/default-artwork.jpg';
+    window.electronAPI?.resizeWindow?.(941, 743);
+    if (!videoOnlyMode) {
+        document.body.classList.remove('video-only');
+        songNameOverlay.style.display = 'none';
+        const oldArtwork = document.getElementById('artworkLayer');
+        if (oldArtwork) oldArtwork.remove();
+        if (originalWindowWidth && originalWindowHeight) {
+            window.electronAPI?.resizeWindow?.(
+                originalWindowWidth,
+                originalWindowHeight
+            );
+        }
+
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
+        return;
+    }
+
     document.body.classList.add('video-only');
-    img.src = 'build/pop-out.svg';
-    img.style.width = '12px';
-    img.style.height = '12px';
-   img.style.filter = 'invert(1)';
+    songNameOverlay.textContent = currentSongTitle;
+    songNameOverlay.style.display = 'block';
+    btnImg.style.filter = 'invert(1)';
     btn.style.backdropFilter = 'blur(10px)';
     btn.style.borderRadius = '50%';
     btn.style.padding = '12px';
     btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.7)';
-  } else {
-  document.body.classList.remove('video-only');
-  void document.getElementById('container').offsetHeight;
-  img.src = 'build/pop-out.svg';
-  img.style.filter = 'invert(1)';
-  img.style.width = '12px';
-  img.style.height = '12px';
-  btn.style.background = 'none';
-  btn.style.backdropFilter = 'none';
-  btn.style.boxShadow = 'none';
-  btn.style.borderRadius = '0';
-  btn.style.padding = '0';
-  if (originalWindowWidth && originalWindowHeight) {
-    window.electronAPI?.resizeWindow?.(originalWindowWidth, originalWindowHeight);
-  }
-  setTimeout(() => {
-    window.dispatchEvent(new Event('resize'));
-  }, 120);
-}
+    let artworkEl = document.getElementById('artworkLayer');
+    if (!artworkEl) {
+        artworkEl = document.createElement('img');
+        artworkEl.id = 'artworkLayer';
+        container.prepend(artworkEl);
+    }
+
+    artworkEl.src = artworkURL;
+    const hasVideo = container.querySelector('video');
+    
 });
+
+
 
 function updateVideoSongName(title) {
   if (videoOnlyMode) {
@@ -3290,6 +3403,7 @@ async function setVisualizerBackground(item) {
   };
 
   updateVideoSongName(displayName);
+  setVideoOnlyBackground(item)
   window.electronAPI.updateTrack(trackData);
 
   renderPlaylist();
