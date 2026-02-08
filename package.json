@@ -6,7 +6,7 @@
   "homepage": "https://github.com/palecache/neonkat",
   "main": "main.js",
   "scripts": {
-    "start": "GTK_USE_PORTAL=0 GDK_BACKEND=x11 electron .",
+    "start": "GTK_USE_PORTAL=0 GDK_BACKEND=wayland electron .",
     "build": "electron-builder",
     "build:linux": "electron-builder --linux",
     "build:win": "electron-builder --win"

@@ -26,12 +26,17 @@ if (process.platform === 'win32') {
   app.setAppUserModelId("NeonKat");
 }
 
+app.commandLine.appendSwitch('ozone-platform', 'x11');
+app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
+
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 441,
     height: 743,
     frame: false,
-    transparent: true,
+    transparent: false,
+     backgroundColor: '#000000',
     resizable: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -58,29 +63,22 @@ const spawnSafe = (cmd, args) => {
   });
 };
 
-ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false, artworkDuration = 30, format = 'bestvideo[height<=480]+bestaudio/best[height<=480]', }) => {
+ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false, artworkDuration = 30, format = 'bestvideo[height<=480]+bestaudio/best[height<=480]' }) => {
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
     return { success: false, message: 'Pick a valid folder' };
   }
 
+  console.log(`SKIP VIDEO?: ${skipVideo}`)
+
   const sanitizedTitle = (title) => title.replace(/[/\\?%*:|"<>]/g, '').trim() || 'Unknown';
-  let targetDuration;
-  if (artworkDuration === 'full' || artworkDuration === Infinity) {
-    targetDuration = Infinity;
-  } else if (typeof artworkDuration === 'number' && artworkDuration > 0) {
-    targetDuration = artworkDuration;
-  } else {
-    targetDuration = 30;
-  }
+  let targetDuration = typeof artworkDuration === 'number' && artworkDuration > 0 ? artworkDuration : 30;
+  if (artworkDuration === 'full' || artworkDuration === Infinity) targetDuration = Infinity;
 
   const uniqueSuffix = Date.now();
   const tempVideoPath = path.join(downloadFolder, `NEONKAT_TEMP_${uniqueSuffix}.%(ext)s`);
   const thumbTemp = path.join(downloadFolder, `NEONKAT_THUMB_${uniqueSuffix}.%(ext)s`);
 
   try {
-    if (skipVideo) {
-    }
-
     let info;
     {
       let output = '';
@@ -99,10 +97,55 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
     const thumbFile = thumbFiles.find(f => f.startsWith(`NEONKAT_THUMB_${uniqueSuffix}`));
     if (!thumbFile) throw new Error('Thumbnail not found');
     const fullThumbPath = path.join(downloadFolder, thumbFile);
-    const hasVideo = (info.formats || []).some(f => f && f.vcodec !== 'none');
+   if (skipVideo) {
+  const titleSafe = sanitizedTitle(info.title);
+  const mp3Path = path.join(downloadFolder, `${titleSafe}.mp3`);
+  const tempAudioPath = path.join(downloadFolder, `NEONKAT_AUDIO_${uniqueSuffix}.%(ext)s`);
 
-    if (!hasVideo) {
+  try {
+    await spawnSafe('yt-dlp', [
+      url,
+      '-f', 'bestaudio/best',
+      '--no-playlist',
+      '-o', tempAudioPath
+    ]);
+    const files = await fs.readdir(downloadFolder);
+    const audioFile = files.find(f => f.startsWith(`NEONKAT_AUDIO_${uniqueSuffix}`));
+    if (!audioFile) {
+      throw new Error("Audio file not found after yt-dlp download");
     }
+    const fullAudioPath = path.join(downloadFolder, audioFile);
+    await spawnSafe('ffmpeg', [
+      '-i', fullAudioPath,
+      '-i', fullThumbPath,
+      '-map', '0:a', '-map', '1:v?',
+      '-c:a', 'libmp3lame', '-q:a', '0',
+      '-c:v', 'copy',
+      '-metadata', `title=${info.title}`,
+      '-metadata', `artist=${info.uploader || 'Unknown'}`,
+      '-metadata', `album=${info.album || info.title}`,
+      '-disposition:v', 'attached_pic',
+      '-y', mp3Path
+    ]);
+    await fs.unlink(fullAudioPath).catch(() => {});
+    await fs.unlink(fullThumbPath).catch(() => {});
+
+    return {
+      success: true,
+      mp3Path,
+      videoPath: null,
+      actualDuration: 'full'
+    };
+
+  } catch (err) {
+    console.error("Audio-only download failed:", err);
+    await fs.unlink(fullThumbPath).catch(() => {});
+    return { success: false, message: err.message || "Audio extraction failed" };
+  }
+}
+
+    
+    const hasVideo = (info.formats || []).some(f => f && f.vcodec !== 'none');
 
     await spawnSafe('yt-dlp', [
       url,
@@ -116,6 +159,7 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
     const tempFile = files.find(f => f.startsWith(`NEONKAT_TEMP_${uniqueSuffix}`));
     if (!tempFile) throw new Error('Temp video not found');
     const fullTempPath = path.join(downloadFolder, tempFile);
+
     const fullDuration = await new Promise((resolve) => {
       const ffprobe = spawn('ffprobe', [
         '-v', 'error',
@@ -133,16 +177,12 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
     let clipDuration = fullDuration;
     let startTime = 0;
 
-    if (targetDuration !== Infinity && targetDuration !== 'full') {
+    if (targetDuration !== Infinity) {
       clipDuration = Math.min(targetDuration, fullDuration);
       startTime = Math.max(0, (fullDuration / 2) - (clipDuration / 2));
-    } 
-    console.log(
-      `Export mode: ${targetDuration === Infinity || targetDuration === 'full' ? 'FULL' : targetDuration + 's'}`,
-      `→ start: ${startTime.toFixed(1)}s, length: ${clipDuration.toFixed(1)}s (original: ${fullDuration.toFixed(1)}s)`
-    );
+    }
 
-    const ffmpegArgs = [
+    await spawnSafe('ffmpeg', [
       '-nostdin',
       '-ss', startTime.toFixed(2),
       '-i', fullTempPath,
@@ -155,9 +195,9 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
       '-crf', '23',
       '-y',
       videoPath
-    ];
+    ]);
 
-    await spawnSafe('ffmpeg', ffmpegArgs);
+   
     const mp3Path = path.join(downloadFolder, `${titleSafe}.mp3`);
     await spawnSafe('ffmpeg', [
       '-i', fullTempPath,
@@ -170,6 +210,8 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
       '-disposition:v', 'attached_pic',
       '-y', mp3Path
     ]);
+
+   
     await fs.unlink(fullTempPath).catch(() => {});
     await fs.unlink(fullThumbPath).catch(() => {});
 
@@ -185,6 +227,7 @@ ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVide
     return { success: false, message: err.message || 'Unknown error' };
   }
 });
+
 
 
 ipcMain.handle('file-exists', async (event, filePath) => {

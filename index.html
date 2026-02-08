@@ -26,7 +26,7 @@
       width: 100vw;
       overflow: hidden;
       outline: none !important;
-      border-radius: 10px;
+      border-radius: 3px;
     }
 
 #visualizerControls,
@@ -76,7 +76,7 @@ a {
         max-height: none;
         background: #111;
         padding: 15px;
-        border-radius: 10px;
+        border-radius: 3px;
         border: 6px solid var(--primary-color); 
         box-sizing: border-box;      
         display: flex;
@@ -693,7 +693,7 @@ background: rgba(34, 34, 34, 0.51) !important;
 }
 
 #jellyfinModal, #streamModal, #aboutModal, #ytModal,#customBgModal {
-  border-radius: 9px;
+  border-radius: 3px;
 }
 
 #ytModal > div,
@@ -866,16 +866,11 @@ body.video-only #container {
   height: 100vh !important;
   margin: 0 !important;
   box-sizing: border-box !important;
-   -webkit-app-region: drag;
+  
  
 }
 
-body.video-only #visualizerWrapper {
-  height: 100vh !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  position: relative !important;
-}
+
 
 body.video-only #visualizerVideo {
   position: fixed !important;
@@ -885,20 +880,38 @@ body.video-only #visualizerVideo {
   object-fit: cover !important;
   z-index: 1 !important;
   border-radius: 0 !important;
-  background: #000;
 }
 
 
-body.video-only #visualizer,
-body.video-only #visualizer canvas,
-body.video-only #visualizerBgGif,
+
+body.video-only #visualizer .song-title-overlay {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 0 0 10px black, 0 0 20px black;
+  z-index: 15;
+  pointer-events: none;
+  max-width: 90%;
+  text-align: center;
+  padding: 0 20px;
+}
+
+
 body.video-only #playlist,
 body.video-only h1,
 body.video-only #topControls,
 body.video-only #playlistControls,
 body.video-only #sortBtn,
-body.video-only #hamburgerBtn,
-body.video-only button:not(#popoutVideoBtn, #popoutVideoBtn img):not(.controls button) :not(.volume-control) :not(#progressContainer) {
+body.video-only #chooseFolder,
+body.video-only #addStreamBtn,
+body.video-only #connectJellyfinBtn,
+body.video-only #visualizerBgGif,
+body.video-only #visualizer,
+body.video-only footer {
   display: none !important;
 }
 
@@ -988,13 +1001,15 @@ body.video-only:hover .volume-control{
     pointer-events: auto;   
 }
 
+
+
 body.video-only #progressContainer {
- position: fixed;
-    top: 91%; 
-    left: 50%; 
+position: fixed;
+    top: 0%;
+    left: 50%;
     transform: translateX(-50%);
-    width: 237px;
-    height: 50px;
+    width: 238px;
+    height: 23px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1002,8 +1017,28 @@ body.video-only #progressContainer {
     pointer-events: auto;
     -webkit-app-region: no-drag;
     gap: 10px;
+    background-color: #00000042;
+    border-radius: 10px;
+    padding: 0 10px;
 
 }
+
+body.video-only #videoSongName {
+     position: absolute;
+    top: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 0.6em;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(0,0,0,0.7);
+    pointer-events: none;
+    z-index: 20;
+    text-align: center;
+    white-space: nowrap;
+}
+
+
 
 
 
@@ -1013,7 +1048,7 @@ body.video-only #progressContainer {
 </head>
 <body>
   <div id="titlebar" 
-     style="-webkit-app-region: drag; height: 20px; position: absolute; top: 0; left: 0; right: 0; z-index: 1; cursor: pointer;">
+     style="-webkit-app-region: drag; height: 99px; position: absolute; top: 0; left: 0; right: 0; z-index: 1; cursor: pointer;">
 </div>
    
   </div>
@@ -1144,9 +1179,9 @@ body.video-only #progressContainer {
   <button id="connectJellyfinBtn" class="control-btn" style="flex: 1;">Jellyfin</button>
 </div>
 
-    <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px; background: rgba(0,0,0,0.8); border-radius: 10px; justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
-    border-radius: 10px;-webkit-app-region: no-drag;">
+    <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 3px; background: rgba(0,0,0,0.8); border-radius: 3px; justify-content: center; align-items: center; z-index: 9999;">
+  <div style="background: #111111; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
+    border-radius: 3px;-webkit-app-region: no-drag;">
     <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
     <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
     <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
@@ -1163,7 +1198,7 @@ body.video-only #progressContainer {
 
 
 <div id="customBgModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 99999;">
-  <div style="background: #111; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color); color: white; text-align: center;">
+  <div style="background: #111; padding: 25px; border-radius: 3px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color); color: white; text-align: center;">
     <h3 style="margin-top: 0; color: var(--primary-color);">Set Custom Background</h3>
     <p style="margin: 10px 0 20px;">Paste an image URL or local file path <br><small>(leave empty to remove current bg ♡)</small></p>
     <input type="text" id="customBgInput" placeholder="https://... or file:///C:/.../cute.jpg" 
@@ -1177,7 +1212,7 @@ body.video-only #progressContainer {
 
 
 <div id="jellyfinModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white; border: 3px solid var(--primary-color);">
+  <div style="background: #111111; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white; border: 3px solid var(--primary-color);">
     <h3 style="margin-top: 0; color: var(--primary-color);">Connect to Jellyfin</h3>
     <label>Server URL:</label>
     <input type="text" id="jellyfinServerInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="http://192.168.1.100:8096" />
@@ -1287,7 +1322,7 @@ body.video-only #progressContainer {
 </button>
    <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
 </div>
-
+<div id="videoSongName"></div>
     <footer>
   <img src="build/kat.png" alt=':)' style="    width: 15px;
     height: 15px;
@@ -1384,6 +1419,9 @@ katbubbleImages[0].src = 'build/kat.png';
   analyser.connect(audioCtx.destination);
   const radioIconImg = new Image();
   radioIconImg.src = 'build/radio.svg';
+
+  let src;
+  let displayName;
 
 
   const repeatBtn = document.getElementById('repeatBtn');
@@ -1583,7 +1621,6 @@ document.getElementById('prevBtn').addEventListener('click', () => {
     currentIndex = audioFiles.length - 1;
     playTrack(currentIndex);
   } else {
-    console.log("Already at the beginning");
   }
 });
 
@@ -1596,7 +1633,6 @@ document.getElementById('nextBtn').addEventListener('click', () => {
     currentIndex = 0;
     playTrack(currentIndex);
   } else {
-    console.log("End of the playlist");
   }
 });
 
@@ -1690,6 +1726,8 @@ confirmBtn.addEventListener('click', async () => {
     alert(`Connection fucked up: ${err.message}`);
   }
 });
+
+
 
 async function loadJellyfinLibrary() {
   if (!jellyfinConfig.token) return;
@@ -1990,7 +2028,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
     <div style="background: #330000; border: 1px solid #ff3333; padding: 12px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13px; color: #ffaaaa; text-align: center;">
       <strong>⚠️ HEADS UP ⚠️</strong><br><br>
       Downloading large playlists (50+ videos) at once can get your IP temporarily rate-limited by YouTube for up to 24 hours.<br>
-      Stick to single videos to avoid getting blocked.
+      So i have disabled playlist downloads :(
     </div>
 
     <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
@@ -2071,7 +2109,6 @@ const qualitySelect = document.getElementById('videoQualitySelect');
 if (qualitySelect) {
   qualitySelect.addEventListener('change', () => {
     const val = qualitySelect.value;
-    console.log(`[QUALITY] Selected: ${val}`);
     selectedQuality = val;
   });
   selectedQuality = qualitySelect.value || selectedQuality;
@@ -2083,7 +2120,6 @@ if (qualitySelect) {
     artworkDurationSelect.addEventListener('change', () => {
       
       const val = artworkDurationSelect.value;
-      console.log(`[DUR] ${val} `)
       if (val === 'custom') {
         customExportInput.style.display = 'inline-block';
         let sec = parseInt(customExportInput.value) || 30;
@@ -2154,7 +2190,7 @@ skipToggle.addEventListener('click', () => {
 
   confirmBtn.textContent = 'Downloading...';
   confirmBtn.disabled = true;
-
+  let skipVideo = localStorage.getItem('skipVideo') === 'true';
   try {
     const result = await window.electronAPI.downloadYoutube({
       url,
@@ -2596,11 +2632,6 @@ async function sortPlaylist(criteria, ascending) {
   });
 
   currentIndex = newIndex !== -1 ? newIndex : 0;
-console.log(
-  "After sort → currentIndex:", currentIndex,
-  "current song:", audioFiles[currentIndex]?.name || audioFiles[currentIndex]
-);
-
   selectedIndices.clear();
   selectedIndices.add(currentIndex);
   renderPlaylist();
@@ -2987,7 +3018,6 @@ function updateSelectionVisuals() {
       if (await window.electronAPI.fileExists(candidatePath)) {
         const normalized = candidatePath.replace(/\\/g, '/');
         const url = `file://${encodeURI(normalized).replace(/#/g, '%23')}`;
-        console.log(`♡ Found external art → ${name}`);
         return url;
       }
     }
@@ -3017,6 +3047,7 @@ function clearBackground() {
 }
 
 const visualizerVideo = document.getElementById('visualizerVideo');
+const songNameOverlay = document.getElementById('videoSongName');
 
 let videoOnlyMode = false;
 let originalWindowWidth =  441;
@@ -3024,6 +3055,18 @@ let originalWindowHeight = 743;
 
 document.getElementById('popoutVideoBtn').addEventListener('click', () => {
   videoOnlyMode = !videoOnlyMode;
+
+
+const currentSongTitle = displayName || 'Unknown Track';
+
+if (videoOnlyMode) {
+  document.body.classList.add('video-only');
+  songNameOverlay.textContent = currentSongTitle;
+  songNameOverlay.style.display = 'block';
+} else {
+  document.body.classList.remove('video-only');
+  songNameOverlay.style.display = 'none';
+}
 
   const btn = document.getElementById('popoutVideoBtn');
   const img = btn.querySelector('img');
@@ -3058,6 +3101,12 @@ document.getElementById('popoutVideoBtn').addEventListener('click', () => {
   }, 120);
 }
 });
+
+function updateVideoSongName(title) {
+  if (videoOnlyMode) {
+    songNameOverlay.textContent = title;
+  }
+}
 
 async function setVisualizerBackground(item) {
     stopVideo();
@@ -3097,7 +3146,6 @@ async function setVisualizerBackground(item) {
             await visualizerVideo.play();
             visualizerCanvas.style.backgroundColor = 'transparent';
             visualizerCanvas.style.backgroundImage = 'none';
-            console.log("Video started playing → src:", visualizerVideo.src);
         } catch (err) {
             console.error("Video play failed:", err);
         }
@@ -3136,7 +3184,6 @@ async function setVisualizerBackground(item) {
                 loader.src = artUrl;
                 loader.onload = () => {
                     currentArtImage = loader;
-                    console.log("[ART] Good album art loaded ♡");
                 };
                 loader.onerror = () => {
                     console.warn("[ART] Album art failed to load");
@@ -3194,8 +3241,6 @@ async function setVisualizerBackground(item) {
 
   const item = audioFiles[index];
 
-  let src;
-  let displayName;
 
   if (typeof item === 'string') {
   const normalizedPath = item.replace(/\\/g, '/');
@@ -3243,6 +3288,8 @@ async function setVisualizerBackground(item) {
     isPlaying: true,
     volume: audio.volume
   };
+
+  updateVideoSongName(displayName);
   window.electronAPI.updateTrack(trackData);
 
   renderPlaylist();
@@ -3925,10 +3972,8 @@ gifPreviewToggleBtn.addEventListener('click', async () => {
                         Math.abs(videoDuration - songDuration) / songDuration <= 0.12) {
                         const targetTime = audio.currentTime % videoDuration;
                         visualizerVideo.currentTime = targetTime;
-                        console.log(`Video synced to ${targetTime.toFixed(1)}s (song at ${audio.currentTime.toFixed(1)}s)`);
                     } else {
                         visualizerVideo.currentTime = 0;
-                        console.log("Lengths don't match closely → starting from 0");
                     }
 
                     visualizerVideo.play().catch(err => {
@@ -3938,10 +3983,6 @@ gifPreviewToggleBtn.addEventListener('click', async () => {
 
                 break;
             }
-        }
-
-        if (!videoLoaded) {
-            console.log("No matching video found");
         }
     }
     else if (!gifPreviewEnabled && wasEnabled) {
@@ -4213,7 +4254,7 @@ function checkForUpdatesSilently() {
 
 
 <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #222; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;">
+  <div style="background: #222; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;">
     <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
     <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
     <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #333; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
