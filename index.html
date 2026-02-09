@@ -1792,7 +1792,7 @@ async function loadJellyfinLibrary() {
     const musicView = views.Items.find(v => v.CollectionType === 'music' || v.Name.toLowerCase().includes('music'));
     if (!musicView) throw new Error('No music library found – check your Jellyfin setup');
 
-    const fields = 'Name,Artists,AlbumArtists,ArtistItems,Album,AlbumPrimaryImageTag,ImageTags,MediaSources,Container,Path,ProductionLocations,SortName';
+    const fields = 'Name,Artists,AlbumArtists,ArtistItems,Album,AlbumPrimaryImageTag,ImageTags,MediaSources,Container,Path,ProductionLocations,SortName,DateCreated,PremiereDate,ProductionYear';
     const searchInput = document.getElementById('jellyfinSearchInput');
     const searchTerm = searchInput ? searchInput.value.trim() : '';
 
@@ -1894,15 +1894,18 @@ async function loadJellyfinLibrary() {
         albumArt = `${jellyfinConfig.server}/Items/${item.Id}/Images/Primary?api_key=${jellyfinConfig.token}`;
       }
 
-      audioFiles.push({
-        url: streamUrl,
-        name: displayName,
-        isJellyfin: true,
-        itemId: item.Id,
-        albumArt: albumArt
-      });
+   audioFiles.push({
+    url: streamUrl,
+    name: displayName,
+    isJellyfin: true,
+    itemId: item.Id,
+    albumArt: albumArt,
+    dateCreated: item.DateCreated ? new Date(item.DateCreated).getTime() : 0,
+  });
     }
 
+    applySavedSort();
+    scrollToCurrentTrack(true);
     jellyfinStatus.textContent = `Connected – Loaded ${audioFiles.length} tracks`;
     const input = document.getElementById('playlistQuickSearch');
     input.value = '';
@@ -2662,51 +2665,113 @@ async function sortPlaylist(criteria, ascending) {
       return ascending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
     });
   } else if (criteria === 'date') {
+    const wasPlaying = audioFiles[currentIndex];
+    let playingId = null;
+
+    if (wasPlaying) {
+        if (typeof wasPlaying === 'string') {
+            playingId = wasPlaying;                     
+        } else if (wasPlaying.isJellyfin) {
+            playingId = `jellyfin:${wasPlaying.itemId}`;
+        } else if (wasPlaying.isStream) {
+            playingId = `stream:${wasPlaying.url}`;
+        }
+    }
     const hasLocalFiles = audioFiles.some(item => typeof item === 'string');
-    if (hasLocalFiles) {
-      try {
-        const filesWithDates = await Promise.all(
-          sortedFiles.map(async (item) => {
-            if (typeof item === 'string') {
-              try {
-                const stats = await window.electronAPI.getFileStats(item);
-                return { item, date: stats?.mtimeMs ?? 0 };
-              } catch {
-                return { item, date: 0 };
-              }
-            } else {
-              return { item, date: ascending ? Infinity : -Infinity };
-            }
-          })
-        );
+    const hasJellyfin   = audioFiles.some(item => item?.isJellyfin);
 
-        filesWithDates.sort((a, b) => ascending ? a.date - b.date : b.date - a.date);
+    if (hasLocalFiles && !hasJellyfin) {
+        try {
+            const filesWithDates = await Promise.all(
+                audioFiles.map(async (path) => {
+                    if (typeof path === 'string') {
+                        try {
+                            const stats = await window.electronAPI.getFileStats(path);
+                            return { item: path, date: stats?.mtimeMs ?? 0 };
+                        } catch (err) {
+                            console.warn("Failed to get stats for:", path, err);
+                            return { item: path, date: 0 };
+                        }
+                    }
+                    return { item: path, date: 0 };
+                })
+            );
 
-        sortedFiles = filesWithDates.map(x => x.item);
-      } catch (err) {
-        console.error('Date sort failed:', err);
-        return sortPlaylist('name', ascending);
-      }
+            filesWithDates.sort((a, b) =>
+                ascending ? a.date - b.date : b.date - a.date
+            );
+
+            audioFiles = filesWithDates.map(x => x.item);
+        } catch (err) {
+            console.error("Local files date sort failed:", err);
+            sortPlaylist('name', ascending);
+            return;
+        }
+    }
+    else if (hasJellyfin && !hasLocalFiles) {
+        audioFiles.sort((a, b) => {
+            const timeA = a.isJellyfin ? (a.dateCreated || 0) : 0;
+            const timeB = b.isJellyfin ? (b.dateCreated || 0) : 0;
+
+            return ascending ? timeA - timeB : timeB - timeA;
+        });
+    }
+    else if (hasLocalFiles && hasJellyfin) {
+        try {
+            const filesWithDates = await Promise.all(
+                audioFiles.map(async (item) => {
+                    if (typeof item === 'string') {
+                        try {
+                            const stats = await window.electronAPI.getFileStats(item);
+                            return { item, date: stats?.mtimeMs ?? 0 };
+                        } catch {
+                            return { item, date: 0 };
+                        }
+                    }
+                    if (item?.isJellyfin) {
+                        return { item, date: item.dateCreated || 0 };
+                    }
+                    return { item, date: 0 };
+                })
+            );
+
+            filesWithDates.sort((a, b) =>
+                ascending ? a.date - b.date : b.date - a.date
+            );
+
+            audioFiles = filesWithDates.map(x => x.item);
+        } catch (err) {
+            console.error("Mixed sort failed:", err);
+            sortPlaylist('name', ascending);
+            return;
+        }
+    }
+    else {
+        sortPlaylist('name', ascending);
+        return;
+    }
+    if (playingId) {
+        currentIndex = audioFiles.findIndex(item => {
+            if (typeof item === 'string') return item === playingId;
+            if (item?.isJellyfin) return `jellyfin:${item.itemId}` === playingId;
+            if (item?.isStream) return `stream:${item.url}` === playingId;
+            return false;
+        });
+
+        if (currentIndex === -1) {
+            console.warn("Playing track lost after sort – resetting to 0");
+            currentIndex = 0;
+        }
     } else {
-      return sortPlaylist('name', ascending);
+        currentIndex = 0;
     }
-  }
+    selectedIndices.clear();
+    selectedIndices.add(currentIndex);
 
-  audioFiles = sortedFiles;
-  const newIndex = audioFiles.findIndex(item => {
-    if (currentItem === item) return true;
-    if (typeof currentItem === 'object' && typeof item === 'object') {
-      return currentItem.itemId === item.itemId || currentItem.url === item.url;
-    }
-    return false;
-  });
-
-  currentIndex = newIndex !== -1 ? newIndex : 0;
-  selectedIndices.clear();
-  selectedIndices.add(currentIndex);
-  renderPlaylist();
-  scrollToCurrentTrack();
-  updateSelectionVisuals();
+    renderPlaylist();
+    updateSelectionVisuals();
+    scrollToCurrentTrack();
+}
 
   localStorage.setItem('sortCriteria', criteria);
   localStorage.setItem('sortOrder', ascending ? 'asc' : 'desc');
@@ -3465,7 +3530,9 @@ async function setVisualizerBackground(item) {
     volume: audio.volume
   };
 
+ if (videoOnlyMode && !item.isJellyfin) {
   updateVideoSongName(displayName);
+}
   setVideoOnlyBackground(item)
   window.electronAPI.updateTrack(trackData);
 
@@ -3474,13 +3541,6 @@ async function setVisualizerBackground(item) {
   visualize();
   scrollToCurrentTrack();
 
-  if (item.isJellyfin) {
-  src = item.url;
-  displayName = item.name;
-  if (item.albumArt) {
-    visualizerCanvas.style.backgroundImage = `url(${item.albumArt})`;
-  }
-}
   if (item.isStream) {
     currentTimeElem.textContent = 'LIVE';
     durationElem.textContent = '∞';
