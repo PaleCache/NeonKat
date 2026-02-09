@@ -920,7 +920,7 @@ body.video-only #visualizer {
   top: 33px;
   right: 11px;
   z-index: 9999;
-  background: rgba(0,0,0,0.7);
+  background: rgba(33, 33, 33, 0.5) !important;
   border: none;
   border-radius: 50%;
   width: 12px;
@@ -929,11 +929,13 @@ body.video-only #visualizer {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6) !important;
   transition: all 0.15s ease;
    -webkit-app-region: no-drag;
 }
+
+
 
 #popoutVideoBtn:hover {
   transform: scale(1.1);
@@ -945,14 +947,7 @@ body:not(.video-only) #popoutVideoBtn {
   box-shadow: none !important;
 }
 
-#popoutVideoBtn::before {
-  content: var(--close-x, '');
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+
 
 body.video-only footer {
     position: fixed !important;
@@ -993,13 +988,22 @@ body.video-only .volume-control
     gap: 10px;
 }
 
+
 body.video-only .controls,
 body.video-only .volume-control
 {
     opacity: 0;                
     pointer-events: none;      
     transition: opacity 0.3s; 
+    
 }
+
+
+body.video-only .controls .control-btn {
+  border-radius: 25px;
+  height: 39px;
+}
+
 
 
 body.video-only:hover .controls,
@@ -1008,15 +1012,26 @@ body.video-only:hover .volume-control{
     pointer-events: auto;   
 }
 
-
+body.video-only .volume-control > label{
+    -webkit-app-region: no-drag;
+    gap: 10px;
+    background-color: rgba(33, 33, 33, 0.5);
+    border-radius: 10px;
+    padding: 0px 8px;
+    width: 175px;
+    height: 29px;
+    backdrop-filter: blur(4px);
+    top: 0vh;
+    position: fixed; 
+}
 
 body.video-only #progressContainer {
-position: fixed;
+    position: fixed;
     top: 0%;
     left: 50%;
     transform: translateX(-50%);
     width: 238px;
-    height: 23px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1024,15 +1039,17 @@ position: fixed;
     pointer-events: auto;
     -webkit-app-region: no-drag;
     gap: 10px;
-    background-color: #00000042;
-    border-radius: 10px;
-    padding: 0 10px;
+    background-color: rgba(33, 33, 33, 0.5);
+    border-radius: 34px;
+    padding: 2px 18px;
+    backdrop-filter: blur(4px);
+    padding-bottom: 10px;  
 
 }
 
 body.video-only #videoSongName {
      position: absolute;
-    top: 5vh;
+    top: 3vh;
     left: 50%;
     transform: translateX(-50%);
     color: white;
@@ -1331,9 +1348,11 @@ body.video-only #videoSongName {
    
     </div>
     <div id="progressContainer">
+        <div id="videoSongName"></div>
       <span id="currentTime">0:00</span>
       <input type="range" id="progressBar" value="0" min="0" step="0.1" />
       <span id="duration">0:00</span>
+    
     </div>
    <div id="visualizerWrapper">
   <img id="visualizerBgGif">
@@ -1344,7 +1363,6 @@ body.video-only #videoSongName {
 </button>
    <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
 </div>
-<div id="videoSongName"></div>
     <footer>
   <img src="build/kat.png" alt=':)' style="    width: 15px;
     height: 15px;
@@ -1561,6 +1579,21 @@ customBgToggle.addEventListener('click', () => {
     customBgInput.focus();
 });
 
+audio.addEventListener('play',   () => visualizerVideo.play().catch(e=>0));
+audio.addEventListener('pause',  () => visualizerVideo.pause());
+audio.addEventListener('seeking',() => {
+  if (visualizerVideo.src) {
+    visualizerVideo.currentTime = audio.currentTime % (visualizerVideo.duration || 1) || 0;
+  }
+});
+
+audio.addEventListener('timeupdate', () => {
+  if (!visualizerVideo.src || visualizerVideo.paused) return;
+  const diff = Math.abs(visualizerVideo.currentTime - (audio.currentTime % visualizerVideo.duration));
+  if (diff > 0.4) {
+    visualizerVideo.currentTime = audio.currentTime % visualizerVideo.duration;
+  }
+});
 
 applyBgBtn.addEventListener('click', () => {
     const url = customBgInput.value.trim();
@@ -1639,10 +1672,9 @@ document.getElementById('prevBtn').addEventListener('click', () => {
   if (currentIndex > 0) {
     currentIndex--;
     playTrack(currentIndex);
-  } else if (repeatTrack) {
+  } else {
     currentIndex = audioFiles.length - 1;
     playTrack(currentIndex);
-  } else {
   }
 });
 
@@ -1651,10 +1683,9 @@ document.getElementById('nextBtn').addEventListener('click', () => {
   if (currentIndex < audioFiles.length - 1) {
     currentIndex++;
     playTrack(currentIndex);
-  } else if (repeatTrack) {
+  } else {
     currentIndex = 0;
     playTrack(currentIndex);
-  } else {
   }
 });
 
@@ -2738,6 +2769,7 @@ sortOptions.forEach(btn => {
     renderPlaylist();
     stopVideo();
     clearBackground();
+    updateVideoSongName(`No Track`)
     window.electronAPI.updateTrack({ songName: 'No Track', artUrl: null, isPlaying: false });
   });
 
@@ -3167,16 +3199,15 @@ async function setVideoOnlyBackground(item) {
     artworkEl.style.display = 'block';
 }
 
-document.getElementById('popoutVideoBtn').addEventListener('click', () => {
+document.getElementById('popoutVideoBtn').addEventListener('click', async () => {
     videoOnlyMode = !videoOnlyMode;
-
     const container = document.getElementById('container');
     const btn = document.getElementById('popoutVideoBtn');
     const btnImg = btn.querySelector('img');
     const currentSongTitle = displayName || 'Unknown Track';
-    const loader = document.getElementById('artLoader');
-    const artworkURL = loader.src ||'build/default-artwork.jpg';
-    window.electronAPI?.resizeWindow?.(941, 743);
+
+    window.electronAPI?.resizeWindow?.(1241, 743);
+
     if (!videoOnlyMode) {
         document.body.classList.remove('video-only');
         songNameOverlay.style.display = 'none';
@@ -3188,13 +3219,12 @@ document.getElementById('popoutVideoBtn').addEventListener('click', () => {
                 originalWindowHeight
             );
         }
-
         setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
         return;
     }
 
     document.body.classList.add('video-only');
-    songNameOverlay.textContent = currentSongTitle;
+    updateVideoSongName(currentSongTitle)
     songNameOverlay.style.display = 'block';
     btnImg.style.filter = 'invert(1)';
     btn.style.backdropFilter = 'blur(10px)';
@@ -3205,18 +3235,34 @@ document.getElementById('popoutVideoBtn').addEventListener('click', () => {
     if (!artworkEl) {
         artworkEl = document.createElement('img');
         artworkEl.id = 'artworkLayer';
+        artworkEl.style.cssText = `
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 5;
+            pointer-events: none;
+            display: block;
+        `;
         container.prepend(artworkEl);
     }
-
-    artworkEl.src = artworkURL;
-    const hasVideo = container.querySelector('video');
-    
+    const currentItem = audioFiles[currentIndex];
+    if (currentItem) {
+        console.log("Setting video-only background for:", currentItem);
+        await setVideoOnlyBackground(currentItem);
+    } else {
+        artworkEl.src = 'build/default-artwork.jpg';
+    }
 });
 
 
 
 function updateVideoSongName(title) {
-  if (videoOnlyMode) {
+  const maxLength = 60;
+  if (title.length > maxLength) {
+    songNameOverlay.textContent = title.slice(0, maxLength - 3) + "...";
+  } else {
     songNameOverlay.textContent = title;
   }
 }
