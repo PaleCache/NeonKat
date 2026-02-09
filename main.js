@@ -63,13 +63,64 @@ const spawnSafe = (cmd, args) => {
   });
 };
 
+
+async function downloadSoundCloudPlaylist(url, downloadFolder) {
+  const sanitize = (s) =>
+    s.replace(/[/\\?%*:|"<>]/g, '').trim() || 'Unknown';
+
+  let meta;
+  {
+    let json = '';
+    const p = spawn('yt-dlp', ['--dump-single-json', url]);
+    p.stdout.on('data', d => json += d);
+    await new Promise((res, rej) => {
+      p.on('close', c => c === 0 ? res() : rej());
+      p.on('error', rej);
+    });
+    meta = JSON.parse(json);
+  }
+
+  if (meta._type !== 'playlist' || !meta.entries?.length) {
+    throw new Error('Not a SoundCloud playlist');
+  }
+
+  const results = [];
+
+  for (const entry of meta.entries) {
+    const titleSafe = sanitize(entry.title);
+    const outPath = path.join(downloadFolder, `${titleSafe}.mp3`);
+    await spawnSafe('yt-dlp', [
+      entry.webpage_url,
+      '--extract-audio',
+      '--audio-format', 'mp3',
+      '--audio-quality', '0',
+      '--embed-thumbnail',
+      '--embed-metadata',
+      '--convert-thumbnails', 'jpg',
+      '--no-playlist',
+      '-o', outPath
+    ]);
+
+    results.push(outPath);
+  }
+
+  return results;
+}
+
+
 ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false, artworkDuration = 30, format = 'bestvideo[height<=480]+bestaudio/best[height<=480]' }) => {
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
     return { success: false, message: 'Pick a valid folder' };
   }
 
-  console.log(`SKIP VIDEO?: ${skipVideo}`)
-
+if (/soundcloud\.com/.test(url)) {
+  const files = await downloadSoundCloudPlaylist(url, downloadFolder);
+  return {
+    success: true,
+    count: files.length,
+    files
+  };
+}
   const sanitizedTitle = (title) => title.replace(/[/\\?%*:|"<>]/g, '').trim() || 'Unknown';
   let targetDuration = typeof artworkDuration === 'number' && artworkDuration > 0 ? artworkDuration : 30;
   if (artworkDuration === 'full' || artworkDuration === Infinity) targetDuration = Infinity;

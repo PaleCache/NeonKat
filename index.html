@@ -2221,7 +2221,7 @@ updateToggleUI();
   ytModal.addEventListener('click', (e) => { if (e.target === ytModal) ytModal.remove(); });
 
 
-   
+
 skipToggle.addEventListener('click', () => {
     skipVideo = !skipVideo;
     localStorage.setItem('skipVideo', skipVideo);
@@ -2234,6 +2234,23 @@ skipToggle.addEventListener('click', () => {
     return;
   }
 
+  if (url.includes('soundcloud.com') && !skipVideo) {
+    alert('Enable Audio Only For SoundCloud links');
+    return;
+  }
+
+  if (!url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('soundcloud.com')) {
+    alert('Stick to YouTube or SoundCloud links for now. Want more sites? Let me know :)');
+    return;
+  }
+
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    if (url.includes('list=')) {
+      alert('Playlists are disabled to avoid getting your IP rate-limited or banned by YouTube. Download single videos only');
+      return;
+    }
+  }
+
   if (!downloadFolder) {
     alert('Pick a folder first!');
     return;
@@ -2243,7 +2260,7 @@ skipToggle.addEventListener('click', () => {
 
   confirmBtn.textContent = 'Downloading...';
   confirmBtn.disabled = true;
-  let skipVideo = localStorage.getItem('skipVideo') === 'true';
+
   try {
     const result = await window.electronAPI.downloadYoutube({
       url,
@@ -2293,7 +2310,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.6 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.7 alpha</p>
       </div>
   </div>
   `;
