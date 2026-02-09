@@ -457,7 +457,8 @@ a {
     body.mini-mode #addStreamBtn,
     body.mini-mode #hamburgerMenu,
     body.mini-mode #hamburgerBtn,
-    body.mini-mode #connectJellyfinBtn
+    body.mini-mode #connectJellyfinBtn,
+    body.mini-mode #popoutVideoBtn
     {
       display: none !important;
     }
@@ -2909,31 +2910,64 @@ sortOptions.forEach(btn => {
     alert(success ? 'Playlist saved!' : 'Failed to save playlist');
   });
 
-  loadPlaylistBtn.addEventListener('click', async () => {
+ loadPlaylistBtn.addEventListener('click', async () => {
     const { canceled, filePaths } = await window.electronAPI.openFile();
     if (canceled || !filePaths.length) return;
 
     const playlistPath = filePaths[0];
     const ext = playlistPath.split('.').pop().toLowerCase();
 
-    if (ext === 'playlist') {
-      const playlistData = await window.electronAPI.readFile(playlistPath);
-      audioFiles = JSON.parse(playlistData);
-    } else if (ext === 'm3u') {
-      audioFiles = await parseM3UFile(playlistPath);
-    } else {
-      alert('Unsupported playlist format');
-      return;
-    }
+    let loadedFiles = [];
 
+    if (ext === 'playlist') {
+        const playlistData = await window.electronAPI.readFile(playlistPath);
+        loadedFiles = JSON.parse(playlistData);
+    } else if (ext === 'm3u') {
+        loadedFiles = await parseM3UFile(playlistPath);
+    } else {
+        alert('Unsupported playlist format');
+        return;
+    }
+    const previousPlaying = audioFiles[currentIndex] || null;
+    audioFiles = loadedFiles;
     savedSortedOrder = [];
     isShuffled = false;
     shuffleBtn.classList.remove('enabled');
+    await applySavedSort();
+    if (previousPlaying && audioFiles.length > 0) {
+        currentIndex = audioFiles.findIndex(item => {
+            if (typeof item === 'string' && typeof previousPlaying === 'string') {
+                return item === previousPlaying;
+            }
+            if (item?.isJellyfin && previousPlaying?.isJellyfin) {
+                return item.itemId === previousPlaying.itemId;
+            }
+            if (item?.isStream && previousPlaying?.isStream) {
+                return item.url === previousPlaying.url;
+            }
+            return false;
+        });
+        if (currentIndex === -1) {
+            currentIndex = 0;
+        }
+    } else {
+        currentIndex = 0;
+    }
 
-    currentIndex = 0;
+    if (currentIndex >= audioFiles.length || currentIndex < 0) {
+        currentIndex = 0;
+    }
+
     renderPlaylist();
-    playTrack(currentIndex);
-  });
+    updateSelectionVisuals();
+    scrollToCurrentTrack();
+    if (audioFiles.length > 0) {
+        playTrack(currentIndex);
+    } else {
+        audio.pause();
+        audio.src = '';
+    }
+});
 
   const volumePercent = document.getElementById('volumePercent');
 
