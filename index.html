@@ -26,7 +26,7 @@
       width: 100vw;
       overflow: hidden;
       outline: none !important;
-      border-radius: 10px;
+      border-radius: 3px;
     }
 
 #visualizerControls,
@@ -76,7 +76,7 @@ a {
         max-height: none;
         background: #111;
         padding: 15px;
-        border-radius: 10px;
+        border-radius: 3px;
         border: 6px solid var(--primary-color); 
         box-sizing: border-box;      
         display: flex;
@@ -376,7 +376,8 @@ a {
       #jellyfinPassInput,
       #jellyfinSearchInput,
       #playlistQuickSearch,
-      #customBgInput {
+      #customBgInput,
+      #videoQualitySelect {
         outline: none !important;
     }
 
@@ -456,7 +457,8 @@ a {
     body.mini-mode #addStreamBtn,
     body.mini-mode #hamburgerMenu,
     body.mini-mode #hamburgerBtn,
-    body.mini-mode #connectJellyfinBtn
+    body.mini-mode #connectJellyfinBtn,
+    body.mini-mode #popoutVideoBtn
     {
       display: none !important;
     }
@@ -692,7 +694,7 @@ background: rgba(34, 34, 34, 0.51) !important;
 }
 
 #jellyfinModal, #streamModal, #aboutModal, #ytModal,#customBgModal {
-  border-radius: 9px;
+  border-radius: 3px;
 }
 
 #ytModal > div,
@@ -850,10 +852,244 @@ body.low-perf #visualizerBgGif {
 }
 
 
+body.video-only {
+  background: #000 !important;
+  overflow: hidden !important;
+}
+
+body.video-only #container {
+  padding: 0 !important;
+  border: none !important;
+  background: #000 !important;
+  border-radius: 10 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  
+ 
+}
+
+
+
+body.video-only #visualizerVideo {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover !important;
+  z-index: 1 !important;
+  border-radius: 0 !important;
+}
+
+
+
+body.video-only #visualizer .song-title-overlay {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  text-shadow: 0 0 10px black, 0 0 20px black;
+  z-index: 15;
+  pointer-events: none;
+  max-width: 90%;
+  text-align: center;
+  padding: 0 20px;
+}
+
+
+body.video-only #playlist,
+body.video-only h1,
+body.video-only #topControls,
+body.video-only #playlistControls,
+body.video-only #sortBtn,
+body.video-only #chooseFolder,
+body.video-only #addStreamBtn,
+body.video-only #connectJellyfinBtn,
+body.video-only #visualizerBgGif,
+body.video-only #visualizer {
+  display: none !important;
+}
+
+
+#popoutVideoBtn {
+  position: absolute;
+  top: 33px;
+  right: 11px;
+  z-index: 9999;
+  background: rgba(33, 33, 33, 0.5) !important;
+  border: none;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6) !important;
+  transition: all 0.15s ease;
+   -webkit-app-region: no-drag;
+}
+
+
+
+#popoutVideoBtn:hover {
+  transform: scale(1.1);
+}
+
+body:not(.video-only) #popoutVideoBtn {
+  background: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+
+
+body.video-only footer {
+    position: fixed !important;
+    bottom: 6px;
+    right: 6px;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    padding: 9px 31px;
+    border-radius: 6px;
+    color: white;
+    height: 32px !important;
+    width: 61px !important;
+    font-size: 20px;
+    gap: 11px;
+}
+
+body.video-only footer > img {
+    width: 40px !important;
+    height: 23px !important;
+}
+
+body.video-only .controls,
+body.video-only .volume-control
+{
+    position: fixed;
+    top: 74%; 
+    left: 50%; 
+    transform: translateX(-50%);
+    width: 237px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000 !important;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+    gap: 10px;
+}
+
+
+body.video-only .controls,
+body.video-only .volume-control
+{
+    opacity: 0;                
+    pointer-events: none;      
+    transition: opacity 0.3s; 
+    
+}
+
+
+body.video-only .controls .control-btn {
+  border-radius: 25px;
+  height: 39px;
+}
+
+
+
+body.video-only:hover .controls,
+body.video-only:hover .volume-control{
+    opacity: 1;              
+    pointer-events: auto;   
+}
+
+body.video-only .volume-control > label{
+    -webkit-app-region: no-drag;
+    gap: 10px;
+    background-color: rgba(33, 33, 33, 0.5);
+    border-radius: 10px;
+    padding: 0px 8px;
+    width: 175px;
+    height: 29px;
+    backdrop-filter: blur(4px);
+    top: 0vh;
+    position: fixed; 
+}
+
+body.video-only #progressContainer {
+    position: fixed;
+    top: 0%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 238px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000 !important;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+    gap: 10px;
+    background-color: rgba(33, 33, 33, 0.5);
+    border-radius: 34px;
+    padding: 2px 18px;
+    backdrop-filter: blur(4px);
+    padding-bottom: 10px;  
+
+}
+
+body.video-only #videoSongName {
+     position: absolute;
+    top: 3vh;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 0.6em;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(0,0,0,0.7);
+    pointer-events: none;
+    z-index: 20;
+    text-align: center;
+    white-space: nowrap;
+}
+
+#artworkLayer {
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0 !important;
+  pointer-events: none;
+}
+
+
+#container > #artworkLayer {
+  z-index: 1 !important;
+}
+
+
+
+
+
+
+
   </style>
 </head>
 <body>
-  <div id="titlebar" style="-webkit-app-region: drag; height: 20px; position: absolute; top: 0; left: 0; right: 0; z-index: 1;">
+  <div id="titlebar" 
+     style="-webkit-app-region: drag; height: 99px; position: absolute; top: 0; left: 0; right: 0; z-index: 1; cursor: pointer;">
+</div>
    
   </div>
   <div id="rainbow-helper"></div>
@@ -885,6 +1121,8 @@ body.low-perf #visualizerBgGif {
 
 
 
+
+
   <button id="hamburgerBtn" style="background: none; border: none; cursor: pointer; padding: 8px; -webkit-app-region: no-drag;" title="Menu">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
       <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -893,6 +1131,8 @@ body.low-perf #visualizerBgGif {
     </svg>
   </button>
 </div>
+
+
 
 
 <div id="hamburgerMenu" style="position: absolute; top: 70px; right: 15px; background: #222; border-radius: 3px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 2px solid var(--primary-color); display: none; z-index: 9999; min-width: 200px; -webkit-app-region: no-drag;">
@@ -966,6 +1206,8 @@ body.low-perf #visualizerBgGif {
 </div>
 </div>
 
+ 
+
 
     <h1 style="display: flex; align-items: center; gap: 8px; ">
       NeonKat
@@ -977,9 +1219,9 @@ body.low-perf #visualizerBgGif {
   <button id="connectJellyfinBtn" class="control-btn" style="flex: 1;">Jellyfin</button>
 </div>
 
-    <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 10px; background: rgba(0,0,0,0.8); border-radius: 10px; justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
-    border-radius: 10px;-webkit-app-region: no-drag;">
+    <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 3px; background: rgba(0,0,0,0.8); border-radius: 3px; justify-content: center; align-items: center; z-index: 9999;">
+  <div style="background: #111111; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
+    border-radius: 3px;-webkit-app-region: no-drag;">
     <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
     <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
     <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
@@ -996,7 +1238,7 @@ body.low-perf #visualizerBgGif {
 
 
 <div id="customBgModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 99999;">
-  <div style="background: #111; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color); color: white; text-align: center;">
+  <div style="background: #111; padding: 25px; border-radius: 3px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color); color: white; text-align: center;">
     <h3 style="margin-top: 0; color: var(--primary-color);">Set Custom Background</h3>
     <p style="margin: 10px 0 20px;">Paste an image URL or local file path <br><small>(leave empty to remove current bg ♡)</small></p>
     <input type="text" id="customBgInput" placeholder="https://... or file:///C:/.../cute.jpg" 
@@ -1010,7 +1252,7 @@ body.low-perf #visualizerBgGif {
 
 
 <div id="jellyfinModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #111111; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white; border: 3px solid var(--primary-color);">
+  <div style="background: #111111; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white; border: 3px solid var(--primary-color);">
     <h3 style="margin-top: 0; color: var(--primary-color);">Connect to Jellyfin</h3>
     <label>Server URL:</label>
     <input type="text" id="jellyfinServerInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="http://192.168.1.100:8096" />
@@ -1107,17 +1349,21 @@ body.low-perf #visualizerBgGif {
    
     </div>
     <div id="progressContainer">
+        <div id="videoSongName"></div>
       <span id="currentTime">0:00</span>
       <input type="range" id="progressBar" value="0" min="0" step="0.1" />
       <span id="duration">0:00</span>
+    
     </div>
    <div id="visualizerWrapper">
   <img id="visualizerBgGif">
   <video id="visualizerVideo"></video>
   <canvas id="visualizer"></canvas>
+   <button id="popoutVideoBtn" style="background:none; border:none; cursor:pointer; margin-left:6px;" title="Pop out video only">
+  <img src="build/pop-out.svg" height="12" alt="Popout" style="filter: invert(1);" />
+</button>
    <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
 </div>
-
     <footer>
   <img src="build/kat.png" alt=':)' style="    width: 15px;
     height: 15px;
@@ -1214,6 +1460,9 @@ katbubbleImages[0].src = 'build/kat.png';
   analyser.connect(audioCtx.destination);
   const radioIconImg = new Image();
   radioIconImg.src = 'build/radio.svg';
+
+  let src;
+  let displayName;
 
 
   const repeatBtn = document.getElementById('repeatBtn');
@@ -1331,6 +1580,21 @@ customBgToggle.addEventListener('click', () => {
     customBgInput.focus();
 });
 
+audio.addEventListener('play',   () => visualizerVideo.play().catch(e=>0));
+audio.addEventListener('pause',  () => visualizerVideo.pause());
+audio.addEventListener('seeking',() => {
+  if (visualizerVideo.src) {
+    visualizerVideo.currentTime = audio.currentTime % (visualizerVideo.duration || 1) || 0;
+  }
+});
+
+audio.addEventListener('timeupdate', () => {
+  if (!visualizerVideo.src || visualizerVideo.paused) return;
+  const diff = Math.abs(visualizerVideo.currentTime - (audio.currentTime % visualizerVideo.duration));
+  if (diff > 0.4) {
+    visualizerVideo.currentTime = audio.currentTime % visualizerVideo.duration;
+  }
+});
 
 applyBgBtn.addEventListener('click', () => {
     const url = customBgInput.value.trim();
@@ -1409,11 +1673,9 @@ document.getElementById('prevBtn').addEventListener('click', () => {
   if (currentIndex > 0) {
     currentIndex--;
     playTrack(currentIndex);
-  } else if (repeatTrack) {
+  } else {
     currentIndex = audioFiles.length - 1;
     playTrack(currentIndex);
-  } else {
-    console.log("Already at the beginning");
   }
 });
 
@@ -1422,11 +1684,9 @@ document.getElementById('nextBtn').addEventListener('click', () => {
   if (currentIndex < audioFiles.length - 1) {
     currentIndex++;
     playTrack(currentIndex);
-  } else if (repeatTrack) {
+  } else {
     currentIndex = 0;
     playTrack(currentIndex);
-  } else {
-    console.log("End of the playlist");
   }
 });
 
@@ -1521,6 +1781,8 @@ confirmBtn.addEventListener('click', async () => {
   }
 });
 
+
+
 async function loadJellyfinLibrary() {
   if (!jellyfinConfig.token) return;
 
@@ -1531,7 +1793,7 @@ async function loadJellyfinLibrary() {
     const musicView = views.Items.find(v => v.CollectionType === 'music' || v.Name.toLowerCase().includes('music'));
     if (!musicView) throw new Error('No music library found – check your Jellyfin setup');
 
-    const fields = 'Name,Artists,AlbumArtists,ArtistItems,Album,AlbumPrimaryImageTag,ImageTags,MediaSources,Container,Path,ProductionLocations,SortName';
+    const fields = 'Name,Artists,AlbumArtists,ArtistItems,Album,AlbumPrimaryImageTag,ImageTags,MediaSources,Container,Path,ProductionLocations,SortName,DateCreated,PremiereDate,ProductionYear';
     const searchInput = document.getElementById('jellyfinSearchInput');
     const searchTerm = searchInput ? searchInput.value.trim() : '';
 
@@ -1633,15 +1895,18 @@ async function loadJellyfinLibrary() {
         albumArt = `${jellyfinConfig.server}/Items/${item.Id}/Images/Primary?api_key=${jellyfinConfig.token}`;
       }
 
-      audioFiles.push({
-        url: streamUrl,
-        name: displayName,
-        isJellyfin: true,
-        itemId: item.Id,
-        albumArt: albumArt
-      });
+   audioFiles.push({
+    url: streamUrl,
+    name: displayName,
+    isJellyfin: true,
+    itemId: item.Id,
+    albumArt: albumArt,
+    dateCreated: item.DateCreated ? new Date(item.DateCreated).getTime() : 0,
+  });
     }
 
+    applySavedSort();
+    scrollToCurrentTrack(true);
     jellyfinStatus.textContent = `Connected – Loaded ${audioFiles.length} tracks`;
     const input = document.getElementById('playlistQuickSearch');
     input.value = '';
@@ -1820,7 +2085,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
     <div style="background: #330000; border: 1px solid #ff3333; padding: 12px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13px; color: #ffaaaa; text-align: center;">
       <strong>⚠️ HEADS UP ⚠️</strong><br><br>
       Downloading large playlists (50+ videos) at once can get your IP temporarily rate-limited by YouTube for up to 24 hours.<br>
-      Stick to single videos to avoid getting blocked.
+      So i have disabled playlist downloads :(
     </div>
 
     <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
@@ -1828,6 +2093,15 @@ downloadYoutubeBtn.addEventListener('click', () => {
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
       <button id="chooseDlFolderBtn" style="padding: 10px 15px; background: #212121; border: none; border-radius: 6px; color: white; cursor: pointer; flex: 1;">Choose Folder</button>
       <span id="selectedDlFolder" style="color: var(--primary-color); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 2;">No folder selected</span>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+  <select id="videoQualitySelect" style="width: 100%; padding: 10px; background: #222; color: white; border: 1px solid #444; border-radius: 6px; font-size: 14px;">
+  <option value="bestvideo+bestaudio/best">Best quality (highest available)</option>
+  <option value="bestvideo[height<=1080]+bestaudio/best">1080p</option>
+  <option value="bestvideo[height<=720]+bestaudio/best">720p</option>
+  <option value="bestvideo[height<=480]+bestaudio/best" selected>480p (recommended)</option>
+</select>
     </div>
 
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -1885,13 +2159,24 @@ downloadYoutubeBtn.addEventListener('click', () => {
   const artworkDurationSelect = document.getElementById('exportDurationSelect');
   const customExportInput   = document.getElementById('customExportSeconds');
 
+  let selectedQuality = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
+
+const qualitySelect = document.getElementById('videoQualitySelect');
+
+if (qualitySelect) {
+  qualitySelect.addEventListener('change', () => {
+    const val = qualitySelect.value;
+    selectedQuality = val;
+  });
+  selectedQuality = qualitySelect.value || selectedQuality;
+}
+
   let selectedDuration = 30;
 
   if (artworkDurationSelect) {
     artworkDurationSelect.addEventListener('change', () => {
       
       const val = artworkDurationSelect.value;
-      console.log(`[DUR] ${val} `)
       if (val === 'custom') {
         customExportInput.style.display = 'inline-block';
         let sec = parseInt(customExportInput.value) || 30;
@@ -1940,7 +2225,7 @@ updateToggleUI();
   ytModal.addEventListener('click', (e) => { if (e.target === ytModal) ytModal.remove(); });
 
 
-   
+
 skipToggle.addEventListener('click', () => {
     skipVideo = !skipVideo;
     localStorage.setItem('skipVideo', skipVideo);
@@ -1953,7 +2238,7 @@ skipToggle.addEventListener('click', () => {
     return;
   }
 
-    if (url.includes('soundcloud.com') && !skipVideo) {
+  if (url.includes('soundcloud.com') && !skipVideo) {
     alert('Enable Audio Only For SoundCloud links');
     return;
   }
@@ -1971,30 +2256,36 @@ skipToggle.addEventListener('click', () => {
   }
 
   if (!downloadFolder) {
-    alert('Pick a folder first');
+    alert('Pick a folder first!');
     return;
   }
+
+  const qualityFormat = document.getElementById('videoQualitySelect').value;
 
   confirmBtn.textContent = 'Downloading...';
   confirmBtn.disabled = true;
 
-const result = await window.electronAPI.downloadYoutube({
-    url,
-    downloadFolder,
-    skipVideo,
-    artworkDuration: selectedDuration
-});
+  try {
+    const result = await window.electronAPI.downloadYoutube({
+      url,
+      downloadFolder,
+      skipVideo: skipVideo,
+      format: qualityFormat,
+      artworkDuration: selectedDuration
+    });
 
-  if (result.success) {
-    renderPlaylist();
-     if (Notification.permission === 'granted') {
-    window.electronAPI.notify('Download Complete :)');
-  }
-
-  else{alert('Download complete :)');}
-
-  } else {
-    alert(`Download failed: ${result.message || 'Unknown fuckup'}`);
+    if (result.success) {
+      renderPlaylist();
+      if (Notification.permission === 'granted') {
+        window.electronAPI.notify('Download Complete :)');
+      } else {
+        alert('Download complete :)');
+      }
+    } else {
+      alert(`Download failed: ${result.message || 'Unknown error'}`);
+    }
+  } catch (err) {
+    alert('Something went wrong: ' + err.message);
   }
 
   confirmBtn.textContent = 'Download';
@@ -2023,7 +2314,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.6 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.7 alpha</p>
       </div>
   </div>
   `;
@@ -2375,56 +2666,113 @@ async function sortPlaylist(criteria, ascending) {
       return ascending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
     });
   } else if (criteria === 'date') {
+    const wasPlaying = audioFiles[currentIndex];
+    let playingId = null;
+
+    if (wasPlaying) {
+        if (typeof wasPlaying === 'string') {
+            playingId = wasPlaying;                     
+        } else if (wasPlaying.isJellyfin) {
+            playingId = `jellyfin:${wasPlaying.itemId}`;
+        } else if (wasPlaying.isStream) {
+            playingId = `stream:${wasPlaying.url}`;
+        }
+    }
     const hasLocalFiles = audioFiles.some(item => typeof item === 'string');
-    if (hasLocalFiles) {
-      try {
-        const filesWithDates = await Promise.all(
-          sortedFiles.map(async (item) => {
-            if (typeof item === 'string') {
-              try {
-                const stats = await window.electronAPI.getFileStats(item);
-                return { item, date: stats?.mtimeMs ?? 0 };
-              } catch {
-                return { item, date: 0 };
-              }
-            } else {
-              return { item, date: ascending ? Infinity : -Infinity };
-            }
-          })
-        );
+    const hasJellyfin   = audioFiles.some(item => item?.isJellyfin);
 
-        filesWithDates.sort((a, b) => ascending ? a.date - b.date : b.date - a.date);
+    if (hasLocalFiles && !hasJellyfin) {
+        try {
+            const filesWithDates = await Promise.all(
+                audioFiles.map(async (path) => {
+                    if (typeof path === 'string') {
+                        try {
+                            const stats = await window.electronAPI.getFileStats(path);
+                            return { item: path, date: stats?.mtimeMs ?? 0 };
+                        } catch (err) {
+                            console.warn("Failed to get stats for:", path, err);
+                            return { item: path, date: 0 };
+                        }
+                    }
+                    return { item: path, date: 0 };
+                })
+            );
 
-        sortedFiles = filesWithDates.map(x => x.item);
-      } catch (err) {
-        console.error('Date sort failed:', err);
-        return sortPlaylist('name', ascending);
-      }
+            filesWithDates.sort((a, b) =>
+                ascending ? a.date - b.date : b.date - a.date
+            );
+
+            audioFiles = filesWithDates.map(x => x.item);
+        } catch (err) {
+            console.error("Local files date sort failed:", err);
+            sortPlaylist('name', ascending);
+            return;
+        }
+    }
+    else if (hasJellyfin && !hasLocalFiles) {
+        audioFiles.sort((a, b) => {
+            const timeA = a.isJellyfin ? (a.dateCreated || 0) : 0;
+            const timeB = b.isJellyfin ? (b.dateCreated || 0) : 0;
+
+            return ascending ? timeA - timeB : timeB - timeA;
+        });
+    }
+    else if (hasLocalFiles && hasJellyfin) {
+        try {
+            const filesWithDates = await Promise.all(
+                audioFiles.map(async (item) => {
+                    if (typeof item === 'string') {
+                        try {
+                            const stats = await window.electronAPI.getFileStats(item);
+                            return { item, date: stats?.mtimeMs ?? 0 };
+                        } catch {
+                            return { item, date: 0 };
+                        }
+                    }
+                    if (item?.isJellyfin) {
+                        return { item, date: item.dateCreated || 0 };
+                    }
+                    return { item, date: 0 };
+                })
+            );
+
+            filesWithDates.sort((a, b) =>
+                ascending ? a.date - b.date : b.date - a.date
+            );
+
+            audioFiles = filesWithDates.map(x => x.item);
+        } catch (err) {
+            console.error("Mixed sort failed:", err);
+            sortPlaylist('name', ascending);
+            return;
+        }
+    }
+    else {
+        sortPlaylist('name', ascending);
+        return;
+    }
+    if (playingId) {
+        currentIndex = audioFiles.findIndex(item => {
+            if (typeof item === 'string') return item === playingId;
+            if (item?.isJellyfin) return `jellyfin:${item.itemId}` === playingId;
+            if (item?.isStream) return `stream:${item.url}` === playingId;
+            return false;
+        });
+
+        if (currentIndex === -1) {
+            console.warn("Playing track lost after sort – resetting to 0");
+            currentIndex = 0;
+        }
     } else {
-      return sortPlaylist('name', ascending);
+        currentIndex = 0;
     }
-  }
+    selectedIndices.clear();
+    selectedIndices.add(currentIndex);
 
-  audioFiles = sortedFiles;
-  const newIndex = audioFiles.findIndex(item => {
-    if (currentItem === item) return true;
-    if (typeof currentItem === 'object' && typeof item === 'object') {
-      return currentItem.itemId === item.itemId || currentItem.url === item.url;
-    }
-    return false;
-  });
-
-  currentIndex = newIndex !== -1 ? newIndex : 0;
-console.log(
-  "After sort → currentIndex:", currentIndex,
-  "current song:", audioFiles[currentIndex]?.name || audioFiles[currentIndex]
-);
-
-  selectedIndices.clear();
-  selectedIndices.add(currentIndex);
-  renderPlaylist();
-  scrollToCurrentTrack();
-  updateSelectionVisuals();
+    renderPlaylist();
+    updateSelectionVisuals();
+    scrollToCurrentTrack();
+}
 
   localStorage.setItem('sortCriteria', criteria);
   localStorage.setItem('sortOrder', ascending ? 'asc' : 'desc');
@@ -2504,6 +2852,7 @@ sortOptions.forEach(btn => {
     renderPlaylist();
     stopVideo();
     clearBackground();
+    updateVideoSongName(`No Track`)
     window.electronAPI.updateTrack({ songName: 'No Track', artUrl: null, isPlaying: false });
   });
 
@@ -2561,31 +2910,64 @@ sortOptions.forEach(btn => {
     alert(success ? 'Playlist saved!' : 'Failed to save playlist');
   });
 
-  loadPlaylistBtn.addEventListener('click', async () => {
+ loadPlaylistBtn.addEventListener('click', async () => {
     const { canceled, filePaths } = await window.electronAPI.openFile();
     if (canceled || !filePaths.length) return;
 
     const playlistPath = filePaths[0];
     const ext = playlistPath.split('.').pop().toLowerCase();
 
-    if (ext === 'playlist') {
-      const playlistData = await window.electronAPI.readFile(playlistPath);
-      audioFiles = JSON.parse(playlistData);
-    } else if (ext === 'm3u') {
-      audioFiles = await parseM3UFile(playlistPath);
-    } else {
-      alert('Unsupported playlist format');
-      return;
-    }
+    let loadedFiles = [];
 
+    if (ext === 'playlist') {
+        const playlistData = await window.electronAPI.readFile(playlistPath);
+        loadedFiles = JSON.parse(playlistData);
+    } else if (ext === 'm3u') {
+        loadedFiles = await parseM3UFile(playlistPath);
+    } else {
+        alert('Unsupported playlist format');
+        return;
+    }
+    const previousPlaying = audioFiles[currentIndex] || null;
+    audioFiles = loadedFiles;
     savedSortedOrder = [];
     isShuffled = false;
     shuffleBtn.classList.remove('enabled');
+    await applySavedSort();
+    if (previousPlaying && audioFiles.length > 0) {
+        currentIndex = audioFiles.findIndex(item => {
+            if (typeof item === 'string' && typeof previousPlaying === 'string') {
+                return item === previousPlaying;
+            }
+            if (item?.isJellyfin && previousPlaying?.isJellyfin) {
+                return item.itemId === previousPlaying.itemId;
+            }
+            if (item?.isStream && previousPlaying?.isStream) {
+                return item.url === previousPlaying.url;
+            }
+            return false;
+        });
+        if (currentIndex === -1) {
+            currentIndex = 0;
+        }
+    } else {
+        currentIndex = 0;
+    }
 
-    currentIndex = 0;
+    if (currentIndex >= audioFiles.length || currentIndex < 0) {
+        currentIndex = 0;
+    }
+
     renderPlaylist();
-    playTrack(currentIndex);
-  });
+    updateSelectionVisuals();
+    scrollToCurrentTrack();
+    if (audioFiles.length > 0) {
+        playTrack(currentIndex);
+    } else {
+        audio.pause();
+        audio.src = '';
+    }
+});
 
   const volumePercent = document.getElementById('volumePercent');
 
@@ -2783,9 +3165,9 @@ function updateSelectionVisuals() {
 
   if (embeddedArt) return embeddedArt;
   try {
-    const ext      = await window.electronAPI.pathExtname(filePath);
+    const ext = await window.electronAPI.pathExtname(filePath);
     const baseName = await window.electronAPI.pathBasename(filePath, ext);
-    const dir      = await window.electronAPI.pathDirname(filePath);
+    const dir = await window.electronAPI.pathDirname(filePath);
 
     const candidates = [
       baseName + '.jpg',
@@ -2806,7 +3188,6 @@ function updateSelectionVisuals() {
       if (await window.electronAPI.fileExists(candidatePath)) {
         const normalized = candidatePath.replace(/\\/g, '/');
         const url = `file://${encodeURI(normalized).replace(/#/g, '%23')}`;
-        console.log(`♡ Found external art → ${name}`);
         return url;
       }
     }
@@ -2836,6 +3217,171 @@ function clearBackground() {
 }
 
 const visualizerVideo = document.getElementById('visualizerVideo');
+const songNameOverlay = document.getElementById('videoSongName');
+
+let videoOnlyMode = false;
+let originalWindowWidth =  441;
+let originalWindowHeight = 743;
+
+
+
+async function setVideoOnlyBackground(item) {
+    let artworkEl = document.getElementById('artworkLayer');
+    if (!artworkEl) {
+        artworkEl = document.createElement('img');
+        artworkEl.id = 'artworkLayer';
+        artworkEl.style.cssText = `
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            pointer-events: none;
+            display: block;
+        `;
+    }
+
+    artworkEl.src = '';
+    let usedGifOrVideo = false;
+
+    if (typeof item === 'string') {
+        const filePath = item;
+        const dir = await window.electronAPI.pathDirname(filePath);
+        const ext = await window.electronAPI.pathExtname(filePath);
+        const baseName = await window.electronAPI.pathBasename(filePath, ext);
+        const videoCandidates = [
+            baseName + '.mp4',
+            baseName + '.webm',
+            baseName + '-video.mp4',
+            baseName + '-preview.mp4'
+        ];
+
+        for (const name of videoCandidates) {
+            const candidatePath = await window.electronAPI.pathJoin(dir, name);
+            if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
+                const normalized = candidatePath.replace(/\\/g, '/');
+                const encoded = encodeURI(normalized).replace(/#/g, '%23');
+                artworkEl.src = `file://${encoded}`;
+                usedGifOrVideo = true;
+                break;
+            }
+        }
+
+        if (usedGifOrVideo) {
+            artworkEl.style.display = 'block';
+            return;
+        }
+
+        const sameNameGif = baseName + '.gif';
+        const sameNameGifPath = await window.electronAPI.pathJoin(dir, sameNameGif);
+        if (await window.electronAPI.fileExists(sameNameGifPath) && gifPreviewEnabled) {
+            const normalized = sameNameGifPath.replace(/\\/g, '/');
+            const encoded = encodeURI(normalized).replace(/#/g, '%23');
+            artworkEl.src = `file://${encoded}`;
+            usedGifOrVideo = true;
+        }
+
+        if (usedGifOrVideo) {
+            artworkEl.style.display = 'block';
+            return;
+        }
+
+        const artUrl = await getAlbumArtUrl(filePath);
+        if (artUrl && artUrl !== 'build/default-artwork.jpg') {
+            artworkEl.src = artUrl;
+            return;
+        }
+
+        const coverGifName = 'cover.gif';
+        const coverGifPath = await window.electronAPI.pathJoin(dir, coverGifName);
+        if (await window.electronAPI.fileExists(coverGifPath) && gifPreviewEnabled) {
+            const normalized = coverGifPath.replace(/\\/g, '/');
+            const encoded = encodeURI(normalized).replace(/#/g, '%23');
+            artworkEl.src = `file://${encoded}`;
+            usedGifOrVideo = true;
+        }
+
+        if (usedGifOrVideo) {
+            artworkEl.style.display = 'block';
+            return;
+        }
+    } 
+    else if (item?.isJellyfin && item.albumArt) {
+        artworkEl.src = item.albumArt;
+        return;
+    }
+    artworkEl.src = 'build/default-artwork.jpg';
+    artworkEl.style.display = 'block';
+}
+
+document.getElementById('popoutVideoBtn').addEventListener('click', async () => {
+    videoOnlyMode = !videoOnlyMode;
+    const container = document.getElementById('container');
+    const btn = document.getElementById('popoutVideoBtn');
+    const btnImg = btn.querySelector('img');
+    const currentSongTitle = displayName || 'Unknown Track';
+
+    window.electronAPI?.resizeWindow?.(1241, 743);
+
+    if (!videoOnlyMode) {
+        document.body.classList.remove('video-only');
+        songNameOverlay.style.display = 'none';
+        const oldArtwork = document.getElementById('artworkLayer');
+        if (oldArtwork) oldArtwork.remove();
+        if (originalWindowWidth && originalWindowHeight) {
+            window.electronAPI?.resizeWindow?.(
+                originalWindowWidth,
+                originalWindowHeight
+            );
+        }
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
+        return;
+    }
+
+    document.body.classList.add('video-only');
+    updateVideoSongName(currentSongTitle)
+    songNameOverlay.style.display = 'block';
+    btnImg.style.filter = 'invert(1)';
+    btn.style.backdropFilter = 'blur(10px)';
+    btn.style.borderRadius = '50%';
+    btn.style.padding = '12px';
+    btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.7)';
+    let artworkEl = document.getElementById('artworkLayer');
+    if (!artworkEl) {
+        artworkEl = document.createElement('img');
+        artworkEl.id = 'artworkLayer';
+        artworkEl.style.cssText = `
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 5;
+            pointer-events: none;
+            display: block;
+        `;
+        container.prepend(artworkEl);
+    }
+    const currentItem = audioFiles[currentIndex];
+    if (currentItem) {
+        console.log("Setting video-only background for:", currentItem);
+        await setVideoOnlyBackground(currentItem);
+    } else {
+        artworkEl.src = 'build/default-artwork.jpg';
+    }
+});
+
+
+
+function updateVideoSongName(title) {
+  const maxLength = 60;
+  if (title.length > maxLength) {
+    songNameOverlay.textContent = title.slice(0, maxLength - 3) + "...";
+  } else {
+    songNameOverlay.textContent = title;
+  }
+}
 
 async function setVisualizerBackground(item) {
     stopVideo();
@@ -2875,7 +3421,6 @@ async function setVisualizerBackground(item) {
             await visualizerVideo.play();
             visualizerCanvas.style.backgroundColor = 'transparent';
             visualizerCanvas.style.backgroundImage = 'none';
-            console.log("Video started playing → src:", visualizerVideo.src);
         } catch (err) {
             console.error("Video play failed:", err);
         }
@@ -2914,7 +3459,6 @@ async function setVisualizerBackground(item) {
                 loader.src = artUrl;
                 loader.onload = () => {
                     currentArtImage = loader;
-                    console.log("[ART] Good album art loaded ♡");
                 };
                 loader.onerror = () => {
                     console.warn("[ART] Album art failed to load");
@@ -2972,8 +3516,6 @@ async function setVisualizerBackground(item) {
 
   const item = audioFiles[index];
 
-  let src;
-  let displayName;
 
   if (typeof item === 'string') {
   const normalizedPath = item.replace(/\\/g, '/');
@@ -3021,6 +3563,11 @@ async function setVisualizerBackground(item) {
     isPlaying: true,
     volume: audio.volume
   };
+
+ if (videoOnlyMode && !item.isJellyfin) {
+  updateVideoSongName(displayName);
+}
+  setVideoOnlyBackground(item)
   window.electronAPI.updateTrack(trackData);
 
   renderPlaylist();
@@ -3028,13 +3575,6 @@ async function setVisualizerBackground(item) {
   visualize();
   scrollToCurrentTrack();
 
-  if (item.isJellyfin) {
-  src = item.url;
-  displayName = item.name;
-  if (item.albumArt) {
-    visualizerCanvas.style.backgroundImage = `url(${item.albumArt})`;
-  }
-}
   if (item.isStream) {
     currentTimeElem.textContent = 'LIVE';
     durationElem.textContent = '∞';
@@ -3703,10 +4243,8 @@ gifPreviewToggleBtn.addEventListener('click', async () => {
                         Math.abs(videoDuration - songDuration) / songDuration <= 0.12) {
                         const targetTime = audio.currentTime % videoDuration;
                         visualizerVideo.currentTime = targetTime;
-                        console.log(`Video synced to ${targetTime.toFixed(1)}s (song at ${audio.currentTime.toFixed(1)}s)`);
                     } else {
                         visualizerVideo.currentTime = 0;
-                        console.log("Lengths don't match closely → starting from 0");
                     }
 
                     visualizerVideo.play().catch(err => {
@@ -3716,10 +4254,6 @@ gifPreviewToggleBtn.addEventListener('click', async () => {
 
                 break;
             }
-        }
-
-        if (!videoLoaded) {
-            console.log("No matching video found");
         }
     }
     else if (!gifPreviewEnabled && wasEnabled) {
@@ -3988,8 +4522,10 @@ function checkForUpdatesSilently() {
 
 </script>
 
+
+
 <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #222; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; color: white;">
+  <div style="background: #222; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;">
     <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
     <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
     <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #333; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />

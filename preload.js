@@ -33,6 +33,7 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   pathBasename: (filePath, ext) => ipcRenderer.invoke('path-basename', filePath, ext),
   pathExtname: (filePath) => ipcRenderer.invoke('path-extname', filePath),
   pathJoin: (...args) => ipcRenderer.invoke('path-join', ...args),
+  resizeWindow: (w, h) => ipcRenderer.send('resize-window', w, h),
 
   onUpdateTrack: (callback) => {
     ipcRenderer.on('update-track', (event, data) => callback(data));
