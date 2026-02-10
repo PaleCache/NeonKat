@@ -19,6 +19,8 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 - **YT-dlp support** (need to have yt-dlp and ffmpeg installed in your system path https://github.com/yt-dlp/yt-dlp/wiki/Installation - if using windows i recommend using scoop for this)
 - **Radio streams support**
 - **Neon Mode** (color changes to the beat)
+- **Custom Picture In Picture Mode**
+- **Custom Backgrounds** (local or url)
 - **Canvas Mode** (short MP4 previews)
 - **Supports Jellyfin servers for music streaming**
 - **Auto Updates (disabled by default for privacy reasons)**
@@ -32,14 +34,17 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 |------------|----------------|-----------|
 | <img src="./assets/visualizer.png" width="200"> | <img src="./assets/color-selector.png" width="200"> | <img src="./assets/neonmode.gif" width="210"> |
 
-| Mini Mode | Radio Streams | YT-dlp Support |
+| Mini Mode | Radio Streams | YT-dlp Support | 
 |-----------|---------------|----------------|
 | <img src="./assets/mini-mode.png" width="200"> | <img src="./assets/radio-streams.png" width="200"> | <img src="./assets/yt-dlp-support.png" width="210"> |
 
-| Canvas Mode | Jellyfin Support |
-|-------------|-------------|
-| <img src="./assets/gifPreview.gif" width="200"> | <img src="./assets/jellyfin-support.png" width="200"> |
+| Canvas Mode | Jellyfin Support | Custom Backgrounds |
+|-------------|-------------|-------------|
+| <img src="./assets/gifPreview.gif" width="200"> | <img src="./assets/jellyfin-support.png" width="200"> | <img src="./assets/custom-background.png" width="210"> |
 
+| Custom Picture In Picture Mode|
+|-------------|
+| <img src="./assets/video-only-mode.png" width="665"> |
 ---
 
 ## 🤗 Special Thanks
