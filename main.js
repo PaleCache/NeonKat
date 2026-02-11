@@ -107,6 +107,46 @@ async function downloadSoundCloudPlaylist(url, downloadFolder) {
   return results;
 }
 
+ipcMain.handle('load-folder-direct', async (event, folderPath) => {
+  if (!folderPath || typeof folderPath !== 'string') {
+    console.error('load-folder-direct called with invalid path:', folderPath);
+    return { canceled: true, error: 'No valid folder path provided' };
+  }
+
+  try {
+    const stats = await fs.stat(folderPath);
+    if (!stats.isDirectory()) {
+      console.error('Not a directory:', folderPath);
+      return { canceled: true, error: 'Path is not a directory' };
+    }
+
+    const files = await fs.readdir(folderPath, { withFileTypes: true });
+    
+    const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.opus', '.aac'];
+    const audioFiles = [];
+
+    for (const file of files) {
+      if (file.isFile()) {
+        const ext = path.extname(file.name).toLowerCase();
+        if (audioExts.includes(ext)) {
+          audioFiles.push(path.join(folderPath, file.name));
+        }
+      }
+    }
+
+    console.log(`Loaded ${audioFiles.length} audio files from:`, folderPath);
+
+    return {
+      folderPath,
+      audioFilePaths: audioFiles
+    };
+
+  } catch (err) {
+    console.error('Direct folder load failed:', err.message);
+    return { canceled: true, error: err.message };
+  }
+});
+
 
 ipcMain.handle('download-youtube', async (event, { url, downloadFolder, skipVideo = false, artworkDuration = 30, format = 'bestvideo[height<=480]+bestaudio/best[height<=480]' }) => {
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {

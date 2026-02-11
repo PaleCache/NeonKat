@@ -32,7 +32,7 @@
 #visualizerControls,
 #hamburgerBtn,
 #playlist li,
-#chooseFolder,
+#folderMenu
 #addStreamBtn,
 #sortBtn,
 #miniPlayerBtn,
@@ -91,21 +91,7 @@ a {
       color: #ffffff;
       margin-left: 145px;
     }
-    #chooseFolder {
-      background: #212121;
-      color: white;
-      border: none;
-      padding: 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      width: 100%;
-      margin-bottom: 10px;
-      font-size: 14px;
-      -webkit-app-region: no-drag;
-    }
-    #chooseFolder:hover {
-      background: var(--primary-color);
-    }
+
     #savePlaylistBtn, #loadPlaylistBtn, #sortBtn {
       background: #212121;
       color: white;
@@ -128,13 +114,7 @@ a {
       -moz-user-select: none !important;
       -ms-user-select: none !important;
     }
-    #selectedFolderName {
-      font-size: 14px;
-      color: var(--primary-color);
-      text-align: center;
-      margin-bottom: 10px;
-      -webkit-app-region: no-drag;
-    }
+ 
     #sortMenu {
       position: absolute;
       background: rgba(34, 34, 34, 0.51) !important;
@@ -312,7 +292,7 @@ a {
     }
     #visualizer {
       width: 100%;
-      height: 164px;
+      height: 174px;
       background-size: contain;
       background-position: center;
       background-repeat: no-repeat;
@@ -453,12 +433,13 @@ a {
     body.mini-mode #playlistControls,
     body.mini-mode #sortBtn,
     body.mini-mode #sortMenu,
-    body.mini-mode #chooseFolder,
+    body.mini-mode #folderMenu,
     body.mini-mode #addStreamBtn,
     body.mini-mode #hamburgerMenu,
     body.mini-mode #hamburgerBtn,
     body.mini-mode #connectJellyfinBtn,
-    body.mini-mode #popoutVideoBtn
+    body.mini-mode #popoutVideoBtn,
+    body.mini-mode #folderMenuBtn
     {
       display: none !important;
     }
@@ -471,6 +452,7 @@ a {
     height: 105px !important;
     background-position: center !important;
     image-rendering: pixelated;
+
 }
 
 
@@ -482,6 +464,10 @@ body.mini-mode #visualizerVideo {
     object-fit: cover;
     z-index: 0;
     border-radius: inherit;
+}
+
+body.video-only #visualizer {
+    display: none;
 }
 
 
@@ -687,7 +673,7 @@ background: rgba(34, 34, 34, 0.51) !important;
   background: rgba(var(--primary-color), 0.15);
 }
 
- #loadPlaylistBtn, #savePlaylistBtn, #chooseFolder, #sortBtn, .control-btn, .vis-mode-toggle button {
+ #loadPlaylistBtn, #savePlaylistBtn, #sortBtn, .control-btn, .vis-mode-toggle button {
   background: rgba(33, 33, 33, 0.5);   
   backdrop-filter: blur(4px) !important;          
   color: white !important;
@@ -799,7 +785,7 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
     position: absolute;
     inset: 0;
     width: 100%;
-    height: 164px;          
+    height: 179px;          
     object-fit: cover;
     z-index: 0;
     border-radius: inherit;
@@ -834,7 +820,7 @@ body.low-perf #jellyfinModal > div,
 body.low-perf #aboutModal > div,
 body.low-perf #ytModal > div,
 body.low-perf #customBgModal > div,
-body.low-perf #chooseFolder,
+body.low-perf #folderMenu,
 body.low-perf #sortBtn,
 body.low-perf button.control-btn,
 body.low-perf .vis-mode-toggle button,
@@ -907,14 +893,21 @@ body.video-only h1,
 body.video-only #topControls,
 body.video-only #playlistControls,
 body.video-only #sortBtn,
-body.video-only #chooseFolder,
+body.video-only #folderMenu,
 body.video-only #addStreamBtn,
 body.video-only #connectJellyfinBtn,
 body.video-only #visualizerBgGif,
-body.video-only #visualizer {
+body.video-only #visualizer
+body.video-only #folderMenuBtn
+body.video-only #visualizerWrapper {
   display: none !important;
 }
 
+body.video-only div[style*="display:flex; gap:8px; position:relative; z-index:102;"],
+body.video-only #folderMenuBtn,
+body.video-only #folderMenu {
+  display: none !important;
+}
 
 #popoutVideoBtn {
   position: absolute;
@@ -924,8 +917,8 @@ body.video-only #visualizer {
   background: rgba(33, 33, 33, 0.5) !important;
   border: none;
   border-radius: 50%;
-  width: 12px;
-  height: 12px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -943,7 +936,6 @@ body.video-only #visualizer {
 }
 
 body:not(.video-only) #popoutVideoBtn {
-  background: none !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
 }
@@ -1061,6 +1053,11 @@ body.video-only #videoSongName {
     z-index: 20;
     text-align: center;
     white-space: nowrap;
+    opacity: 1;
+}
+
+#videoSongName {
+  opacity: 0;
 }
 
 #artworkLayer {
@@ -1080,7 +1077,18 @@ body.video-only #videoSongName {
 
 
 
-
+#folderMenu {
+  display: block;
+    position: absolute;
+    top: 100%;
+    left: 0px;
+    min-width: 260px;
+    border: 2px solid var(--primary-color);
+    border-radius: 6px;
+    margin-top: 4px;
+    backdrop-filter: blur(8px);
+    background: rgba(34, 34, 34, 0.51) !important;
+}
 
 
 
@@ -1209,15 +1217,41 @@ body.video-only #videoSongName {
  
 
 
-    <h1 style="display: flex; align-items: center; gap: 8px; ">
+   <h1 style="display: flex; align-items: center; gap: 8px; margin-bottom:10px; ">
       NeonKat
       <img src="build/kat.png" style="height: 54px;" />
     </h1>
- <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-  <button id="chooseFolder" style="flex: 1;">Choose Folder</button>
-  <button id="addStreamBtn" class="control-btn" style="flex: 1;">Radio Stream</button>
+ <div style="display:flex; gap:8px; position:relative; z-index:102; margin-bottom:16px;">
+
+  <button id="folderMenuBtn" class="control-btn">
+    Choose Folder ▼
+  </button>
+
+   <button id="addStreamBtn" class="control-btn" style="flex: 1;">Radio Stream</button>
   <button id="connectJellyfinBtn" class="control-btn" style="flex: 1;">Jellyfin</button>
+
+  <div id="folderMenu" style="
+      display:none;
+      position:absolute;
+      top:100%;
+      left:0;
+      min-width:260px;
+      background:rgba(34,34,34,0.92);
+      border:2px solid var(--primary-color);
+      border-radius:6px;
+      margin-top:4px;
+    
+  ">
+    
+    <button id="pickNewFolder" style="width:100%; padding:14px 20px; background:none; border:none; color:white; text-align:left; font-size:14px; cursor:pointer;">
+      Choose new folder…
+    </button>
+    <hr style="border:none; border-top:1px solid #444; margin:6px 0;">
+    <div id="recentFolders" style="max-height: 260px; overflow-y: auto; padding: 2px 0;">
+    </div>
 </div>
+</div>
+
 
     <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 3px; background: rgba(0,0,0,0.8); border-radius: 3px; justify-content: center; align-items: center; z-index: 9999;">
   <div style="background: #111111; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
@@ -1345,7 +1379,7 @@ body.video-only #videoSongName {
         <img src="build/volume.svg" alt="Volume" width="20" height="20" > 
         <input type="range" id="volume" min="0" max="1" step="0.01" value="1" />
         <span id="volumePercent">100%</span>
-      <div id="selectedFolderName"></div>
+     
    
     </div>
     <div id="progressContainer">
@@ -1400,10 +1434,8 @@ label img {
 ];
 nukebubbleImages[0].src = 'build/nuke.png';
 katbubbleImages[0].src = 'build/kat.png';
-  const filePickerBtn = document.getElementById('chooseFolder');
   const savePlaylistBtn = document.getElementById('savePlaylistBtn');
   const loadPlaylistBtn = document.getElementById('loadPlaylistBtn');
-  const selectedFolderName = document.getElementById('selectedFolderName');
   let visualizerMode = localStorage.getItem('visualizerMode') || 'bars';
   const barsToggle = document.getElementById('barsToggle');
   const bubblesToggle = document.getElementById('bubblesToggle');
@@ -1489,6 +1521,137 @@ if (jellyfinConfig.token) {
 }
 
 updateJellyfinModalButtons();
+let recentFolders = JSON.parse(localStorage.getItem('neonkatRecentFolders') || '[]');
+
+const MAX_RECENT_FOLDERS = 10;
+function addToRecentFolders(folderPath) {
+  if (!folderPath || typeof folderPath !== 'string') return;
+  recentFolders = recentFolders.filter(p => p !== folderPath);
+  recentFolders.unshift(folderPath);
+  if (recentFolders.length > MAX_RECENT_FOLDERS) {
+    recentFolders = recentFolders.slice(0, MAX_RECENT_FOLDERS);
+  }
+  
+  localStorage.setItem('neonkatRecentFolders', JSON.stringify(recentFolders));
+  renderRecentFolders();
+}
+
+function renderRecentFolders() {
+  const container = document.getElementById('recentFolders');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (recentFolders.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.padding = '10px';
+    empty.style.color = '#777';
+    empty.textContent = 'No recent folders yet';
+    container.appendChild(empty);
+    return;
+  }
+
+  recentFolders.forEach((path, idx) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '8px 12px';
+    row.style.cursor = 'pointer';
+    row.style.transition = 'background 0.12s';
+
+    row.addEventListener('mouseenter', () => {
+      row.style.setProperty('background', 'var(--primary-color)', 'important');
+    });
+    row.addEventListener('mouseleave', () => {
+      row.style.background = '';
+    });
+
+    const label = document.createElement('span');
+    const parts = path.split(/[\\/]/).filter(Boolean);
+    let display = parts.slice(-2).join(' → ');
+    if (parts.length > 2) display = '… → ' + display;
+
+    label.textContent = display;
+    label.title = path;
+    label.style.flex = '1';
+    label.style.whiteSpace = 'nowrap';
+    label.style.overflow = 'hidden';
+    label.style.textOverflow = 'ellipsis';
+    label.style.fontSize = '13px';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '×';
+    removeBtn.style.cssText = `
+      background: none;
+      border: none;
+      color: #ff5555;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 2px 8px;
+      margin-left: 12px;
+      opacity: 0.6;
+      transition: all 0.15s;
+      line-height: 1;
+    `;
+
+    removeBtn.addEventListener('mouseenter', () => {
+      removeBtn.style.opacity = '1';
+      removeBtn.style.transform = 'scale(1.15)';
+    });
+    removeBtn.addEventListener('mouseleave', () => {
+      removeBtn.style.opacity = '0.6';
+      removeBtn.style.transform = 'scale(1)';
+    });
+
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Remove "${display}" from recent folders?`)) {
+        recentFolders.splice(idx, 1);
+        localStorage.setItem('neonkatRecentFolders', JSON.stringify(recentFolders));
+        renderRecentFolders();
+      }
+    });
+
+    row.addEventListener('click', async (e) => {
+      if (e.target === removeBtn) return;
+
+      document.getElementById('folderMenu').style.display = 'none';
+
+      try {
+        const result = await window.electronAPI.loadFolderDirect(path);
+        if (result && !result.canceled && result.audioFilePaths?.length > 0) {
+          audioFiles = result.audioFilePaths;
+          addToRecentFolders(path);
+          savedSortedOrder = [];
+          isShuffled = false;
+          shuffleBtn.classList.remove('enabled');
+          currentSearchTerm = '';
+          document.getElementById('playlistQuickSearch').value = '';
+          document.getElementById('clearQuickSearch').style.display = 'none';
+          renderPlaylist();
+          await applySavedSort();
+          currentIndex = 0;
+          playTrack(0);
+          scrollToCurrentTrack(true);
+        } else {
+          alert("Folder is empty or no audio files found.");
+        }
+      } catch (err) {
+        console.error("Failed to load recent folder:", err);
+        alert("Couldn't open that folder anymore (moved/deleted?)");
+        recentFolders = recentFolders.filter(p => p !== path);
+        localStorage.setItem('neonkatRecentFolders', JSON.stringify(recentFolders));
+        renderRecentFolders();
+      }
+    });
+
+    row.appendChild(label);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+  });
+}
 const artworkDurationSelect = document.getElementById('artworkDurationSelect');
 const customArtworkInput = document.getElementById('customArtworkSeconds');
 
@@ -2861,45 +3024,64 @@ sortOptions.forEach(btn => {
     slider.addEventListener('input', () => updateSliderBackground(slider));
   });
 
-  filePickerBtn.addEventListener('click', async () => {
-  try {
-    if ('Notification' in window && Notification.permission !== 'granted') {
-      await Notification.requestPermission();
-    }
-    const result = await window.electronAPI.pickFolder();
-    if (!result || result.canceled) {
-      return;
-    }
-    const { folderPath, audioFilePaths } = result;
-    if (!audioFilePaths.length) {
-      alert('No audio files found in that folder');
-      return;
-    }
 
-    
-    audioFiles = audioFilePaths;
-    savedSortedOrder = [];
-    isShuffled = false;
-    shuffleBtn.classList.remove('enabled');
-    const input = document.getElementById('playlistQuickSearch');
-    input.value = '';
-    currentSearchTerm = '';
-    document.getElementById('clearQuickSearch').style.display = 'none';
-    renderPlaylist();
 
-    
-    await applySavedSort();
+const folderMenuBtn = document.getElementById('folderMenuBtn');
+const folderMenu   = document.getElementById('folderMenu');
+const pickNewFolderBtn = document.getElementById('pickNewFolder');
 
-    updateStoredPlaylist();
-    renderPlaylist();
-    currentIndex = 0;
-    playTrack(0);
-    scrollToCurrentTrack(true);
-  } catch (err) {
-    console.error('Folder load error:', err);
-    alert('Error: ' + err.message);
-  }
-});
+if (folderMenuBtn && folderMenu) {
+  folderMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = folderMenu.style.display === 'block';
+    folderMenu.style.display = isOpen ? 'none' : 'block';
+
+    if (!isOpen) {
+      renderRecentFolders();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!folderMenuBtn.contains(e.target) && !folderMenu.contains(e.target)) {
+      folderMenu.style.display = 'none';
+    }
+  });
+}
+
+if (pickNewFolderBtn) {
+  pickNewFolderBtn.addEventListener('click', async () => {
+    folderMenu.style.display = 'none';
+
+    try {
+      const result = await window.electronAPI.pickFolder();
+      if (result && !result.canceled && result.audioFilePaths?.length > 0) {
+        audioFiles = result.audioFilePaths;
+     
+
+        addToRecentFolders(result.folderPath);
+
+        savedSortedOrder = [];
+        isShuffled = false;
+        shuffleBtn.classList.remove('enabled');
+        currentSearchTerm = '';
+        document.getElementById('playlistQuickSearch').value = '';
+        document.getElementById('clearQuickSearch').style.display = 'none';
+
+        renderPlaylist();
+        await applySavedSort();
+        currentIndex = 0;
+        playTrack(0);
+        scrollToCurrentTrack(true);
+      } else if (result && !result.canceled) {
+        alert('No audio files found in that folder');
+      }
+    } catch (err) {
+      console.error('Folder picker error:', err);
+      alert('Error opening folder picker');
+    }
+  });
+}
+
   savePlaylistBtn.addEventListener('click', async () => {
     if (audioFiles.length === 0) {
       alert('No tracks to save!');
@@ -3227,23 +3409,28 @@ let originalWindowHeight = 743;
 
 async function setVideoOnlyBackground(item) {
     let artworkEl = document.getElementById('artworkLayer');
-    if (!artworkEl) {
-        artworkEl = document.createElement('img');
-        artworkEl.id = 'artworkLayer';
-        artworkEl.style.cssText = `
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 0;
-            pointer-events: none;
-            display: block;
-        `;
+    const videoEl = document.getElementById('visualizerVideo');
+    if (!artworkEl || !videoEl) return;
+    artworkEl.style.opacity = '1';
+    artworkEl.style.display = 'block';
+    videoEl.style.opacity = '0';
+    videoEl.style.display = 'none';
+    if (videoEl.currentSrc && !videoEl.paused && videoEl.videoWidth > 0) {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoEl.videoWidth;
+            canvas.height = videoEl.videoHeight;
+            canvas.getContext('2d').drawImage(videoEl, 0, 0);
+            artworkEl.src = canvas.toDataURL('image/jpeg');
+        } catch (e) {
+            console.warn("Couldn't snapshot video frame:", e);
+        }
     }
+    videoEl.pause();
+    videoEl.src = '';
+    videoEl.load();
 
-    artworkEl.src = '';
-    let usedGifOrVideo = false;
+    let foundContent = false;
 
     if (typeof item === 'string') {
         const filePath = item;
@@ -3260,59 +3447,98 @@ async function setVideoOnlyBackground(item) {
         for (const name of videoCandidates) {
             const candidatePath = await window.electronAPI.pathJoin(dir, name);
             if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
-                const normalized = candidatePath.replace(/\\/g, '/');
-                const encoded = encodeURI(normalized).replace(/#/g, '%23');
-                artworkEl.src = `file://${encoded}`;
-                usedGifOrVideo = true;
+                const url = `file://${candidatePath.replace(/\\/g, '/').replace(/#/g, '%23')}`;
+
+                videoEl.src = url;
+                videoEl.load();
+
+                await new Promise(resolve => {
+                    const onCanPlay = () => {
+                        videoEl.removeEventListener('canplay', onCanPlay);
+                        videoEl.style.display = 'block';
+                        videoEl.style.opacity = '1';
+                        artworkEl.style.opacity = '0';
+                        videoEl.currentTime = audio.currentTime % (videoEl.duration || 1) || 0;
+                        videoEl.play().catch(() => {});
+                        foundContent = true;
+                        resolve();
+                    };
+
+                    videoEl.addEventListener('canplay', onCanPlay, { once: true });
+                    setTimeout(() => {
+                        if (!foundContent) {
+                            videoEl.style.opacity = '0';
+                            videoEl.style.display = 'none';
+                            resolve();
+                        }
+                    }, 5000);
+                });
+
+                if (foundContent) return;
                 break;
             }
         }
+        if (!foundContent && gifPreviewEnabled) {
+            const gifCandidates = [baseName + '.gif', 'cover.gif'];
+            for (const name of gifCandidates) {
+                const gifPath = await window.electronAPI.pathJoin(dir, name);
+                if (await window.electronAPI.fileExists(gifPath)) {
+                    const url = `file://${gifPath.replace(/\\/g, '/').replace(/#/g, '%23')}`;
+                    artworkEl.src = url;
 
-        if (usedGifOrVideo) {
-            artworkEl.style.display = 'block';
-            return;
-        }
+                    await new Promise(resolve => {
+                        const onLoad = () => {
+                            artworkEl.style.opacity = '1';
+                            foundContent = true;
+                            resolve();
+                        };
+                        artworkEl.addEventListener('load', onLoad, { once: true });
+                        artworkEl.addEventListener('error', () => resolve(), { once: true });
+                    });
 
-        const sameNameGif = baseName + '.gif';
-        const sameNameGifPath = await window.electronAPI.pathJoin(dir, sameNameGif);
-        if (await window.electronAPI.fileExists(sameNameGifPath) && gifPreviewEnabled) {
-            const normalized = sameNameGifPath.replace(/\\/g, '/');
-            const encoded = encodeURI(normalized).replace(/#/g, '%23');
-            artworkEl.src = `file://${encoded}`;
-            usedGifOrVideo = true;
+                    if (foundContent) return;
+                    break;
+                }
+            }
         }
+        if (!foundContent) {
+            const artUrl = await getAlbumArtUrl(filePath);
+            if (artUrl && artUrl !== 'build/default-artwork.jpg') {
+                artworkEl.src = artUrl;
 
-        if (usedGifOrVideo) {
-            artworkEl.style.display = 'block';
-            return;
-        }
+                await new Promise(resolve => {
+                    const onLoad = () => {
+                        artworkEl.style.opacity = '1';
+                        foundContent = true;
+                        resolve();
+                    };
+                    artworkEl.addEventListener('load', onLoad, { once: true });
+                    artworkEl.addEventListener('error', () => resolve(), { once: true });
+                });
 
-        const artUrl = await getAlbumArtUrl(filePath);
-        if (artUrl && artUrl !== 'build/default-artwork.jpg') {
-            artworkEl.src = artUrl;
-            return;
+                if (foundContent) return;
+            }
         }
-
-        const coverGifName = 'cover.gif';
-        const coverGifPath = await window.electronAPI.pathJoin(dir, coverGifName);
-        if (await window.electronAPI.fileExists(coverGifPath) && gifPreviewEnabled) {
-            const normalized = coverGifPath.replace(/\\/g, '/');
-            const encoded = encodeURI(normalized).replace(/#/g, '%23');
-            artworkEl.src = `file://${encoded}`;
-            usedGifOrVideo = true;
-        }
-
-        if (usedGifOrVideo) {
-            artworkEl.style.display = 'block';
-            return;
-        }
-    } 
+    }
     else if (item?.isJellyfin && item.albumArt) {
         artworkEl.src = item.albumArt;
-        return;
+
+        await new Promise(resolve => {
+            const onLoad = () => {
+                artworkEl.style.opacity = '1';
+                foundContent = true;
+                resolve();
+            };
+            artworkEl.addEventListener('load', onLoad, { once: true });
+            artworkEl.addEventListener('error', () => resolve(), { once: true });
+        });
+
+        if (foundContent) return;
     }
-    artworkEl.src = 'build/default-artwork.jpg';
-    artworkEl.style.display = 'block';
+    if (!foundContent) {
+        artworkEl.src = 'build/default-artwork.jpg';
+        artworkEl.style.opacity = '1';
+    }
 }
 
 document.getElementById('popoutVideoBtn').addEventListener('click', async () => {

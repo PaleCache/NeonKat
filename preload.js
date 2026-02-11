@@ -34,6 +34,7 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   pathExtname: (filePath) => ipcRenderer.invoke('path-extname', filePath),
   pathJoin: (...args) => ipcRenderer.invoke('path-join', ...args),
   resizeWindow: (w, h) => ipcRenderer.send('resize-window', w, h),
+  loadFolderDirect: (path) => ipcRenderer.invoke('load-folder-direct', path),
 
   onUpdateTrack: (callback) => {
     ipcRenderer.on('update-track', (event, data) => callback(data));

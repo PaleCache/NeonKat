@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=NeonKat
+Exec=NeonKat
+Icon=com.palecache.NeonKat
+Categories=AudioVideo;Player;
+StartupWMClass=NeonKat
