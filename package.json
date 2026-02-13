@@ -24,7 +24,9 @@
       "renderer/**/*",
       "build/**/*",
       "jsmediatags.min.js",
-      "hls.js@latest"
+      "hls.js@latest",
+      "build/NeonKat.desktop",
+      "build/com.palecache.NeonKat.metainfo.xml"
     ],
     "asar": true,
     "publish": [
@@ -52,7 +54,8 @@
       "maintainer": "PaleCache",
       "desktop": {
         "StartupWMClass": "NeonKat"
-      }
+      },
+      "artifactName": "${productName}-${version}-x86_64.${ext}"
     },
     "deb": {
       "depends": [
