@@ -2518,7 +2518,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.7 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.9 alpha</p>
       </div>
   </div>
   `;
@@ -2784,6 +2784,9 @@ removeTrackBtn.addEventListener('click', () => {
 
   if (shouldStopPlayback || audioFiles.length === 0) {
     audio.pause();
+    stopVideo();
+    clearBackground();
+    updateVideoSongName(`No Track`)
     audio.src = '';
     currentIndex = 0;
     window.electronAPI.updateTrack({ songName: 'No Track', artUrl: null, isPlaying: false });
@@ -3583,36 +3586,48 @@ async function setVideoOnlyBackground(item) {
 
 document.getElementById('popoutVideoBtn').addEventListener('click', async () => {
     videoOnlyMode = !videoOnlyMode;
+
     const container = document.getElementById('container');
     const btn = document.getElementById('popoutVideoBtn');
     const btnImg = btn.querySelector('img');
     const currentSongTitle = displayName || 'Unknown Track';
+
+    if (videoOnlyMode && !originalWindowWidth) {
+        originalWindowWidth = window.innerWidth;
+        originalWindowHeight = window.innerHeight;
+    }
 
     window.electronAPI?.resizeWindow?.(1241, 743);
 
     if (!videoOnlyMode) {
         document.body.classList.remove('video-only');
         songNameOverlay.style.display = 'none';
+
         const oldArtwork = document.getElementById('artworkLayer');
         if (oldArtwork) oldArtwork.remove();
+
         if (originalWindowWidth && originalWindowHeight) {
-            window.electronAPI?.resizeWindow?.(
-                originalWindowWidth,
-                originalWindowHeight
-            );
+            window.electronAPI?.resizeWindow?.(originalWindowWidth, originalWindowHeight);
         }
+
         setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
+
+        if (visualizerVideo.src && !audio.paused) {
+            visualizerVideo.play().catch(() => {});
+        }
         return;
     }
 
     document.body.classList.add('video-only');
-    updateVideoSongName(currentSongTitle)
+    updateVideoSongName(currentSongTitle);
     songNameOverlay.style.display = 'block';
+
     btnImg.style.filter = 'invert(1)';
     btn.style.backdropFilter = 'blur(10px)';
     btn.style.borderRadius = '50%';
     btn.style.padding = '12px';
     btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.7)';
+
     let artworkEl = document.getElementById('artworkLayer');
     if (!artworkEl) {
         artworkEl = document.createElement('img');
@@ -3629,11 +3644,34 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
         `;
         container.prepend(artworkEl);
     }
+
     const currentItem = audioFiles[currentIndex];
+
+    stopVideo(true);
+
     if (currentItem) {
         await setVideoOnlyBackground(currentItem);
     } else {
         artworkEl.src = 'build/default-artwork.jpg';
+    }
+
+    if (visualizerVideo.src) {
+        const shouldPlayVideo =
+            !audio.paused &&
+            audio.currentSrc &&
+            !isNaN(audio.duration) &&
+            audio.duration > 0;
+
+        if (shouldPlayVideo) {
+            setTimeout(() => {
+                if (!isNaN(visualizerVideo.duration) && isFinite(visualizerVideo.duration)) {
+                    visualizerVideo.currentTime = audio.currentTime % visualizerVideo.duration || 0;
+                }
+                visualizerVideo.play().catch(err => {});
+            }, 100);
+        } else {
+            visualizerVideo.pause();
+        }
     }
 });
 
