@@ -19,7 +19,6 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   updateVolume: (volume) => ipcRenderer.send('update-volume', volume),
   updateVisualizer: (data) => ipcRenderer.send('update-visualizer', data),
   updateTime: (currentTime, duration) => ipcRenderer.send('update-time', currentTime, duration),
-  disableVisualizer: () => ipcRenderer.send('disable-visualizer'),
   notify: (title, body) => ipcRenderer.send('notify', { title, body }),
   playPrevious: () => ipcRenderer.send('play-previous'),
   playNext: () => ipcRenderer.send('play-next'),
@@ -64,14 +63,8 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
     ipcRenderer.on('toggle-play', () => callback());
     return () => ipcRenderer.removeAllListeners('toggle-play');
   },
-  onUpdateVisualizer: (callback) => {
-    ipcRenderer.on('update-visualizer', (event, data) => callback(data));
-    return () => ipcRenderer.removeAllListeners('update-visualizer');
-  },
-  onDisableVisualizer: (callback) => {
-    ipcRenderer.on('disable-visualizer', () => callback());
-    return () => ipcRenderer.removeAllListeners('disable-visualizer');
-  },
+
+
   onUpdateTime: (callback) => {
     ipcRenderer.on('update-time', (event, currentTime, duration) => callback(currentTime, duration));
     return () => ipcRenderer.removeAllListeners('update-time');
@@ -79,5 +72,16 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   onSeekFromMini: (callback) => {
     ipcRenderer.on('seek-from-mini', (event, time) => callback(time));
     return () => ipcRenderer.removeAllListeners('seek-from-mini');
+  },
+  onDownloadProgress: (callback) => {
+    const listener = (event, data) => callback(data);
+    ipcRenderer.on('download-progress', listener);
+    return () => {
+      ipcRenderer.removeListener('download-progress', listener);
+    };
+  },
+  removeDownloadProgressListener: () => {
+    ipcRenderer.removeAllListeners('download-progress');
   }
+
 });

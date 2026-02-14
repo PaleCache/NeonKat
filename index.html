@@ -292,7 +292,7 @@ a {
     }
     #visualizer {
       width: 100%;
-      height: 174px;
+      height: 180px;
       background-size: contain;
       background-position: center;
       background-repeat: no-repeat;
@@ -449,7 +449,7 @@ a {
     }
 
   body.mini-mode #visualizer {
-    height: 105px !important;
+    height: 107px !important;
     background-position: center !important;
     image-rendering: pixelated;
 
@@ -461,7 +461,7 @@ body.mini-mode #visualizerVideo {
     inset: 0;
     width: 100%;
     height: 106px;
-    object-fit: cover;
+    object-fit: fill;
     z-index: 0;
     border-radius: inherit;
 }
@@ -786,7 +786,7 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
     inset: 0;
     width: 100%;
     height: 179px;          
-    object-fit: cover;
+    object-fit: fill;
     z-index: 0;
     border-radius: inherit;
     background: transparent;  
@@ -864,7 +864,7 @@ body.video-only #visualizerVideo {
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  object-fit: cover !important;
+  object-fit: fill !important;
   z-index: 1 !important;
   border-radius: 0 !important;
 }
@@ -1041,23 +1041,36 @@ body.video-only #progressContainer {
 }
 
 body.video-only #videoSongName {
-     position: absolute;
-    top: 3vh;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    font-size: 0.6em;
-    font-weight: bold;
-    text-shadow: 0 0 10px rgba(0,0,0,0.7);
-    pointer-events: none;
-    z-index: 20;
-    text-align: center;
-    white-space: nowrap;
-    opacity: 1;
+  position: fixed;
+  top: 16px;
+  left: 50% !important;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: 80vw;                          
+  padding: 6px 16px;
+  box-sizing: border-box;
+  font-size: clamp(0.9rem, 3.8vw, 1.6rem); 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 999px;
+  z-index: 10000;
+  font-size: 0.6em;
+  opacity: 1;
+}
+
+body.video-only #videoSongName,
+body.video-only #progressContainer {
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 82vw;
+  padding-left:  20px;
+  padding-right: 20px;
 }
 
 #videoSongName {
   opacity: 0;
+  display: none;
 }
 
 #artworkLayer {
@@ -1256,8 +1269,8 @@ body.video-only #videoSongName {
     <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 3px; background: rgba(0,0,0,0.8); border-radius: 3px; justify-content: center; align-items: center; z-index: 9999;">
   <div style="background: #111111; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
     border-radius: 3px;-webkit-app-region: no-drag;">
-    <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
-    <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
+    <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Streams / Video Streams</h3>
+    <label>Stream URL (.mp3, .aac, .pls, .m3u, .m3u8, etc.):</label>
     <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
     
     <label>Station Name (optional):</label>
@@ -1945,6 +1958,10 @@ confirmBtn.addEventListener('click', async () => {
 });
 
 
+function stopVideoSync() {
+    clearInterval(syncInterval);
+}
+
 
 async function loadJellyfinLibrary() {
   if (!jellyfinConfig.token) return;
@@ -2360,6 +2377,7 @@ if (qualitySelect) {
 
 
   let downloadFolder = null; 
+  let removeProgressListener = null;
 
 function updateToggleUI() {
     if (skipVideo) {
@@ -2384,10 +2402,50 @@ updateToggleUI();
     }
   });
 
-  cancelBtn.addEventListener('click', () => ytModal.remove());
+  cancelBtn.addEventListener('click', () => ytModal.remove()); if (removeProgressListener) {
+    removeProgressListener();
+    removeProgressListener = null;
+  }
+
   ytModal.addEventListener('click', (e) => { if (e.target === ytModal) ytModal.remove(); });
 
+removeProgressListener = window.electronAPI.onDownloadProgress((data) => {
+  const percent = Math.round(data.percent || 0);
+  const status = data.status || 'downloading';
+  confirmBtn.disabled = true;
 
+  let buttonText = `Downloading… ${percent}%`;
+  if (status === 'starting') {
+    buttonText = `Starting… ${percent}%`;
+  } else if (status === 'fetching-info') {
+    buttonText = `Fetching info… ${percent}%`;
+  } else if (status === 'info-fetched') {
+    buttonText = `Metadata OK… ${percent}%`;
+  } else if (status === 'thumbnail') {
+    buttonText = `Thumbnail… ${percent}%`;
+  } else if (status === 'audio') {
+    buttonText = `Audio only… ${percent}%`;
+  } else if (status === 'video') {
+    buttonText = `Video + audio… ${percent}%`;
+  } else if (status === 'processing' || status === 'audio-processing') {
+    buttonText = `Processing… ${percent}%`;
+  } else if (status === 'audio-extract') {
+    buttonText = `Extracting MP3… ${percent}%`;
+  } else if (status === 'finished') {
+    buttonText = 'Done! 100%';
+    setTimeout(() => {
+      confirmBtn.textContent = 'Download';
+      confirmBtn.disabled = false;
+    }, 1800);
+  } else if (status === 'error') {
+    buttonText = 'Failed – try again';
+    setTimeout(() => {
+      confirmBtn.textContent = 'Download';
+      confirmBtn.disabled = false;
+    }, 2500);
+  }
+  confirmBtn.textContent = buttonText;
+});
 
 skipToggle.addEventListener('click', () => {
     skipVideo = !skipVideo;
@@ -2477,7 +2535,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.7 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.9 alpha</p>
       </div>
   </div>
   `;
@@ -2743,6 +2801,9 @@ removeTrackBtn.addEventListener('click', () => {
 
   if (shouldStopPlayback || audioFiles.length === 0) {
     audio.pause();
+    stopVideo();
+    clearBackground();
+    updateVideoSongName(`No Track`)
     audio.src = '';
     currentIndex = 0;
     window.electronAPI.updateTrack({ songName: 'No Track', artUrl: null, isPlaying: false });
@@ -3008,6 +3069,11 @@ sortOptions.forEach(btn => {
     if (audioFiles.length === 0) return;
     audioFiles = [];
     currentIndex = 0;
+    audio.currentTime = 0;
+    currentTimeElem.textContent = '0:00';
+    durationElem.textContent = '0:00';
+    progressBar.value = 0;
+    progressBar.max = 1;
     audio.pause();
     audio.src = '';
     visualizerCanvas.style.backgroundImage = 'none';
@@ -3388,6 +3454,15 @@ function stopVideo() {
         visualizerVideo.style.display = 'none';      
         visualizerVideo.style.opacity = '0';
     }
+    if (visualizerHlsInstance) {
+        visualizerHlsInstance.destroy();
+        visualizerHlsInstance = null;
+        console.log("[StopVideo] Destroyed visualizer HLS instance");
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+
+ 
 }
 
 function clearBackground() {
@@ -3408,13 +3483,27 @@ let originalWindowHeight = 743;
 
 
 async function setVideoOnlyBackground(item) {
-    let artworkEl = document.getElementById('artworkLayer');
+    const artworkEl = document.getElementById('artworkLayer');
     const videoEl = document.getElementById('visualizerVideo');
     if (!artworkEl || !videoEl) return;
     artworkEl.style.opacity = '1';
     artworkEl.style.display = 'block';
     videoEl.style.opacity = '0';
     videoEl.style.display = 'none';
+
+if (!videoEl || !artworkEl) return;
+if (videoEl.src && videoEl.readyState >= 2) {
+    videoEl.style.display = 'block';
+    videoEl.style.opacity = '1';
+    artworkEl.style.opacity = '0';
+
+    if (!audio.paused) {
+        videoEl.currentTime = audio.currentTime;
+        videoEl.play().catch(() => {});
+    }
+
+    return;
+}
     if (videoEl.currentSrc && !videoEl.paused && videoEl.videoWidth > 0) {
         try {
             const canvas = document.createElement('canvas');
@@ -3426,11 +3515,39 @@ async function setVideoOnlyBackground(item) {
             console.warn("Couldn't snapshot video frame:", e);
         }
     }
-    videoEl.pause();
-    videoEl.src = '';
-    videoEl.load();
 
     let foundContent = false;
+
+    if (item?.isStream && item.url?.includes('.m3u8')) {
+    videoEl.style.display = 'block';
+    videoEl.style.opacity = '1';
+    artworkEl.style.opacity = '0';
+    videoEl.loop = true;
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+
+    if (visualizerHlsInstance) {
+        visualizerHlsInstance.destroy();
+        visualizerHlsInstance = null;
+    }
+
+    if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(item.url);
+        hls.attachMedia(videoEl);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoEl.currentTime = 0;
+            videoEl.play().catch(() => {});
+        });
+        visualizerHlsInstance = hls;
+    } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+        videoEl.src = item.url;
+        videoEl.currentTime = 0;
+        videoEl.play().catch(() => {});
+    }
+
+    return;
+}
 
     if (typeof item === 'string') {
         const filePath = item;
@@ -3448,7 +3565,6 @@ async function setVideoOnlyBackground(item) {
             const candidatePath = await window.electronAPI.pathJoin(dir, name);
             if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
                 const url = `file://${candidatePath.replace(/\\/g, '/').replace(/#/g, '%23')}`;
-
                 videoEl.src = url;
                 videoEl.load();
 
@@ -3463,7 +3579,6 @@ async function setVideoOnlyBackground(item) {
                         foundContent = true;
                         resolve();
                     };
-
                     videoEl.addEventListener('canplay', onCanPlay, { once: true });
                     setTimeout(() => {
                         if (!foundContent) {
@@ -3478,6 +3593,26 @@ async function setVideoOnlyBackground(item) {
                 break;
             }
         }
+
+        if (!foundContent) {
+            const artUrl = await getAlbumArtUrl(filePath);
+            if (artUrl && artUrl !== 'build/default-artwork.jpg') {
+                artworkEl.src = artUrl;
+
+                await new Promise(resolve => {
+                    const onLoad = () => {
+                        artworkEl.style.opacity = '1';
+                        foundContent = true;
+                        resolve();
+                    };
+                    artworkEl.addEventListener('load', onLoad, { once: true });
+                    artworkEl.addEventListener('error', () => resolve(), { once: true });
+                });
+
+                if (foundContent) return;
+            }
+        }
+
         if (!foundContent && gifPreviewEnabled) {
             const gifCandidates = [baseName + '.gif', 'cover.gif'];
             for (const name of gifCandidates) {
@@ -3501,25 +3636,9 @@ async function setVideoOnlyBackground(item) {
                 }
             }
         }
-        if (!foundContent) {
-            const artUrl = await getAlbumArtUrl(filePath);
-            if (artUrl && artUrl !== 'build/default-artwork.jpg') {
-                artworkEl.src = artUrl;
-
-                await new Promise(resolve => {
-                    const onLoad = () => {
-                        artworkEl.style.opacity = '1';
-                        foundContent = true;
-                        resolve();
-                    };
-                    artworkEl.addEventListener('load', onLoad, { once: true });
-                    artworkEl.addEventListener('error', () => resolve(), { once: true });
-                });
-
-                if (foundContent) return;
-            }
-        }
     }
+
+
     else if (item?.isJellyfin && item.albumArt) {
         artworkEl.src = item.albumArt;
 
@@ -3535,44 +3654,111 @@ async function setVideoOnlyBackground(item) {
 
         if (foundContent) return;
     }
+
     if (!foundContent) {
         artworkEl.src = 'build/default-artwork.jpg';
         artworkEl.style.opacity = '1';
     }
 }
 
+
 document.getElementById('popoutVideoBtn').addEventListener('click', async () => {
     videoOnlyMode = !videoOnlyMode;
+
     const container = document.getElementById('container');
     const btn = document.getElementById('popoutVideoBtn');
     const btnImg = btn.querySelector('img');
     const currentSongTitle = displayName || 'Unknown Track';
-
-    window.electronAPI?.resizeWindow?.(1241, 743);
-
-    if (!videoOnlyMode) {
-        document.body.classList.remove('video-only');
-        songNameOverlay.style.display = 'none';
-        const oldArtwork = document.getElementById('artworkLayer');
-        if (oldArtwork) oldArtwork.remove();
-        if (originalWindowWidth && originalWindowHeight) {
-            window.electronAPI?.resizeWindow?.(
-                originalWindowWidth,
-                originalWindowHeight
-            );
-        }
-        setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
-        return;
+    if (videoOnlyMode && !originalWindowWidth) {
+        originalWindowWidth = window.innerWidth;
+        originalWindowHeight = window.innerHeight;
     }
 
+    if (videoOnlyMode) {
+        window.electronAPI?.resizeWindow?.(1241, 743);
+        document.body.classList.add('video-only');
+        updateVideoSongName(currentSongTitle);
+        songNameOverlay.style.display = 'block';
+        btnImg.style.filter = 'invert(1)';
+        btn.style.backdropFilter = 'blur(10px)';
+        btn.style.borderRadius = '50%';
+        btn.style.padding = '12px';
+        btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.7)';
+        let artworkEl = document.getElementById('artworkLayer');
+        if (!artworkEl) {
+            artworkEl = document.createElement('img');
+            artworkEl.id = 'artworkLayer';
+            artworkEl.style.cssText = `
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 5;
+                pointer-events: none;
+                display: block;
+            `;
+            container.prepend(artworkEl);
+        }
+
+        const currentItem = audioFiles[currentIndex];
+        if (currentItem) {
+            await setVideoOnlyBackground(currentItem);
+        } else {
+            artworkEl.src = 'build/default-artwork.jpg';
+            artworkEl.style.opacity = '1';
+        }
+
+        const videoEl = document.getElementById('visualizerVideo');
+        if (videoEl && videoEl.src) {
+            try {
+                videoEl.currentTime = 0;
+                await videoEl.play();
+            } catch (err) {
+                console.warn("Video-only playback failed:", err);
+            }
+        }
+    } else {
+
+        document.body.classList.remove('video-only');
+        songNameOverlay.style.display = 'none';
+
+        const artworkEl = document.getElementById('artworkLayer');
+        if (artworkEl) artworkEl.remove();
+
+        if (originalWindowWidth && originalWindowHeight) {
+            window.electronAPI?.resizeWindow?.(originalWindowWidth, originalWindowHeight);
+        }
+
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
+        const videoEl = document.getElementById('visualizerVideo');
+        if (videoEl && videoEl.src) {
+            videoEl.play().catch(() => {});
+        }
+    }
+});
+
+
+
+
+
+function updateVideoSongName(title) {
+  const maxLength = 60;
+  if (title.length > maxLength) {
+    songNameOverlay.textContent = title.slice(0, maxLength - 3) + "...";
+  } else {
+    songNameOverlay.textContent = title;
+  }
+}
+
+let visualizerHlsInstance = null;
+async function enterVideoOnlyMode() {
+    videoOnlyMode = true;
     document.body.classList.add('video-only');
-    updateVideoSongName(currentSongTitle)
     songNameOverlay.style.display = 'block';
-    btnImg.style.filter = 'invert(1)';
-    btn.style.backdropFilter = 'blur(10px)';
-    btn.style.borderRadius = '50%';
-    btn.style.padding = '12px';
-    btn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.7)';
+    updateVideoSongName(displayName || 'Unknown Track');
+
+    const container = document.getElementById('container');
     let artworkEl = document.getElementById('artworkLayer');
     if (!artworkEl) {
         artworkEl = document.createElement('img');
@@ -3589,34 +3775,79 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
         `;
         container.prepend(artworkEl);
     }
+
+    stopVideo(true);
     const currentItem = audioFiles[currentIndex];
     if (currentItem) {
-        console.log("Setting video-only background for:", currentItem);
         await setVideoOnlyBackground(currentItem);
     } else {
         artworkEl.src = 'build/default-artwork.jpg';
     }
-});
 
-
-
-function updateVideoSongName(title) {
-  const maxLength = 60;
-  if (title.length > maxLength) {
-    songNameOverlay.textContent = title.slice(0, maxLength - 3) + "...";
-  } else {
-    songNameOverlay.textContent = title;
-  }
+    if (visualizerVideo.src) {
+        try {
+            if (!isNaN(visualizerVideo.duration) && isFinite(visualizerVideo.duration)) {
+                visualizerVideo.currentTime = 0;
+            }
+            await visualizerVideo.play();
+        } catch (err) {
+            console.warn("Video-only playback failed:", err);
+        }
+    }
 }
+
+
 
 async function setVisualizerBackground(item) {
     stopVideo();
     visualizerCanvas.style.backgroundImage = 'none';
     visualizerCanvas.style.backgroundColor = '#111111';
+    visualizerVideo.style.display = 'none';
+    visualizerVideo.pause();
+    visualizerVideo.src = '';
     currentArtImage = null;
 
     let artUrl = null;
     let usedGifOrVideo = false;
+    if (item?.isStream && item.url?.includes('.m3u8')) {
+        visualizerVideo.style.display = 'block';
+        visualizerVideo.loop = true;
+        visualizerVideo.muted = true;
+        visualizerVideo.playsInline = true;
+        visualizerVideo.style.opacity = '1';
+        visualizerVideo.style.zIndex = '0';
+        visualizerCanvas.style.backgroundColor = 'transparent';
+
+        if (visualizerHlsInstance) {
+            visualizerHlsInstance.destroy();
+            visualizerHlsInstance = null;
+        }
+
+        if (Hls.isSupported()) {
+            const hls = new Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30,maxBufferLength: 30 });
+            hls.loadSource(item.url);
+            hls.attachMedia(visualizerVideo);
+            hls.on(Hls.Events.MANIFEST_PARSED, () =>
+                visualizerVideo.play().catch(console.error)
+            );
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    console.error("Visualizer HLS error:", data);
+                    hls.destroy();
+                    visualizerHlsInstance = null;
+                }
+            });
+            visualizerHlsInstance = hls;
+        } else if (visualizerVideo.canPlayType('application/vnd.apple.mpegurl')) {
+            visualizerVideo.src = item.url;
+            visualizerVideo.addEventListener('loadedmetadata', () =>
+                visualizerVideo.play().catch(console.error)
+            );
+        }
+
+        usedGifOrVideo = true;
+        return;
+    }
 
     if (typeof item === 'string') {
         const filePath = item;
@@ -3631,51 +3862,45 @@ async function setVisualizerBackground(item) {
         ];
 
         for (const name of videoCandidates) {
-    const candidatePath = await window.electronAPI.pathJoin(dir, name);
-    if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
-        const normalized = candidatePath.replace(/\\/g, '/');
-        const encoded = encodeURI(normalized).replace(/#/g, '%23');
-        visualizerVideo.src = `file://${encoded}`;
-        visualizerVideo.style.display = 'block';          
-        visualizerVideo.style.opacity = '1';              
-        visualizerVideo.style.zIndex = '0';              
-        visualizerVideo.currentTime = 0;
-        visualizerVideo.loop = true;
-        visualizerVideo.muted = true;
-        visualizerVideo.playsInline = true;
-        try {
-            await visualizerVideo.play();
-            visualizerCanvas.style.backgroundColor = 'transparent';
-            visualizerCanvas.style.backgroundImage = 'none';
-        } catch (err) {
-            console.error("Video play failed:", err);
+            const candidatePath = await window.electronAPI.pathJoin(dir, name);
+            if (await window.electronAPI.fileExists(candidatePath) && gifPreviewEnabled) {
+                const normalized = candidatePath.replace(/\\/g, '/');
+                const encoded = encodeURI(normalized).replace(/#/g, '%23');
+                visualizerVideo.src = `file://${encoded}`;
+                visualizerVideo.style.display = 'block';
+                visualizerVideo.style.opacity = '1';
+                visualizerVideo.style.zIndex = '0';
+                visualizerVideo.currentTime = 0;
+                visualizerVideo.loop = true;
+                visualizerVideo.muted = true;
+                visualizerVideo.playsInline = true;
+                try {
+                    await visualizerVideo.play();
+                    visualizerCanvas.style.backgroundColor = 'transparent';
+                    visualizerCanvas.style.backgroundImage = 'none';
+                } catch (err) {
+                    console.error("Video play failed:", err);
+                }
+                usedGifOrVideo = true;
+                break;
+            }
         }
-
-        usedGifOrVideo = true;
-        break;
-    }
-}
 
         if (usedGifOrVideo) return;
         const sameNameGif = baseName + '.gif';
         const sameNameGifPath = await window.electronAPI.pathJoin(dir, sameNameGif);
-       if (await window.electronAPI.fileExists(sameNameGifPath) && gifPreviewEnabled) {
-        const normalized = sameNameGifPath.replace(/\\/g, '/');
-        const encoded = encodeURI(normalized).replace(/#/g, '%23');
-        const gifUrl = `file://${encoded}`;
-        visualizerVideo.style.display = 'none';
-        const gifElement = document.getElementById('visualizerBgGif');
-        if (gifElement) {
-            gifElement.src = gifUrl;
-            gifElement.style.display = 'block';
-            gifElement.style.objectFit = 'contain';
-            gifElement.style.objectPosition = 'center';
-        } else {
-            console.warn("visualizerBgGif element not found in DOM!");
+        if (await window.electronAPI.fileExists(sameNameGifPath) && gifPreviewEnabled) {
+            const normalized = sameNameGifPath.replace(/\\/g, '/');
+            const encoded = encodeURI(normalized).replace(/#/g, '%23');
+            const gifElement = document.getElementById('visualizerBgGif');
+            if (gifElement) {
+                gifElement.src = `file://${encoded}`;
+                gifElement.style.display = 'block';
+                gifElement.style.objectFit = 'contain';
+                gifElement.style.objectPosition = 'center';
+            }
+            usedGifOrVideo = true;
         }
-
-        usedGifOrVideo = true;
-    }
 
         if (usedGifOrVideo) return;
         artUrl = await getAlbumArtUrl(filePath);
@@ -3683,9 +3908,7 @@ async function setVisualizerBackground(item) {
             const loader = document.getElementById('artLoader');
             if (loader) {
                 loader.src = artUrl;
-                loader.onload = () => {
-                    currentArtImage = loader;
-                };
+                loader.onload = () => { currentArtImage = loader; };
                 loader.onerror = () => {
                     console.warn("[ART] Album art failed to load");
                     visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
@@ -3693,23 +3916,23 @@ async function setVisualizerBackground(item) {
             }
             return;
         }
+
         const coverGifName = 'cover.gif';
         const coverGifPath = await window.electronAPI.pathJoin(dir, coverGifName);
         if (await window.electronAPI.fileExists(coverGifPath) && gifPreviewEnabled) {
             const normalized = coverGifPath.replace(/\\/g, '/');
             const encoded = encodeURI(normalized).replace(/#/g, '%23');
-            visualizerVideo.style.display = 'none';
             visualizerCanvas.style.backgroundImage = `url("file://${encoded}")`;
-            visualizerCanvas.style.backgroundSize = 'cover';          
-              visualizerCanvas.style.backgroundPosition = 'center';
-              visualizerCanvas.style.backgroundRepeat = 'no-repeat';
-              visualizerCanvas.style.imageRendering = 'auto';
+            visualizerCanvas.style.backgroundSize = 'cover';
+            visualizerCanvas.style.backgroundPosition = 'center';
+            visualizerCanvas.style.backgroundRepeat = 'no-repeat';
+            visualizerCanvas.style.imageRendering = 'auto';
             usedGifOrVideo = true;
         }
-    } 
+    }
+
     else if (item?.isJellyfin && item.albumArt) {
         artUrl = item.albumArt;
-
         const loader = document.getElementById('artLoader');
         if (loader) {
             loader.src = artUrl;
@@ -3728,13 +3951,10 @@ async function setVisualizerBackground(item) {
     }
 }
 
-
+let hlsInstance = null;
   async function playTrack(index) {
   stopVideo()
   if (index < 0 || index >= audioFiles.length) return;
-
-
-
   currentIndex = index;
   selectedIndices.clear();
   selectedIndices.add(currentIndex);
@@ -3762,25 +3982,91 @@ async function setVisualizerBackground(item) {
     return;
 }
 
- if (Hls.isSupported() && src.endsWith('.m3u8') || src.includes('.m3u8?')) {
-    const hls = new Hls();
-    hls.loadSource(src);
-    hls.attachMedia(audio);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      audio.play();
-    });
-  
-    hls.on(Hls.Events.ERROR, (event, data) => {
-      if (data.fatal) {
-        console.error('Fatal HLS error:', data);
-        audio.src = src;
-        audio.play();
+ const isHlsSource = src.includes('.m3u8');
+
+if (isHlsSource) {
+  if (hlsInstance) {
+    hlsInstance.destroy();
+    hlsInstance = null;
+  }
+
+  if (Hls.isSupported()) {
+    hlsInstance = new Hls({
+      enableWorker: true,
+      lowLatencyMode: true,
+      liveSyncDurationCount: 3,          
+      liveMaxLatencyDurationCount: 5,
+      manifestLoadingTimeOut: 10000,
+      manifestLoadingMaxRetry: 6,          
+      manifestLoadingRetryDelay: 1000,
+      fragLoadingTimeOut: 20000,
+      fragLoadingMaxRetry: 6,
+      fragLoadingRetryDelay: 1000,
+      recoverMediaErrorOnMediaError: true,
+      capLevelToPlayerSize: false,
+      xhrSetup: (xhr, url) => {
+        xhr.withCredentials = true;
       }
     });
-  } else {
+
+    hlsInstance.loadSource(src);
+    hlsInstance.attachMedia(audio);
+
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+      audio.play().catch(e => console.log("[HLS Play]", e));
+    });
+    let manifestRefreshTimer = null;
+    hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+      clearTimeout(manifestRefreshTimer);
+      manifestRefreshTimer = setTimeout(() => {
+        if (hlsInstance && !hlsInstance.destroyed) {
+          console.log("[HLS] Auto-refreshing manifest to prevent 403");
+          hlsInstance.loadLevel = hlsInstance.currentLevel;
+        }
+      }, 240000);
+    });
+
+    hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+      console.log("[HLS Error]", data);
+
+      if (data.fatal) {
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          if (data.details.includes('403') || data.details.includes('timeout')) {
+            console.warn("[HLS] 403/timeout detected — attempting recovery");
+            setTimeout(() => {
+              if (hlsInstance && !hlsInstance.destroyed) {
+                hlsInstance.loadLevel = hlsInstance.currentLevel;
+              }
+            }, 2000);
+          } else {
+            hlsInstance.destroy();
+            hlsInstance = null;
+            audio.src = src;
+            audio.load();
+            audio.play().catch(console.error);
+          }
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hlsInstance.recoverMediaError();
+        } else {
+          hlsInstance.destroy();
+          hlsInstance = null;
+        }
+      }
+    });
+  } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
     audio.src = src;
-    audio.play();
+    audio.addEventListener('loadedmetadata', () => {
+      audio.play().catch(console.error);
+    });
   }
+} else {
+  if (hlsInstance) {
+    hlsInstance.destroy();
+    hlsInstance = null;
+  }
+  audio.src = src;
+  audio.play().catch(console.error);
+}
   await setVisualizerBackground(item);
 
   const trackData = {
@@ -3951,7 +4237,7 @@ function visualize() {
 
   function draw(timestamp) {
     animationFrameId = requestAnimationFrame(draw);
-    if (lastTime && (timestamp - lastTime) < 33) return;
+   
     lastTime = timestamp || performance.now();
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
@@ -4046,25 +4332,29 @@ function visualize() {
       window.electronAPI.updateVisualizer(Array.from(dataArray));
     }
 
-    let lowEnergy = 0;
-    for (let i = 0; i < 10; i++) lowEnergy += dataArray[i] * dataArray[i];
-    lowEnergy = Math.sqrt(lowEnergy / 10);
+  let bassEnergy = 0;
+for (let i = 1; i <= 4; i++) bassEnergy += dataArray[i];
+bassEnergy /= 4;
 
     if (!energyHistory) energyHistory = [];
-    energyHistory.push(lowEnergy);
+    energyHistory.push(bassEnergy);
     if (energyHistory.length > 32) energyHistory.shift();
 
     const avgEnergy =
       energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
 
-    let isBeat = false;
+  const sensitivity = 1.25;
+  const threshold = avgEnergy * sensitivity;
+  let isBeat = false;
+  const now = performance.now();
+  const REFRACTORY_MS = 200;
 
-    if (lowEnergy > Math.max(avgEnergy * 1.3, 80) && !lastBeat) {
-      isBeat = true;
-      lastBeat = true;
-    } else if (lowEnergy < avgEnergy * 1.1) {
-      lastBeat = false;
-    }
+if (bassEnergy > threshold && now - lastBeatTime > REFRACTORY_MS) {
+    isBeat = true;
+    lastBeatTime = now;
+} else {
+    isBeat = false;
+}
 
     const currentPrimaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
 
@@ -4133,7 +4423,7 @@ function visualize() {
         if (!window.bubbles) window.bubbles = [];
 
         const MAX_BUBBLES = 25;
-        const bassLevel = lowEnergy / 255;
+        const bassLevel = bassEnergy / 255;
 
   if (Math.random() < bassLevel * 0.35) {
     const img = getRandomBubbleImage(bubbleImages);
@@ -4205,7 +4495,7 @@ function visualize() {
       if (!window.katBubbles) window.katBubbles = [];
 
       const MAX_KAT_BUBBLES = 25;
-      const bassLevel = lowEnergy / 255;
+      const bassLevel = bassEnergy / 255;
 
       if (Math.random() < bassLevel * 0.35) {
         const img = getRandomBubbleImage(katbubbleImages);
@@ -4269,7 +4559,7 @@ function visualize() {
       if (!window.nukeBubbles) window.nukeBubbles = [];
 
       const MAX_NUKE_BUBBLES = 25;
-      const bassLevel = lowEnergy / 255;
+      const bassLevel = bassEnergy / 255;
 
       if (Math.random() < bassLevel * 0.35) {
         const img = getRandomBubbleImage(nukebubbleImages);
@@ -4393,7 +4683,6 @@ document.addEventListener('visibilitychange', () => {
     r = Math.min(255, Math.max(0, Math.round(r * (1 + percent / 100))));
     g = Math.min(255, Math.max(0, Math.round(g * (1 + percent / 100))));
     b = Math.min(255, Math.max(0, Math.round(b * (1 + percent / 100))));
-
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
 
@@ -4747,23 +5036,6 @@ function checkForUpdatesSilently() {
 
 
 </script>
-
-
-
-<div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 9999;">
-  <div style="background: #222; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;">
-    <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Stream</h3>
-    <label>Stream URL (.mp3, .aac, .pls, .m3u etc.):</label>
-    <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #333; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
-    
-    <label>Station Name (optional):</label>
-    <input type="text" id="streamNameInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #333; border: none; border-radius: 5px; color: white;" placeholder="My Favorite Station" />
-    
-    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-      <button id="cancelStreamBtn" style="background: #444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
-      <button id="addStreamConfirmBtn" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Add</button>
-    </div>
-  </div>
 </div>
 </body>
 </html>
