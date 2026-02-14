@@ -37,7 +37,7 @@ function createWindow() {
     frame: false,
     transparent: false,
      backgroundColor: '#000000',
-    resizable: true,
+    resizable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -242,6 +242,12 @@ ipcMain.handle('load-folder-direct', async (event, folderPath) => {
   } catch (err) {
     console.error('Direct folder load failed:', err.message);
     return { canceled: true, error: err.message };
+  }
+});
+
+ipcMain.on('set-resizable', (event, value) => {
+  if (mainWindow) {
+    mainWindow.setResizable(value);
   }
 });
 

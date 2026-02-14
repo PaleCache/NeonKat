@@ -2535,7 +2535,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.2.9 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.0 alpha</p>
       </div>
   </div>
   `;
@@ -2878,17 +2878,43 @@ async function sortPlaylist(criteria, ascending) {
   let sortedFiles = [...audioFiles];
   const currentItem = audioFiles[currentIndex];
 
-  if (criteria === 'name') {
+if (criteria === 'name') {
     sortedFiles.sort((a, b) => {
-      const getName = (item) => {
-        if (typeof item === 'string') return item.split(/[\\/]/).pop().toLowerCase();
-        if (item.isStream || item.isJellyfin) return (item.name || 'unknown').toLowerCase();
-        return 'unknown';
-      };
-      const nameA = getName(a);
-      const nameB = getName(b);
-      return ascending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+        const getName = (item) => {
+            if (typeof item === 'string')
+                return item.split(/[\\/]/).pop().toLowerCase();
+
+            if (item?.isJellyfin)
+                return (item.sortName || item.name || item.Name || 'unknown')
+                    .toString()
+                    .toLowerCase();
+
+            if (item?.isStream)
+                return (item.name || 'unknown').toLowerCase();
+
+            return 'unknown';
+        };
+
+        const nameA = getName(a);
+        const nameB = getName(b);
+
+        return ascending
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
     });
+
+   audioFiles = sortedFiles;
+    currentIndex = audioFiles.indexOf(currentItem);
+    if (currentIndex === -1) currentIndex = 0;
+
+    selectedIndices.clear();
+    selectedIndices.add(currentIndex);
+
+    renderPlaylist();
+    updateSelectionVisuals();
+    scrollToCurrentTrack();
+    
+
   } else if (criteria === 'date') {
     const wasPlaying = audioFiles[currentIndex];
     let playingId = null;
@@ -3586,7 +3612,7 @@ if (videoEl.src && videoEl.readyState >= 2) {
                             videoEl.style.display = 'none';
                             resolve();
                         }
-                    }, 5000);
+                    }, 500);
                 });
 
                 if (foundContent) return;
@@ -3664,7 +3690,6 @@ if (videoEl.src && videoEl.readyState >= 2) {
 
 document.getElementById('popoutVideoBtn').addEventListener('click', async () => {
     videoOnlyMode = !videoOnlyMode;
-
     const container = document.getElementById('container');
     const btn = document.getElementById('popoutVideoBtn');
     const btnImg = btn.querySelector('img');
@@ -3675,7 +3700,9 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
     }
 
     if (videoOnlyMode) {
+        
         window.electronAPI?.resizeWindow?.(1241, 743);
+        window.electronAPI.setResizable(true)
         document.body.classList.add('video-only');
         updateVideoSongName(currentSongTitle);
         songNameOverlay.style.display = 'block';
@@ -3722,7 +3749,7 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
 
         document.body.classList.remove('video-only');
         songNameOverlay.style.display = 'none';
-
+        
         const artworkEl = document.getElementById('artworkLayer');
         if (artworkEl) artworkEl.remove();
 
@@ -3732,6 +3759,7 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
 
         setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
         const videoEl = document.getElementById('visualizerVideo');
+         window.electronAPI.setResizable(false)
         if (videoEl && videoEl.src) {
             videoEl.play().catch(() => {});
         }
@@ -3993,9 +4021,11 @@ if (isHlsSource) {
   if (Hls.isSupported()) {
     hlsInstance = new Hls({
       enableWorker: true,
-      lowLatencyMode: true,
-      liveSyncDurationCount: 3,          
-      liveMaxLatencyDurationCount: 5,
+      lowLatencyMode: true, 
+      liveSyncDuration: 0.1,
+      liveMaxLatencyDuration: 1,
+      backBufferLength: 10,
+      maxBufferLength: 10,
       manifestLoadingTimeOut: 10000,
       manifestLoadingMaxRetry: 6,          
       manifestLoadingRetryDelay: 1000,

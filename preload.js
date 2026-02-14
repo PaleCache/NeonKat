@@ -34,6 +34,7 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   pathJoin: (...args) => ipcRenderer.invoke('path-join', ...args),
   resizeWindow: (w, h) => ipcRenderer.send('resize-window', w, h),
   loadFolderDirect: (path) => ipcRenderer.invoke('load-folder-direct', path),
+  setResizable: (value) => ipcRenderer.send('set-resizable', value),
 
   onUpdateTrack: (callback) => {
     ipcRenderer.on('update-track', (event, data) => callback(data));
