@@ -148,13 +148,13 @@ a {
   margin: 0 0 15px;
   flex: 1;                    
   min-height: 150px;
-  max-height: 270px;         
+  max-height: 150px;         
   overflow-y: auto;
   background: #222;
   border-radius: 5px;
   -webkit-app-region: no-drag;
-    background: rgba(33, 33, 33, 0.5) !important;
-    backdrop-filter: blur(4px) !important; 
+  background: rgba(33, 33, 33, 0.5) !important;
+  backdrop-filter: blur(4px) !important; 
 }
     #playlist li {
       padding: 10px;
@@ -1180,6 +1180,17 @@ body.video-only #progressContainer {
   </label>
 </div>
 
+<div class="vis-mode-toggle" id="normToggle">
+  <span class="label">Loudness Normalization</span>
+  <label class="switch">
+    <input type="checkbox" id="normCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<button id="normToggleBtn" style="background:none; border:none; cursor:pointer;" title="Loudness Normalization">
+</button>
+
  <div class="vis-mode-toggle" id="barsToggle">
   <span class="label">Visualizer Bars</span>
   <label class="switch">
@@ -1232,7 +1243,7 @@ body.video-only #progressContainer {
 
    <h1 style="display: flex; align-items: center; gap: 8px; margin-bottom:10px; ">
       NeonKat
-      <img src="build/kat.png" style="height: 54px;" />
+      <img id="kat-logo" src="build/kat.png" style="height: 54px;" />
     </h1>
  <div style="display:flex; gap:8px; position:relative; z-index:102; margin-bottom:16px;">
 
@@ -1361,7 +1372,31 @@ body.video-only #progressContainer {
   Remove from Playlist
 </button>
 </div>
-    <ul id="playlist"></ul>
+   <div id="playlist-container" style="position: relative;">
+  <ul id="playlist"></ul>
+  <div id="drop-warning" style="
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 95%;
+    height: 10%;
+    padding: 5px 10px;
+    background: rgb(245, 163, 1);
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+    text-align: center;
+    pointer-events: none;
+    z-index: 99999;
+    font-size: x-small;
+    display: none;
+    margin-bottom: 10px;
+    border-radius: 5px;
+  ">
+    Avoid dropping hundreds of files at once it will break the player (electron bug). Drop folders or use choose folder.
+  </div>
+</div>
+
+    
    
     <div class="controls" style="display: flex; gap: 10px; margin-bottom: 10px;">
       <button id="playPauseBtn" class="control-btn">
@@ -1491,20 +1526,50 @@ katbubbleImages[0].src = 'build/kat.png';
   let currentArtImage = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
-  let currentSearchTerm = '';
   analyser.fftSize = 128;
   const source = audioCtx.createMediaElementSource(audio);
-  source.connect(analyser);
-  const lowpass = audioCtx.createBiquadFilter();
-  lowpass.type = 'lowpass';
-  lowpass.frequency.value = 150;  
-  lowpass.Q.value = 1;           
-  source.connect(lowpass);
-  lowpass.connect(analyser);
-  analyser.connect(audioCtx.destination); 
-  analyser.connect(audioCtx.destination);
+  const preGain = audioCtx.createGain();
+  preGain.gain.value = 0.004;
+  const makeupGain = audioCtx.createGain();
+  makeupGain.gain.value = 48.0;
+  const peakTamer = audioCtx.createDynamicsCompressor();
+  peakTamer.threshold.value = -28;
+  peakTamer.ratio.value     = 20;
+  peakTamer.knee.value      = 0;
+  peakTamer.attack.value    = 0.001;
+  peakTamer.release.value   = 0.100;
+  const stage2 = audioCtx.createDynamicsCompressor();
+  stage2.threshold.value = -30;
+  stage2.ratio.value = 20;
+  stage2.knee.value = 6;
+  stage2.attack.value = 0.002;
+  stage2.release.value = 0.100;
+
+const softClipper = audioCtx.createWaveShaper();
+softClipper.curve = new Float32Array(65536).map((_, i) => {
+  const x = (i - 32768) / 32768;
+  return Math.tanh(x * 2.8) * 0.95;
+});
+
+
+const lowpass = audioCtx.createBiquadFilter();
+lowpass.type = 'lowpass';
+lowpass.frequency.value = 150;
+lowpass.Q.value = 1;
+source.disconnect();
+analyser.disconnect();
+source.connect(preGain);
+preGain.connect(peakTamer);
+peakTamer.connect(stage2);  
+stage2.connect(softClipper);
+softClipper.connect(analyser);
+source.connect(lowpass);
+lowpass.connect(analyser);
+stage2.connect(makeupGain);
   const radioIconImg = new Image();
   radioIconImg.src = 'build/radio.svg';
+  let currentSearchTerm = '';
+
 
   let src;
   let displayName;
@@ -1665,6 +1730,72 @@ function renderRecentFolders() {
     container.appendChild(row);
   });
 }
+
+let normEnabled = localStorage.getItem('normEnabled') === 'true';
+
+const normCheckbox = document.getElementById('normCheckbox');
+const normToggleRow = document.getElementById('normToggle');
+
+if (normCheckbox) {
+  normCheckbox.checked = normEnabled;
+}
+
+function applyNormalization(enabled) {
+  source.disconnect();
+
+  if (enabled) {
+    source.connect(preGain);
+    preGain.connect(softClipper);
+    softClipper.connect(analyser);
+ 
+  } else {
+    source.connect(analyser);
+  }
+
+  analyser.connect(audioCtx.destination);
+}
+
+function updateNormUI() {
+  if (normEnabled) {
+    normToggleRow.classList.add('active');
+  } else {
+    normToggleRow.classList.remove('active');
+  }
+}
+
+
+if (normToggleRow) {
+  normToggleRow.addEventListener('click', (e) => {
+    if (e.target.closest('input[type="checkbox"]') || e.target.closest('.slider')) return;
+
+    normEnabled = !normEnabled;
+    localStorage.setItem('normEnabled', normEnabled ? 'true' : 'false');
+    normCheckbox.checked = normEnabled;
+    applyNormalization(normEnabled);
+    updateNormUI();
+
+    if (notifyEnabled && Notification.permission === 'granted') {
+      window.electronAPI.notify(
+        normEnabled 
+          ? "Normalization Enabled" 
+          : "Normalization Disabled"
+      );
+    }
+  });
+}
+
+if (normCheckbox) {
+  normCheckbox.addEventListener('change', () => {
+    normEnabled = normCheckbox.checked;
+    localStorage.setItem('normEnabled', normEnabled ? 'true' : 'false');
+    applyNormalization(normEnabled);
+    updateNormUI();
+  });
+}
+
+
+applyNormalization(normEnabled);
+updateNormUI();
 const artworkDurationSelect = document.getElementById('artworkDurationSelect');
 const customArtworkInput = document.getElementById('customArtworkSeconds');
 
@@ -2498,7 +2629,7 @@ skipToggle.addEventListener('click', () => {
     if (result.success) {
       renderPlaylist();
       if (Notification.permission === 'granted') {
-        window.electronAPI.notify('Download Complete :)');
+        window.electronAPI.notify(`Download Complete, File Placed In ${downloadFolder}`);
       } else {
         alert('Download complete :)');
       }
@@ -2535,7 +2666,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.0 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.1 alpha</p>
       </div>
   </div>
   `;
@@ -3050,9 +3181,11 @@ sortOptions.forEach(btn => {
     });
   }
 
+  const dropWarning = document.getElementById('drop-warning');
   playlistElem.addEventListener('dragover', (event) => {
     event.preventDefault();
     playlistElem.style.border = '2px dashed #212121';
+    dropWarning.style.display = 'block';
   });
 
   window.addEventListener('resize', () => {
@@ -3062,29 +3195,65 @@ sortOptions.forEach(btn => {
   playlistElem.addEventListener('dragleave', (event) => {
     event.preventDefault();
     playlistElem.style.border = '';
+    dropWarning.style.display = 'none';
   });
   const SAFE_DROP_LIMIT = 50;
 
-  playlistElem.addEventListener('drop', async (event) => {
-    event.preventDefault();
-    playlistElem.style.border = '';
-    const files = Array.from(event.dataTransfer.files);
-    const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac','.opus'];
-
-    const droppedAudioFiles = files.filter(file => {
-      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-      return audioExts.includes(ext);
-    });
-
-    if (droppedAudioFiles.length === 0) {
-      alert('No supported audio files were dropped.');
-      return;
+playlistElem.addEventListener('drop', async (event) => {
+  event.preventDefault();
+  playlistElem.style.border = '';
+  dropWarning.style.display = 'none';
+  let files = Array.from(event.dataTransfer.files || []);
+  const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.opus'];
+  let collectedAudioPaths = [];
+  for (const file of files) {
+    const filePath = file.path;
+    let folderResultsObj = null;
+    try {
+      folderResultsObj = await window.electronAPI.loadFolderDirect(filePath);
+    } catch (err) {
+      console.error("Folder load failed:", err);
     }
 
-    const newPaths = droppedAudioFiles.map(f => f.path);
-    audioFiles = audioFiles.concat(newPaths);
-    renderPlaylist();
+    if (
+      folderResultsObj &&
+      Array.isArray(folderResultsObj.audioFilePaths) &&
+      folderResultsObj.audioFilePaths.length > 0
+    ) {
+      collectedAudioPaths.push(...folderResultsObj.audioFilePaths);
+    } else {
+      const ext = '.' + filePath.split('.').pop().toLowerCase();
+      if (audioExts.includes(ext)) collectedAudioPaths.push(filePath);
+    }
+  }
+  collectedAudioPaths = collectedAudioPaths.filter(filePath => {
+    const ext = '.' + filePath.split('.').pop().toLowerCase();
+    return audioExts.includes(ext);
   });
+  if (!collectedAudioPaths.length) {
+    alert("Now you did it LOL, drag and drop in electron could now be broken due to a bug in electron :( if you dragged too many files like 200+ you're done for pal... if you dragged a non audio file you should be fine still");
+    if (event.dataTransfer) {
+      try {
+        event.dataTransfer.clearData();
+      } catch {}
+    }
+    return;
+  }
+
+  audioFiles = audioFiles.concat(collectedAudioPaths);
+  if (event.dataTransfer) {
+    try {
+      event.dataTransfer.clearData();
+    } catch {}
+  }
+  renderPlaylist();
+  await applySavedSort();
+  currentIndex = 0;
+  playTrack(0);
+  scrollToCurrentTrack();
+});
+
+
 
   const clearPlaylistBtn = document.getElementById('clearPlaylistBtn');
 
@@ -3241,12 +3410,42 @@ if (pickNewFolderBtn) {
 });
 
   const volumePercent = document.getElementById('volumePercent');
-
+  var maffs = 0;
+  var checkTimer = null;
   volumeSlider.addEventListener('input', (e) => {
     audio.volume = e.target.value;
     volumePercent.textContent = Math.round(e.target.value * 100) + '%';
     localStorage.setItem('volumeLevel', e.target.value);
     window.electronAPI.updateVolume(e.target.value);
+    if(volumePercent.textContent === '3%' && !Number.isNaN(audio.duration) && checkTimer === null){
+      checkTimer = setInterval(() => {
+      maffs++
+      if(maffs === 10 && volumePercent.textContent === '3%'){
+        clearInterval(checkTimer)
+        checkTimer = null;
+        const katLogo = document.getElementById('kat-logo');
+        katLogo.src = 'build/gnomed-gnome.gif'
+        alert(`⚠️ FLASHING LIGHT WARNING ⚠️ \n \n🧙🏼‍♂️ Congratulations you have stumbled across an easter egg and a dead meme all at once, Enjoy the dead meme for the rest of this song, if this is the volume you set it to all the time i'm sorry LOL`)
+        maffs = 0;
+        const remainingMs = (audio.duration - audio.currentTime) * 1000;
+        startRainbowColorLoop();
+        setTimeout(() => {
+        stopRainbowLoop();
+        katLogo.src = 'build/kat.png'
+      },remainingMs);
+      }
+
+      if(maffs === 11)
+      {
+        clearInterval(checkTimer)
+        checkTimer = null;
+        maffs = 0;
+      }
+     
+    }, 1000);
+    
+  }
+      
   });
 
   const savedVolume = localStorage.getItem('volumeLevel');
@@ -4955,8 +5154,6 @@ function stopVisualizer() {
 
 
 function startRainbowColorLoop() {
-  if (!isRainbowActive || rainbowIntervalId) return;
-
   rainbowIntervalId = setInterval(() => {
     rainbowHue = (rainbowHue + 5) % 360;
     const color = `hsl(${rainbowHue}, 100%, 65%)`;
@@ -4967,13 +5164,15 @@ function startRainbowColorLoop() {
 
     updateSliderBackground(volumeSlider);
     updateSliderBackground(progressBar);
-  }, 100);
+  }, 1);
 }
 
 function stopRainbowLoop() {
   if (rainbowIntervalId) {
     clearInterval(rainbowIntervalId);
     rainbowIntervalId = null;
+    let defaultColor = localStorage.getItem('themeColor');
+    document.documentElement.style.setProperty('--primary-color', defaultColor);
   }
 }
 
