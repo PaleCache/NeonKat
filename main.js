@@ -277,53 +277,6 @@ ipcMain.handle('download-youtube', async (event, {
 
 }
 
-const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.opus'];
-
-function scanFolderForAudio(folderPath) {
-  const results = [];
-
-  function walk(dir) {
-    const entries = fs.readdirSync(dir);
-
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry);
-      const stat = fs.statSync(fullPath);
-
-      if (stat.isDirectory()) {
-        walk(fullPath);
-      } else {
-        const ext = path.extname(fullPath).toLowerCase();
-        if (audioExts.includes(ext)) {
-          results.push(fullPath);
-        }
-      }
-    }
-  }
-
-  walk(folderPath);
-  return results;
-}
-
-contextBridge.exposeInMainWorld('electronAPI', {
-  processDroppedPaths: (paths) => {
-    let collected = [];
-
-    for (const droppedPath of paths) {
-      const stat = fs.statSync(droppedPath);
-
-      if (stat.isDirectory()) {
-        collected.push(...scanFolderForAudio(droppedPath));
-      } else {
-        const ext = path.extname(droppedPath).toLowerCase();
-        if (audioExts.includes(ext)) {
-          collected.push(droppedPath);
-        }
-      }
-    }
-
-    return collected;
-  }
-});
 
   const sender = event.sender;
   const sendProgress = (percent, extra = {}) => {
