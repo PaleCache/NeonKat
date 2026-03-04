@@ -76,7 +76,6 @@ a {
         max-height: none;
         background: #111;
         padding: 15px;
-        border-radius: 3px;
         border: 6px solid var(--primary-color); 
         box-sizing: border-box;      
         display: flex;
@@ -1492,7 +1491,10 @@ katbubbleImages[0].src = 'build/kat.png';
   const barsCheckbox = document.getElementById('barsCheckbox');
   const bubblesCheckbox = document.getElementById('bubblesCheckbox');
   let skipVideo = localStorage.getItem('skipVideo') === 'true';
+  let videoQuality = localStorage.getItem('videoQuality') || '480';
+  let selectedDuration = localStorage.getItem('videoDuration') || 30;
   const playlistElem = document.getElementById('playlist');
+  console.log(`QUALTIY GOT INITIAL : ${videoQuality}`)
   const audio = document.getElementById('audio');
   const visualizerCanvas = document.getElementById('visualizer');
   const ctx = visualizerCanvas.getContext('2d');
@@ -1552,6 +1554,8 @@ softClipper.curve = new Float32Array(65536).map((_, i) => {
 });
 
 
+
+
 const lowpass = audioCtx.createBiquadFilter();
 lowpass.type = 'lowpass';
 lowpass.frequency.value = 150;
@@ -1578,9 +1582,8 @@ stage2.connect(makeupGain);
   const repeatBtn = document.getElementById('repeatBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
   const visualizerColorPicker = document.getElementById('visualizerColor');
-  const miniplayerToggleBtn = document.getElementById('miniplayerToggleBtn');
-    const miniBtn = document.getElementById('miniPlayerBtn');
-    let isMini = false;
+  const miniBtn = document.getElementById('miniPlayerBtn');
+  let isMini = false;
 
 
    let jellyfinConfig = {
@@ -1799,7 +1802,6 @@ updateNormUI();
 const artworkDurationSelect = document.getElementById('artworkDurationSelect');
 const customArtworkInput = document.getElementById('customArtworkSeconds');
 
-let selectedDuration = 30;
 
 function updateArtworkDuration() {
     const val = artworkDurationSelect.value;
@@ -1809,9 +1811,13 @@ function updateArtworkDuration() {
         customArtworkInput.focus();
         let sec = parseInt(customArtworkInput.value, 10);
         selectedDuration = (isNaN(sec) || sec < 5) ? 30 : Math.min(sec, 600);
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
     } else {
         customArtworkInput.style.display = 'none';
         selectedDuration = (val === 'full') ? Infinity : Number(val);
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
     }
 }
 
@@ -2396,7 +2402,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
     <div style="background: #330000; border: 1px solid #ff3333; padding: 12px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13px; color: #ffaaaa; text-align: center;">
       <strong>⚠️ HEADS UP ⚠️</strong><br><br>
       Downloading large playlists (50+ videos) at once can get your IP temporarily rate-limited by YouTube for up to 24 hours.<br>
-      So i have disabled playlist downloads :(
+      So i have disabled playlist downloads for youtube :(
     </div>
 
     <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
@@ -2432,9 +2438,9 @@ downloadYoutubeBtn.addEventListener('click', () => {
     padding: 6px 10px;
     font-size: 13px;
   ">
-    <option value="full">Full song</option>
+    <option value="Infinity">Full song</option>
     <option value="15">15 seconds</option>
-    <option value="30" selected>30 seconds</option>
+    <option value="30">30 seconds</option>
     <option value="60">60 seconds</option>
     <option value="90">90 seconds</option>
     <option value="custom">Custom...</option>
@@ -2469,20 +2475,33 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
   const artworkDurationSelect = document.getElementById('exportDurationSelect');
   const customExportInput   = document.getElementById('customExportSeconds');
-
-  let selectedQuality = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
+  console.log(`QUALTIY GOT : ${videoQuality}`)
+   if (videoQuality) {
+    videoQualitySelect.value = videoQuality;
+  }
+ 
+ if (selectedDuration === Infinity) {
+   artworkDurationSelect.value = "Infinity";
+    console.log(`SHIT ${selectedDuration}`)
+} else if (selectedDuration !== null) {
+  selectedDuration = Number(selectedDuration);
+   artworkDurationSelect.value = selectedDuration;
+}
+  
 
 const qualitySelect = document.getElementById('videoQualitySelect');
 
 if (qualitySelect) {
   qualitySelect.addEventListener('change', () => {
     const val = qualitySelect.value;
-    selectedQuality = val;
+    videoQuality = val;
+    localStorage.setItem('videoQuality', videoQuality);
+    console.log(`QUALTIY SET : ${videoQuality}`)
   });
-  selectedQuality = qualitySelect.value || selectedQuality;
+  videoQuality = qualitySelect.value || videoQuality;
 }
 
-  let selectedDuration = 30;
+ 
 
   if (artworkDurationSelect) {
     artworkDurationSelect.addEventListener('change', () => {
@@ -2492,9 +2511,13 @@ if (qualitySelect) {
         customExportInput.style.display = 'inline-block';
         let sec = parseInt(customExportInput.value) || 30;
         selectedDuration = Math.max(5, Math.min(600, sec));
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
       } else {
         customExportInput.style.display = 'none';
         selectedDuration = val === 'full' ? Infinity : Number(val);
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
       }
     });
   }
@@ -2503,6 +2526,8 @@ if (qualitySelect) {
     customExportInput.addEventListener('input', () => {
       let sec = parseInt(customExportInput.value) || 30;
       selectedDuration = Math.max(5, Math.min(600, sec));
+      localStorage.setItem('videoDuration', selectedDuration);
+      console.log(`DUR: ${selectedDuration}`)
     });
   }
 
@@ -2666,7 +2691,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.2 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.3 alpha</p>
       </div>
   </div>
   `;
@@ -2688,6 +2713,15 @@ aboutBtn.addEventListener('click', () => {
       document.body.classList.toggle('mini-mode', isMini);
       window.electronAPI.setMiniMode(isMini);
       setTimeout(visualize, 100);
+     if (!isMini) {
+      selectedIndices.clear();
+      selectedIndices.add(currentIndex);
+      renderPlaylist();
+      updateSelectionVisuals();
+      setTimeout(() => {
+       scrollToCurrentTrack();
+      }, 150);
+    }
     });
   function updateSliderBackground(slider) {
     const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
@@ -3895,6 +3929,7 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
     }
 
     if (videoOnlyMode) {
+      
         window.electronAPI?.resizeWindow?.(1241, 743);
         window.electronAPI.setResizable(true)
         document.body.classList.add('video-only');
@@ -3951,6 +3986,8 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
           }
       }  
     } else {
+
+        
         document.body.classList.remove('video-only');
         songNameOverlay.style.display = 'none';
         
@@ -3985,7 +4022,14 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
             visualizerVideo.pause();
         }
     }
-    }
+  selectedIndices.clear();
+  selectedIndices.add(currentIndex);
+  renderPlaylist();
+  updateSelectionVisuals();
+  setTimeout(() => {
+  scrollToCurrentTrack();
+  }, 150);
+}
 });
 
 
