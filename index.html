@@ -76,7 +76,6 @@ a {
         max-height: none;
         background: #111;
         padding: 15px;
-        border-radius: 3px;
         border: 6px solid var(--primary-color); 
         box-sizing: border-box;      
         display: flex;
@@ -148,13 +147,13 @@ a {
   margin: 0 0 15px;
   flex: 1;                    
   min-height: 150px;
-  max-height: 270px;         
+  max-height: 150px;         
   overflow-y: auto;
   background: #222;
   border-radius: 5px;
   -webkit-app-region: no-drag;
-    background: rgba(33, 33, 33, 0.5) !important;
-    backdrop-filter: blur(4px) !important; 
+  background: rgba(33, 33, 33, 0.5) !important;
+  backdrop-filter: blur(4px) !important; 
 }
     #playlist li {
       padding: 10px;
@@ -1104,6 +1103,430 @@ body.video-only #progressContainer {
 }
 
 
+body.widget-mode #container {
+    width: 380px !important;
+    height: 110px !important;
+    backdrop-filter: blur(14px) !important;
+    border: 2px solid var(--primary-color) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7), inset 0 0 25px rgba(var(--primary-color-rgb), 0.25) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    overflow: hidden;
+    margin: 0 !important;
+    z-index: 2;
+}
+
+
+body.widget-mode #topControls,
+body.widget-mode .controls:not(.volume-control):not(.playPauseBtn):not(.prevBtn):not(.nextBtn)
+body.widget-mode #progressContainer,
+body.widget-mode #playlistControls,
+body.widget-mode .volume-control,
+body.widget-mode h1,
+body.widget-mode #visualizerControls,
+body.widget-mode #playlist,
+body.widget-mode #sortBtn,
+body.widget-mode #folderMenuBtn,
+body.widget-mode #addStreamBtn,
+body.widget-mode #connectJellyfinBtn,
+body.widget-mode #popoutVideoBtn {
+  display: none !important;
+}
+
+
+body.widget-mode #visualizerWrapper {
+    width: 105px !important;
+    height: 103px !important;
+    min-width: 86px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-shadow: 0 0 20px rgba(var(--primary-color-rgb), 0.5) !important;
+    background: #111 !important;
+    flex-shrink: 0 !important;
+    right: 31px;
+}
+
+body.widget-mode #visualizerWrapper img,
+body.widget-mode #visualizerWrapper canvas,
+body.widget-mode #visualizerWrapper video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+}
+
+body.widget-mode #visualizerWrapper,
+body.widget-mode #visualizerWrapper > * {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+
+body.widget-mode .widget-right {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  flex: 1 !important;
+  gap: 8px !important;
+}
+
+body.widget-mode #widgetSongTitle {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: bold !important;
+  color: white !important;
+  text-shadow: 0 0 12px black, 0 0 20px var(--primary-color) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.widget-mode #widgetSongTitle::before {
+  content: "Now Playing";
+  display: block;
+  font-size: 12px;
+  color: var(--primary-color);
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+
+body.widget-mode #progressContainer {
+  display: flex !important;
+  width: 100% !important;
+  -webkit-app-region: no-drag !important;
+  
+}
+
+body.widget-mode #volume {
+  height: 6px !important;
+  -webkit-app-region: no-drag !important;
+}
+
+body.widget-mode .playPauseBtn{
+    display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 99999;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 16px rgba(0,0,0,0.7);
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  -webkit-app-region: no-drag !important;
+}
+
+
+
+#widgetBackBtn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 99999;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 16px rgba(0,0,0,0.7);
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  -webkit-app-region: no-drag !important;
+}
+
+
+
+body.widget-mode #widgetBackBtn {
+  display: flex !important;
+}
+
+body:not(.widget-mode) #widgetBackBtn {
+  display: none !important;
+}
+
+#widgetModeBtn:hover,
+#widgetBackBtn:hover {
+  background: none !important;
+  filter: none !important;
+}
+
+body.widget-mode .controls {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 0 0 12px !important;
+  width: auto !important;
+  position: absolute !important;
+  left: 104px !important;       
+  top: 14px !important;
+  z-index: 10;
+}
+
+
+body.widget-mode #repeatBtn,
+body.widget-mode #shuffleBtn {
+  display: none !important;
+}
+
+
+body.widget-mode #prevBtn,
+body.widget-mode #playPauseBtn,
+body.widget-mode #nextBtn {
+  display: flex !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(0,0,0,0.55) !important;
+  backdrop-filter: blur(6px) !important;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.5) !important;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  transition: all 0.15s ease;
+}
+
+body.widget-mode #playPauseBtn {
+  width: 46px !important;
+  height: 46px !important;
+}
+
+
+body.widget-mode .control-btn img.icon {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+body.widget-mode #playPauseBtn img.icon {
+  width: 26px !important;
+  height: 26px !important;
+}
+
+
+body.widget-mode #widgetBackBtn {
+  position: absolute !important;
+  top: 3px !important;
+  right: 12px !important;
+  z-index: 99999 !important;
+  background: rgba(33, 33, 33, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+  color: white !important;
+}
+
+
+body.widget-mode footer,
+body.widget-mode h1,
+body.widget-mode .controls:not(.playback-controls) > *:not(#prevBtn):not(#playPauseBtn):not(#nextBtn) {
+  display: none !important;
+}
+
+body.widget-mode #prevBtn,
+body.widget-mode #playPauseBtn,
+body.widget-mode #nextBtn {
+    width: 20px !important;
+    height: 32px !important;
+  min-width: 32px !important;
+  background: rgba(33, 33, 33, 0.5) !important;
+    backdrop-filter: blur(4px) !important;
+    color: white !important;
+}
+
+body.widget-mode #prevBtn,
+body.widget-mode #playPauseBtn,
+body.widget-mode #nextBtn:hover {
+ color: var(--primary-color);
+}
+
+body.widget-mode #playPauseBtn {
+     width: 20px !important;
+    height: 32px !important;
+}
+
+
+body.widget-mode .control-btn img.icon {
+  width:  18px  !important;
+  height: 18px  !important;
+}
+
+body.widget-mode #playPauseBtn img.icon {
+    width: 20px !important;
+    height: 32px !important;
+}
+
+
+body.widget-mode .controls {
+    left: 203px !important;
+    top: 3px !important;
+    gap: 6px !important;
+    z-index: 99999 !important;
+}
+
+
+body.widget-mode #widgetBackBtn,
+body.widget-mode #prevBtn,
+body.widget-mode #playPauseBtn,
+body.widget-mode #nextBtn {
+  transition: all 0.18s ease !important;
+}
+
+body.widget-mode #widgetBackBtn:hover,
+body.widget-mode #prevBtn:hover,
+body.widget-mode #playPauseBtn:hover,
+body.widget-mode #nextBtn:hover {
+  background: var(--primary-color) !important;
+  transform: scale(1.1) !important;
+}
+
+
+body.widget-mode #widgetBackBtn {
+  width:  34px !important;
+  height: 32px !important;
+}
+
+body.widget-mode footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    position: absolute !important;
+    bottom: 2px !important;
+    right: -4px !important;
+    left: auto !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    color: rgba(255,255,255,0.85) !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+    -webkit-app-region: no-drag !important;
+}
+
+body.widget-mode footer img {
+  width: 14px !important;
+  height: 14px !important;
+  margin-right: 6px !important;
+  vertical-align: middle !important;
+  transform: scale(1) !important; 
+}
+
+
+body.widget-mode footer:hover {
+  background: rgba(var(--primary-color-rgb), 0.25) !important;
+  color: white !important;
+}
+
+body.widget-mode #container {
+    flex-direction: row !important;
+    align-items: center !important;       
+    gap: 10px !important;                 
+}
+
+body.widget-mode #visualizerWrapper {
+    width: 100px !important;
+    height: 100px !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    order: 1;                             
+}
+
+body.widget-mode #progressContainer {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: auto !important;              
+    flex: 1 !important;                  
+    margin: 0 !important;
+    padding: 0 8px !important;
+    order: 2;                           
+    gap: 8px !important;
+    font-size: 11px !important;
+}
+
+
+body.widget-mode .widget-right {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    gap: 6px !important;
+    justify-content: center !important;
+}
+
+
+body.widget-mode #progressBar {
+    height: 5px !important;
+    min-width: 120px !important;         
+}
+
+body.widget-mode #currentTime,
+body.widget-mode #duration {
+    min-width: 32px;
+    text-align: center;
+    font-size: 10.5px !important;
+}
+
+body.widget-mode #progressContainer {
+    position: relative !important;
+    margin: 0 !important;
+    margin-left: 8px !important;
+    width: auto !important;
+    flex: 1 !important;
+    order: 2 !important;
+    align-self: center !important;
+    top: 25px;
+    right: 27px;
+}
+
+
+body.widget-mode #container {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0 !important;                  
+}
+
+
+body.widget-mode #visualizerWrapper {
+    order: 1 !important;
+    flex-shrink: 0 !important;
+}
+
+
+body.widget-mode .widget-right {
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    right: -114px;
+}
+
+
+
+
+
+
 
   </style>
 </head>
@@ -1136,6 +1559,12 @@ body.video-only #progressContainer {
     <button id="miniPlayerBtn" style="background: none; border: none; cursor: pointer; margin-left: 10px;" title="Mini Player">
       <img src="build/miniplayer.svg" height="20" />
     </button>
+
+    <button id="widgetModeBtn" style="background: none; border: none; cursor: pointer; margin-left: 8px;" title="Widget Mode (OBS friendly)">
+  <img src="build/miniplayer.svg" height="20" /> 
+</button>
+
+
 
     
   </div>
@@ -1179,6 +1608,17 @@ body.video-only #progressContainer {
     <span class="slider"></span>
   </label>
 </div>
+
+<div class="vis-mode-toggle" id="normToggle">
+  <span class="label">Loudness Normalization</span>
+  <label class="switch">
+    <input type="checkbox" id="normCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<button id="normToggleBtn" style="background:none; border:none; cursor:pointer;" title="Loudness Normalization">
+</button>
 
  <div class="vis-mode-toggle" id="barsToggle">
   <span class="label">Visualizer Bars</span>
@@ -1232,7 +1672,7 @@ body.video-only #progressContainer {
 
    <h1 style="display: flex; align-items: center; gap: 8px; margin-bottom:10px; ">
       NeonKat
-      <img src="build/kat.png" style="height: 54px;" />
+      <img id="kat-logo" src="build/kat.png" style="height: 54px;" />
     </h1>
  <div style="display:flex; gap:8px; position:relative; z-index:102; margin-bottom:16px;">
 
@@ -1240,7 +1680,7 @@ body.video-only #progressContainer {
     Choose Folder ▼
   </button>
 
-   <button id="addStreamBtn" class="control-btn" style="flex: 1;">Radio Stream</button>
+   <button id="addStreamBtn" class="control-btn" style="flex: 1;">Network Streams</button>
   <button id="connectJellyfinBtn" class="control-btn" style="flex: 1;">Jellyfin</button>
 
   <div id="folderMenu" style="
@@ -1269,7 +1709,7 @@ body.video-only #progressContainer {
     <div id="streamModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; border-radius: 3px; background: rgba(0,0,0,0.8); border-radius: 3px; justify-content: center; align-items: center; z-index: 9999;">
   <div style="background: #111111; padding: 20px; border-radius: 3px; width: 90%; max-width: 400px; color: white;  border: 3px solid var(--primary-color);
     border-radius: 3px;-webkit-app-region: no-drag;">
-    <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio Streams / Video Streams</h3>
+    <h3 style="margin-top: 0; color: var(--primary-color);">Add Radio / Video Streams</h3>
     <label>Stream URL (.mp3, .aac, .pls, .m3u, .m3u8, etc.):</label>
     <input type="text" id="streamUrlInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="https://example.com/stream.mp3" />
     
@@ -1361,7 +1801,31 @@ body.video-only #progressContainer {
   Remove from Playlist
 </button>
 </div>
-    <ul id="playlist"></ul>
+   <div id="playlist-container" style="position: relative;">
+  <ul id="playlist"></ul>
+  <div id="drop-warning" style="
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 95%;
+    height: 10%;
+    padding: 5px 10px;
+    background: rgb(245, 163, 1);
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+    text-align: center;
+    pointer-events: none;
+    z-index: 99999;
+    font-size: x-small;
+    display: none;
+    margin-bottom: 10px;
+    border-radius: 5px;
+  ">
+    Avoid dropping hundreds of files at once it will break the player (electron bug). Drop folders or use choose folder.
+  </div>
+</div>
+
+    
    
     <div class="controls" style="display: flex; gap: 10px; margin-bottom: 10px;">
       <button id="playPauseBtn" class="control-btn">
@@ -1411,6 +1875,10 @@ body.video-only #progressContainer {
 </button>
    <img id="artLoader" style="display:none; position:absolute; left:-9999px;" crossorigin="anonymous">
 </div>
+
+<button id="widgetBackBtn" style="display:none; position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.4); border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; z-index:9999;">
+  <img src="build/miniplayer.svg" height="20" style="filter: brightness(0) invert(1);"/> 
+</button>
     <footer>
   <img src="build/kat.png" alt=':)' style="    width: 15px;
     height: 15px;
@@ -1457,7 +1925,10 @@ katbubbleImages[0].src = 'build/kat.png';
   const barsCheckbox = document.getElementById('barsCheckbox');
   const bubblesCheckbox = document.getElementById('bubblesCheckbox');
   let skipVideo = localStorage.getItem('skipVideo') === 'true';
+  let videoQuality = localStorage.getItem('videoQuality') || '480';
+  let selectedDuration = localStorage.getItem('videoDuration') || 30;
   const playlistElem = document.getElementById('playlist');
+  console.log(`QUALTIY GOT INITIAL : ${videoQuality}`)
   const audio = document.getElementById('audio');
   const visualizerCanvas = document.getElementById('visualizer');
   const ctx = visualizerCanvas.getContext('2d');
@@ -1491,20 +1962,52 @@ katbubbleImages[0].src = 'build/kat.png';
   let currentArtImage = null;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const analyser = audioCtx.createAnalyser();
-  let currentSearchTerm = '';
   analyser.fftSize = 128;
   const source = audioCtx.createMediaElementSource(audio);
-  source.connect(analyser);
-  const lowpass = audioCtx.createBiquadFilter();
-  lowpass.type = 'lowpass';
-  lowpass.frequency.value = 150;  
-  lowpass.Q.value = 1;           
-  source.connect(lowpass);
-  lowpass.connect(analyser);
-  analyser.connect(audioCtx.destination); 
-  analyser.connect(audioCtx.destination);
+  const preGain = audioCtx.createGain();
+  preGain.gain.value = 0.004;
+  const makeupGain = audioCtx.createGain();
+  makeupGain.gain.value = 48.0;
+  const peakTamer = audioCtx.createDynamicsCompressor();
+  peakTamer.threshold.value = -28;
+  peakTamer.ratio.value     = 20;
+  peakTamer.knee.value      = 0;
+  peakTamer.attack.value    = 0.001;
+  peakTamer.release.value   = 0.100;
+  const stage2 = audioCtx.createDynamicsCompressor();
+  stage2.threshold.value = -30;
+  stage2.ratio.value = 20;
+  stage2.knee.value = 6;
+  stage2.attack.value = 0.002;
+  stage2.release.value = 0.100;
+
+const softClipper = audioCtx.createWaveShaper();
+softClipper.curve = new Float32Array(65536).map((_, i) => {
+  const x = (i - 32768) / 32768;
+  return Math.tanh(x * 2.8) * 0.95;
+});
+
+
+
+
+const lowpass = audioCtx.createBiquadFilter();
+lowpass.type = 'lowpass';
+lowpass.frequency.value = 150;
+lowpass.Q.value = 1;
+source.disconnect();
+analyser.disconnect();
+source.connect(preGain);
+preGain.connect(peakTamer);
+peakTamer.connect(stage2);  
+stage2.connect(softClipper);
+softClipper.connect(analyser);
+source.connect(lowpass);
+lowpass.connect(analyser);
+stage2.connect(makeupGain);
   const radioIconImg = new Image();
   radioIconImg.src = 'build/radio.svg';
+  let currentSearchTerm = '';
+
 
   let src;
   let displayName;
@@ -1513,9 +2016,8 @@ katbubbleImages[0].src = 'build/kat.png';
   const repeatBtn = document.getElementById('repeatBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
   const visualizerColorPicker = document.getElementById('visualizerColor');
-  const miniplayerToggleBtn = document.getElementById('miniplayerToggleBtn');
-    const miniBtn = document.getElementById('miniPlayerBtn');
-    let isMini = false;
+  const miniBtn = document.getElementById('miniPlayerBtn');
+  let isMini = false;
 
 
    let jellyfinConfig = {
@@ -1665,10 +2167,75 @@ function renderRecentFolders() {
     container.appendChild(row);
   });
 }
+
+let normEnabled = localStorage.getItem('normEnabled') === 'true';
+
+const normCheckbox = document.getElementById('normCheckbox');
+const normToggleRow = document.getElementById('normToggle');
+
+if (normCheckbox) {
+  normCheckbox.checked = normEnabled;
+}
+
+function applyNormalization(enabled) {
+  source.disconnect();
+
+  if (enabled) {
+    source.connect(preGain);
+    preGain.connect(softClipper);
+    softClipper.connect(analyser);
+ 
+  } else {
+    source.connect(analyser);
+  }
+
+  analyser.connect(audioCtx.destination);
+}
+
+function updateNormUI() {
+  if (normEnabled) {
+    normToggleRow.classList.add('active');
+  } else {
+    normToggleRow.classList.remove('active');
+  }
+}
+
+
+if (normToggleRow) {
+  normToggleRow.addEventListener('click', (e) => {
+    if (e.target.closest('input[type="checkbox"]') || e.target.closest('.slider')) return;
+
+    normEnabled = !normEnabled;
+    localStorage.setItem('normEnabled', normEnabled ? 'true' : 'false');
+    normCheckbox.checked = normEnabled;
+    applyNormalization(normEnabled);
+    updateNormUI();
+
+    if (notifyEnabled && Notification.permission === 'granted') {
+      window.electronAPI.notify(
+        normEnabled 
+          ? "Normalization Enabled" 
+          : "Normalization Disabled"
+      );
+    }
+  });
+}
+
+if (normCheckbox) {
+  normCheckbox.addEventListener('change', () => {
+    normEnabled = normCheckbox.checked;
+    localStorage.setItem('normEnabled', normEnabled ? 'true' : 'false');
+    applyNormalization(normEnabled);
+    updateNormUI();
+  });
+}
+
+
+applyNormalization(normEnabled);
+updateNormUI();
 const artworkDurationSelect = document.getElementById('artworkDurationSelect');
 const customArtworkInput = document.getElementById('customArtworkSeconds');
 
-let selectedDuration = 30;
 
 function updateArtworkDuration() {
     const val = artworkDurationSelect.value;
@@ -1678,11 +2245,19 @@ function updateArtworkDuration() {
         customArtworkInput.focus();
         let sec = parseInt(customArtworkInput.value, 10);
         selectedDuration = (isNaN(sec) || sec < 5) ? 30 : Math.min(sec, 600);
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
     } else {
         customArtworkInput.style.display = 'none';
         selectedDuration = (val === 'full') ? Infinity : Number(val);
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
     }
 }
+
+
+
+
 
 
 
@@ -2265,7 +2840,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
     <div style="background: #330000; border: 1px solid #ff3333; padding: 12px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13px; color: #ffaaaa; text-align: center;">
       <strong>⚠️ HEADS UP ⚠️</strong><br><br>
       Downloading large playlists (50+ videos) at once can get your IP temporarily rate-limited by YouTube for up to 24 hours.<br>
-      So i have disabled playlist downloads :(
+      So i have disabled playlist downloads for youtube :(
     </div>
 
     <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
@@ -2301,9 +2876,9 @@ downloadYoutubeBtn.addEventListener('click', () => {
     padding: 6px 10px;
     font-size: 13px;
   ">
-    <option value="full">Full song</option>
+    <option value="Infinity">Full song</option>
     <option value="15">15 seconds</option>
-    <option value="30" selected>30 seconds</option>
+    <option value="30">30 seconds</option>
     <option value="60">60 seconds</option>
     <option value="90">90 seconds</option>
     <option value="custom">Custom...</option>
@@ -2338,20 +2913,33 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
   const artworkDurationSelect = document.getElementById('exportDurationSelect');
   const customExportInput   = document.getElementById('customExportSeconds');
-
-  let selectedQuality = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
+  console.log(`QUALTIY GOT : ${videoQuality}`)
+   if (videoQuality) {
+    videoQualitySelect.value = videoQuality;
+  }
+ 
+ if (selectedDuration === Infinity) {
+   artworkDurationSelect.value = "Infinity";
+    console.log(`SHIT ${selectedDuration}`)
+} else if (selectedDuration !== null) {
+  selectedDuration = Number(selectedDuration);
+   artworkDurationSelect.value = selectedDuration;
+}
+  
 
 const qualitySelect = document.getElementById('videoQualitySelect');
 
 if (qualitySelect) {
   qualitySelect.addEventListener('change', () => {
     const val = qualitySelect.value;
-    selectedQuality = val;
+    videoQuality = val;
+    localStorage.setItem('videoQuality', videoQuality);
+    console.log(`QUALTIY SET : ${videoQuality}`)
   });
-  selectedQuality = qualitySelect.value || selectedQuality;
+  videoQuality = qualitySelect.value || videoQuality;
 }
 
-  let selectedDuration = 30;
+ 
 
   if (artworkDurationSelect) {
     artworkDurationSelect.addEventListener('change', () => {
@@ -2361,9 +2949,13 @@ if (qualitySelect) {
         customExportInput.style.display = 'inline-block';
         let sec = parseInt(customExportInput.value) || 30;
         selectedDuration = Math.max(5, Math.min(600, sec));
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
       } else {
         customExportInput.style.display = 'none';
         selectedDuration = val === 'full' ? Infinity : Number(val);
+        localStorage.setItem('videoDuration', selectedDuration);
+        console.log(`DUR: ${selectedDuration}`)
       }
     });
   }
@@ -2372,6 +2964,8 @@ if (qualitySelect) {
     customExportInput.addEventListener('input', () => {
       let sec = parseInt(customExportInput.value) || 30;
       selectedDuration = Math.max(5, Math.min(600, sec));
+      localStorage.setItem('videoDuration', selectedDuration);
+      console.log(`DUR: ${selectedDuration}`)
     });
   }
 
@@ -2498,7 +3092,7 @@ skipToggle.addEventListener('click', () => {
     if (result.success) {
       renderPlaylist();
       if (Notification.permission === 'granted') {
-        window.electronAPI.notify('Download Complete :)');
+        window.electronAPI.notify(`Download Complete, File Placed In ${downloadFolder}`);
       } else {
         alert('Download complete :)');
       }
@@ -2535,7 +3129,7 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.0 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.3 alpha</p>
       </div>
   </div>
   `;
@@ -2557,6 +3151,15 @@ aboutBtn.addEventListener('click', () => {
       document.body.classList.toggle('mini-mode', isMini);
       window.electronAPI.setMiniMode(isMini);
       setTimeout(visualize, 100);
+     if (!isMini) {
+      selectedIndices.clear();
+      selectedIndices.add(currentIndex);
+      renderPlaylist();
+      updateSelectionVisuals();
+      setTimeout(() => {
+       scrollToCurrentTrack();
+      }, 150);
+    }
     });
   function updateSliderBackground(slider) {
     const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
@@ -2997,10 +3600,7 @@ if (criteria === 'name') {
             return;
         }
     }
-    else {
-        sortPlaylist('name', ascending);
-        return;
-    }
+ 
     if (playingId) {
         currentIndex = audioFiles.findIndex(item => {
             if (typeof item === 'string') return item === playingId;
@@ -3053,9 +3653,11 @@ sortOptions.forEach(btn => {
     });
   }
 
+  const dropWarning = document.getElementById('drop-warning');
   playlistElem.addEventListener('dragover', (event) => {
     event.preventDefault();
     playlistElem.style.border = '2px dashed #212121';
+    dropWarning.style.display = 'block';
   });
 
   window.addEventListener('resize', () => {
@@ -3065,29 +3667,65 @@ sortOptions.forEach(btn => {
   playlistElem.addEventListener('dragleave', (event) => {
     event.preventDefault();
     playlistElem.style.border = '';
+    dropWarning.style.display = 'none';
   });
   const SAFE_DROP_LIMIT = 50;
 
-  playlistElem.addEventListener('drop', async (event) => {
-    event.preventDefault();
-    playlistElem.style.border = '';
-    const files = Array.from(event.dataTransfer.files);
-    const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac','.opus'];
-
-    const droppedAudioFiles = files.filter(file => {
-      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-      return audioExts.includes(ext);
-    });
-
-    if (droppedAudioFiles.length === 0) {
-      alert('No supported audio files were dropped.');
-      return;
+playlistElem.addEventListener('drop', async (event) => {
+  event.preventDefault();
+  playlistElem.style.border = '';
+  dropWarning.style.display = 'none';
+  let files = Array.from(event.dataTransfer.files || []);
+  const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.opus'];
+  let collectedAudioPaths = [];
+  for (const file of files) {
+    const filePath = file.path;
+    let folderResultsObj = null;
+    try {
+      folderResultsObj = await window.electronAPI.loadFolderDirect(filePath);
+    } catch (err) {
+      console.error("Folder load failed:", err);
     }
 
-    const newPaths = droppedAudioFiles.map(f => f.path);
-    audioFiles = audioFiles.concat(newPaths);
-    renderPlaylist();
+    if (
+      folderResultsObj &&
+      Array.isArray(folderResultsObj.audioFilePaths) &&
+      folderResultsObj.audioFilePaths.length > 0
+    ) {
+      collectedAudioPaths.push(...folderResultsObj.audioFilePaths);
+    } else {
+      const ext = '.' + filePath.split('.').pop().toLowerCase();
+      if (audioExts.includes(ext)) collectedAudioPaths.push(filePath);
+    }
+  }
+  collectedAudioPaths = collectedAudioPaths.filter(filePath => {
+    const ext = '.' + filePath.split('.').pop().toLowerCase();
+    return audioExts.includes(ext);
   });
+  if (!collectedAudioPaths.length) {
+    alert("Now you did it LOL, drag and drop in electron could now be broken due to a bug in electron :( if you dragged too many files like 200+ you're done for pal... if you dragged a non audio file you should be fine still");
+    if (event.dataTransfer) {
+      try {
+        event.dataTransfer.clearData();
+      } catch {}
+    }
+    return;
+  }
+
+  audioFiles = audioFiles.concat(collectedAudioPaths);
+  if (event.dataTransfer) {
+    try {
+      event.dataTransfer.clearData();
+    } catch {}
+  }
+  renderPlaylist();
+  await applySavedSort();
+  currentIndex = 0;
+  playTrack(0);
+  scrollToCurrentTrack();
+});
+
+
 
   const clearPlaylistBtn = document.getElementById('clearPlaylistBtn');
 
@@ -3244,12 +3882,42 @@ if (pickNewFolderBtn) {
 });
 
   const volumePercent = document.getElementById('volumePercent');
-
+  var maffs = 0;
+  var checkTimer = null;
   volumeSlider.addEventListener('input', (e) => {
     audio.volume = e.target.value;
     volumePercent.textContent = Math.round(e.target.value * 100) + '%';
     localStorage.setItem('volumeLevel', e.target.value);
     window.electronAPI.updateVolume(e.target.value);
+    if(volumePercent.textContent === '3%' && !Number.isNaN(audio.duration) && checkTimer === null){
+      checkTimer = setInterval(() => {
+      maffs++
+      if(maffs === 10 && volumePercent.textContent === '3%'){
+        clearInterval(checkTimer)
+        checkTimer = null;
+        const katLogo = document.getElementById('kat-logo');
+        katLogo.src = 'build/gnomed-gnome.gif'
+        alert(`⚠️ FLASHING LIGHT WARNING ⚠️ \n \n🧙🏼‍♂️ Congratulations you have stumbled across an easter egg and a dead meme all at once, Enjoy the dead meme for the rest of this song, if this is the volume you set it to all the time i'm sorry LOL`)
+        maffs = 0;
+        const remainingMs = (audio.duration - audio.currentTime) * 1000;
+        startRainbowColorLoop();
+        setTimeout(() => {
+        stopRainbowLoop();
+        katLogo.src = 'build/kat.png'
+      },remainingMs);
+      }
+
+      if(maffs === 11)
+      {
+        clearInterval(checkTimer)
+        checkTimer = null;
+        maffs = 0;
+      }
+     
+    }, 1000);
+    
+  }
+      
   });
 
   const savedVolume = localStorage.getItem('volumeLevel');
@@ -3483,7 +4151,6 @@ function stopVideo() {
     if (visualizerHlsInstance) {
         visualizerHlsInstance.destroy();
         visualizerHlsInstance = null;
-        console.log("[StopVideo] Destroyed visualizer HLS instance");
         hlsInstance.destroy();
         hlsInstance = null;
     }
@@ -3700,7 +4367,7 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
     }
 
     if (videoOnlyMode) {
-        
+      
         window.electronAPI?.resizeWindow?.(1241, 743);
         window.electronAPI.setResizable(true)
         document.body.classList.add('video-only');
@@ -3727,7 +4394,6 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
             `;
             container.prepend(artworkEl);
         }
-
         const currentItem = audioFiles[currentIndex];
         if (currentItem) {
             await setVideoOnlyBackground(currentItem);
@@ -3745,8 +4411,21 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
                 console.warn("Video-only playback failed:", err);
             }
         }
+
+         if (videoOnlyMode && visualizerVideo.src) {
+          visualizerVideo.currentTime =
+              audio.currentTime % visualizerVideo.duration || 0;
+
+          if (!audio.paused) {
+              visualizerVideo.play().catch(() => {});
+          }
+          else {
+            visualizerVideo.pause();
+          }
+      }  
     } else {
 
+        
         document.body.classList.remove('video-only');
         songNameOverlay.style.display = 'none';
         
@@ -3763,8 +4442,150 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
         if (videoEl && videoEl.src) {
             videoEl.play().catch(() => {});
         }
+         if (visualizerVideo.src) {
+        const shouldPlayVideo =
+            !audio.paused &&
+            audio.currentSrc &&
+            !isNaN(audio.duration) &&
+            audio.duration > 0;
+
+        if (shouldPlayVideo) {
+            setTimeout(() => {
+                if (!isNaN(visualizerVideo.duration) && isFinite(visualizerVideo.duration)) {
+                    visualizerVideo.currentTime = audio.currentTime % visualizerVideo.duration || 0;
+                }
+                visualizerVideo.play().catch(err => {});
+            }, 100);
+        } else {
+            visualizerVideo.pause();
+        }
     }
+  selectedIndices.clear();
+  selectedIndices.add(currentIndex);
+  renderPlaylist();
+  updateSelectionVisuals();
+  setTimeout(() => {
+  scrollToCurrentTrack();
+  }, 150);
+}
 });
+
+
+let isWidgetMode = false;
+let originalVolumeParent = null;
+
+const widgetBtn = document.getElementById('widgetModeBtn');
+if (widgetBtn) {
+  widgetBtn.addEventListener('click', () => {
+    isWidgetMode = !isWidgetMode;
+    document.body.classList.toggle('widget-mode', isWidgetMode);
+
+    console.log('[Widget] Toggled → isWidgetMode:', isWidgetMode);
+
+    if (isWidgetMode) {
+     
+      
+      console.log(`[Widget] Entering - resize + setup ${displayName}`);
+      const vol = document.querySelector('.volume-control');
+      if (vol && !originalVolumeParent) {
+        originalVolumeParent = vol.parentElement;
+      }
+
+ 
+      window.electronAPI?.AlwaysOnTop(true, 'screen-saver');
+      window.electronAPI?.resizeWindow?.(380, 110);
+      try { window.resizeTo(380, 110); } catch(e) { console.log('[Resize fallback failed]', e); }
+      const backBtn = document.getElementById('widgetBackBtn');
+      if (backBtn) backBtn.style.display = 'flex';
+      let right = document.querySelector('.widget-right') || document.createElement('div');
+      right.className = 'widget-right';
+      document.getElementById('container').appendChild(right);
+
+    let titleEl = document.getElementById('widgetSongTitle');
+   
+  if (!titleEl) {
+    titleEl = document.createElement('div');
+    titleEl.id = 'widgetSongTitle';
+    right.appendChild(titleEl);
+  }
+
+
+    updateWidgetSongName(displayName);
+      if (vol) right.appendChild(vol);
+
+      const vis = document.getElementById('visualizerWrapper');
+      if (vis) {
+        vis.style.marginLeft = '0px';
+        vis.style.paddingLeft = '0px';
+      }
+  } else {
+ 
+  console.log('[Widget] Exiting - full reset');
+
+  window.electronAPI?.resizeWindow?.(441, 743);
+  window.electronAPI?.AlwaysOnTop(false, 'screen-saver');
+  try { window.resizeTo(441, 743); } catch(e) {}
+
+  if (window.electronAPI?.setResizable) {
+    window.electronAPI.setResizable(false);
+  }
+
+  const backBtn = document.getElementById('widgetBackBtn');
+  if (backBtn) backBtn.style.display = 'none';
+
+  const vol = document.querySelector('.volume-control');
+  if (vol && vol.parentElement !== originalVolumeParent) {
+    const progress = document.getElementById('progressContainer');
+    if (progress && progress.parentElement === originalVolumeParent) {
+      originalVolumeParent.insertBefore(vol, progress);
+      console.log('[Widget] Volume placed directly BEFORE progress bar ✓');
+    } 
+    else if (document.getElementById('visualizerWrapper')) {
+      const vis = document.getElementById('visualizerWrapper');
+      originalVolumeParent.insertBefore(vol, vis.nextElementSibling || null);
+      console.log('[Widget] Volume fallback: before visualizer next sibling');
+    } 
+    else {
+      originalVolumeParent.appendChild(vol);
+      console.log('[Widget] Volume last-resort append');
+    }
+
+    vol.style.display = 'none';
+    vol.offsetHeight;              
+    vol.style.display = 'flex';
+
+    const slider = vol.querySelector('#volume');
+    if (slider) {
+      const val = slider.value;
+      slider.value = '0.123';     
+      slider.offsetHeight;
+      slider.value = val;
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      console.log('[Widget] Slider value forced refresh');
+    }
+  }
+
+  document.getElementById('widgetSongTitle')?.remove();
+  document.querySelector('.widget-right')?.remove();
+
+  const vis = document.getElementById('visualizerWrapper');
+  if (vis) {
+    vis.style.marginLeft = '';
+    vis.style.paddingLeft = '';
+    vis.style.marginBottom = '';
+  }
+
+  setTimeout(visualize, 120);
+}
+  });
+}
+
+const backBtn = document.getElementById('widgetBackBtn');
+if (backBtn) {
+  backBtn.addEventListener('click', () => {
+    if (isWidgetMode && widgetBtn) widgetBtn.click();
+  });
+}
 
 
 
@@ -3776,6 +4597,24 @@ function updateVideoSongName(title) {
     songNameOverlay.textContent = title.slice(0, maxLength - 3) + "...";
   } else {
     songNameOverlay.textContent = title;
+  }
+}
+
+function updateWidgetSongName(title) {
+  const maxLength = 40;  
+  const titleEl = document.getElementById('widgetSongTitle');
+  console.log(`SHITABYSS`)
+  if (!titleEl) {
+    console.warn("Widget title element not found");
+    return;
+  }
+
+  console.log("Widget title element:", titleEl);
+  console.log("Current text:", titleEl.textContent);
+  if (title.length > maxLength) {
+    titleEl.textContent = title.slice(0, maxLength - 3) + "...";
+  } else {
+    titleEl.textContent = title;
   }
 }
 
@@ -4021,11 +4860,11 @@ if (isHlsSource) {
   if (Hls.isSupported()) {
     hlsInstance = new Hls({
       enableWorker: true,
-      lowLatencyMode: true, 
-      liveSyncDuration: 0.1,
-      liveMaxLatencyDuration: 1,
+      lowLatencyMode: false, 
+      liveSyncDuration: 6,
+      liveMaxLatencyDuration: 12,
       backBufferLength: 10,
-      maxBufferLength: 10,
+      maxBufferLength: 30,
       manifestLoadingTimeOut: 10000,
       manifestLoadingMaxRetry: 6,          
       manifestLoadingRetryDelay: 1000,
@@ -4048,17 +4887,21 @@ if (isHlsSource) {
     let manifestRefreshTimer = null;
     hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
       clearTimeout(manifestRefreshTimer);
-      manifestRefreshTimer = setTimeout(() => {
+      manifestRefreshTimer = setInterval(() => {
         if (hlsInstance && !hlsInstance.destroyed) {
           console.log("[HLS] Auto-refreshing manifest to prevent 403");
           hlsInstance.loadLevel = hlsInstance.currentLevel;
         }
-      }, 240000);
+
+        if (!hlsInstance) {
+          console.log("[HLS] Killing loop");
+          clearTimeout(manifestRefreshTimer);
+        }
+      }, 40000);
     });
 
     hlsInstance.on(Hls.Events.ERROR, (event, data) => {
       console.log("[HLS Error]", data);
-
       if (data.fatal) {
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           if (data.details.includes('403') || data.details.includes('timeout')) {
@@ -4116,6 +4959,10 @@ if (isHlsSource) {
   updateSelectionVisuals();
   visualize();
   scrollToCurrentTrack();
+  if(isWidgetMode){
+  updateWidgetSongName(displayName);
+  }
+
 
   if (item.isStream) {
     currentTimeElem.textContent = 'LIVE';
@@ -4192,13 +5039,11 @@ audio.addEventListener('timeupdate', () => {
       durationElem.textContent = '∞';
       progressBar.value = 0;
       progressBar.max = 1;
-      window.electronAPI.updateTime(0, Infinity);
     } else if (audio.duration && isFinite(audio.duration)) {
       progressBar.max = audio.duration;
       progressBar.value = audio.currentTime;
       currentTimeElem.textContent = formatTime(audio.currentTime);
       durationElem.textContent = formatTime(audio.duration);
-      window.electronAPI.updateTime(audio.currentTime, audio.duration);
     }
     updateSliderBackground(progressBar);
   }
@@ -4264,7 +5109,7 @@ function visualize() {
 
   let frameCounter = 0;
   let lastTime = 0;
-
+  var lastBeatTime = 0;
   function draw(timestamp) {
     animationFrameId = requestAnimationFrame(draw);
    
@@ -4346,8 +5191,10 @@ function visualize() {
       ctx.restore();
       textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
     }
+    if(!isWidgetMode){
     ctx.globalAlpha = 1.0;
     ctx.fillText(displayText, textX, textY);
+    }
 
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
@@ -4860,7 +5707,6 @@ audio.addEventListener('ended', () => {
   async function applySavedSort() {
     const criteria = localStorage.getItem('sortCriteria');
     const order = localStorage.getItem('sortOrder');
-
     if (criteria && order) {
       const sortIdMap = {
         'name-asc': 'sortNameAsc',
@@ -4931,8 +5777,6 @@ function stopVisualizer() {
 
 
 function startRainbowColorLoop() {
-  if (!isRainbowActive || rainbowIntervalId) return;
-
   rainbowIntervalId = setInterval(() => {
     rainbowHue = (rainbowHue + 5) % 360;
     const color = `hsl(${rainbowHue}, 100%, 65%)`;
@@ -4943,13 +5787,15 @@ function startRainbowColorLoop() {
 
     updateSliderBackground(volumeSlider);
     updateSliderBackground(progressBar);
-  }, 100);
+  }, 1);
 }
 
 function stopRainbowLoop() {
   if (rainbowIntervalId) {
     clearInterval(rainbowIntervalId);
     rainbowIntervalId = null;
+    let defaultColor = localStorage.getItem('themeColor');
+    document.documentElement.style.setProperty('--primary-color', defaultColor);
   }
 }
 

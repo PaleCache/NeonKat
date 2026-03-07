@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
+  dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
   pickDownloadFolder: () => ipcRenderer.invoke('pick-download-folder'),
   openFile: () => ipcRenderer.invoke('open-file'),
@@ -33,6 +33,7 @@ dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
   pathExtname: (filePath) => ipcRenderer.invoke('path-extname', filePath),
   pathJoin: (...args) => ipcRenderer.invoke('path-join', ...args),
   resizeWindow: (w, h) => ipcRenderer.send('resize-window', w, h),
+  AlwaysOnTop: (isit) => ipcRenderer.send('Always-Top', isit),
   loadFolderDirect: (path) => ipcRenderer.invoke('load-folder-direct', path),
   setResizable: (value) => ipcRenderer.send('set-resizable', value),
 

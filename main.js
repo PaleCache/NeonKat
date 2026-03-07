@@ -277,6 +277,7 @@ ipcMain.handle('download-youtube', async (event, {
 
 }
 
+
   const sender = event.sender;
   const sendProgress = (percent, extra = {}) => {
     sender.send('download-progress', { 
@@ -531,6 +532,12 @@ ipcMain.on('resize-window', (event, width, height) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;
   win.setSize(width, height, true);
+});
+
+ipcMain.on('Always-Top', (event, isit) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+  win.setAlwaysOnTop(isit, 'screen-saver');
 });
 
   mainWindow.loadFile('index.html');
