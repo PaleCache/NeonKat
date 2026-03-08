@@ -40,6 +40,7 @@
 #visualizerToggleBtn,
 #rainbowToggleBtn,
 button,
+#streamArtworkInput,
 #exportDurationSelect:focus,
 #exportDurationSelect:focus-visible,
 #customExportSeconds:focus,
@@ -76,12 +77,13 @@ a {
         max-height: none;
         background: #111;
         padding: 15px;
-        border: 6px solid var(--primary-color); 
+        border: 4px solid var(--primary-color); 
         box-sizing: border-box;      
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        margin-top: 0;             
+        margin-top: 0;  
+                   
       }
     h1 {
       font-size: 24px;
@@ -438,7 +440,8 @@ a {
     body.mini-mode #hamburgerBtn,
     body.mini-mode #connectJellyfinBtn,
     body.mini-mode #popoutVideoBtn,
-    body.mini-mode #folderMenuBtn
+    body.mini-mode #folderMenuBtn,
+    body.mini-mode #widgetModeBtn
     {
       display: none !important;
     }
@@ -727,14 +730,11 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
 #container.custom-bg::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(17, 17, 17, 0.65);
-  border-radius: 0px;               
-  pointer-events: none;               
-  z-index: 1;                         
+  inset: 0;
+  background: rgba(17, 17, 17, var(--bg-overlay-opacity, 0.65));
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
 }
 
 #container.custom-bg {
@@ -1176,7 +1176,6 @@ body.widget-mode #widgetSongTitle {
   font-size: 13px !important;
   font-weight: bold !important;
   color: white !important;
-  text-shadow: 0 0 12px black, 0 0 20px var(--primary-color) !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -1202,6 +1201,9 @@ body.widget-mode #volume {
   height: 6px !important;
   -webkit-app-region: no-drag !important;
 }
+
+ 
+ 
 
 body.widget-mode .playPauseBtn{
     display: none;
@@ -1244,13 +1246,16 @@ body.widget-mode .playPauseBtn{
   cursor: pointer;
   z-index: 99999;
   backdrop-filter: blur(8px);
-  box-shadow: 0 0 16px rgba(0,0,0,0.7);
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
   -webkit-app-region: no-drag !important;
 }
 
+#widgetBackBtn  img {
+    width: 14px !important;
+    height: 11px !important;
+}
 
 
 body.widget-mode #widgetBackBtn {
@@ -1309,21 +1314,9 @@ body.widget-mode #nextBtn {
 }
 
 body.widget-mode #playPauseBtn {
-  width: 46px !important;
-  height: 46px !important;
+  width: 9px !important;
+  height: 20px !important;
 }
-
-
-body.widget-mode .control-btn img.icon {
-  width: 22px !important;
-  height: 22px !important;
-}
-
-body.widget-mode #playPauseBtn img.icon {
-  width: 26px !important;
-  height: 26px !important;
-}
-
 
 body.widget-mode #widgetBackBtn {
   position: absolute !important;
@@ -1345,9 +1338,9 @@ body.widget-mode .controls:not(.playback-controls) > *:not(#prevBtn):not(#playPa
 body.widget-mode #prevBtn,
 body.widget-mode #playPauseBtn,
 body.widget-mode #nextBtn {
-    width: 20px !important;
-    height: 32px !important;
-  min-width: 32px !important;
+    width: 9px !important;
+    height: 20px !important;
+  min-width: 20px !important;
   background: rgba(33, 33, 33, 0.5) !important;
     backdrop-filter: blur(4px) !important;
     color: white !important;
@@ -1359,25 +1352,20 @@ body.widget-mode #nextBtn:hover {
  color: var(--primary-color);
 }
 
-body.widget-mode #playPauseBtn {
-     width: 20px !important;
-    height: 32px !important;
-}
-
 
 body.widget-mode .control-btn img.icon {
   width:  18px  !important;
-  height: 18px  !important;
+  height: 13px  !important;
 }
 
 body.widget-mode #playPauseBtn img.icon {
-    width: 20px !important;
-    height: 32px !important;
+    width: 14px !important;
+    height: 11px !important;
 }
 
 
 body.widget-mode .controls {
-    left: 203px !important;
+    left: 253px !important;
     top: 3px !important;
     gap: 6px !important;
     z-index: 99999 !important;
@@ -1401,8 +1389,8 @@ body.widget-mode #nextBtn:hover {
 
 
 body.widget-mode #widgetBackBtn {
-  width:  34px !important;
-  height: 32px !important;
+  width:  19px !important;
+  height: 20px !important;
 }
 
 body.widget-mode footer {
@@ -1425,8 +1413,8 @@ body.widget-mode footer {
 }
 
 body.widget-mode footer img {
-  width: 14px !important;
-  height: 14px !important;
+  width: 9px !important;
+  height: 9px !important;
   margin-right: 6px !important;
   vertical-align: middle !important;
   transform: scale(1) !important; 
@@ -1441,15 +1429,18 @@ body.widget-mode footer:hover {
 body.widget-mode #container {
     flex-direction: row !important;
     align-items: center !important;       
-    gap: 10px !important;                 
+    gap: 10px !important;   
+    width: 100% !important;
+    height: 100vh !important;              
 }
 
 body.widget-mode #visualizerWrapper {
-    width: 100px !important;
-    height: 100px !important;
+    width: 128px !important;
+    height: 112px !important;
     flex-shrink: 0 !important;
     margin: 0 !important;
-    order: 1;                             
+    order: 1;
+    border: 4px solid #00000000 !important;                             
 }
 
 body.widget-mode #progressContainer {
@@ -1496,7 +1487,7 @@ body.widget-mode #progressContainer {
     order: 2 !important;
     align-self: center !important;
     top: 25px;
-    right: 27px;
+    right: 43px;
 }
 
 
@@ -1522,6 +1513,54 @@ body.widget-mode .widget-right {
     right: -114px;
 }
 
+body.widget-mode #container .custom-bg {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+
+
+#bgBrightness {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;                 
+  background: #333;             
+  border-radius: 4px;
+  outline: none;
+  margin: 12px 0 8px;
+  padding: 0;
+  cursor: pointer;
+}
+
+
+#bgBrightness::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--primary-color) 0%,
+    var(--primary-color) var(--brightness-fill, 65%),
+    #333 var(--brightness-fill, 65%),
+    #333 100%
+  );
+  border-radius: 4px;
+  height: 100%;
+}
+
+
+#bgBrightness::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  border: 2px solid #1a1a1a;
+  cursor: pointer;
+  margin-top: -5px;       
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  transition: transform 0.12s;
+}
 
 
 
@@ -1561,7 +1600,7 @@ body.widget-mode .widget-right {
     </button>
 
     <button id="widgetModeBtn" style="background: none; border: none; cursor: pointer; margin-left: 8px;" title="Widget Mode (OBS friendly)">
-  <img src="build/miniplayer.svg" height="20" /> 
+  <img src="build/widget.svg" height="20" /> 
 </button>
 
 
@@ -1716,6 +1755,10 @@ body.widget-mode .widget-right {
     <label>Station Name (optional):</label>
     <input type="text" id="streamNameInput" style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" placeholder="My Favorite Station" />
     
+    <label>Artwork / Cover URL (optional):</label>
+    <input type="text" id="streamArtworkInput" 
+       style="width: 100%; padding: 10px; margin: 10px 0; background: #111111; border: none; border-radius: 5px; color: white;" 
+       placeholder="https://example.com/station-logo.jpg" />
     <div style="display: flex; gap: 10px; justify-content: flex-end;">
       <button id="cancelStreamBtn" style="background: #444; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Cancel</button>
       <button id="addStreamConfirmBtn" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Add</button>
@@ -1730,7 +1773,18 @@ body.widget-mode .widget-right {
     <p style="margin: 10px 0 20px;">Paste an image URL or local file path <br><small>(leave empty to remove current bg ♡)</small></p>
     <input type="text" id="customBgInput" placeholder="https://... or file:///C:/.../cute.jpg" 
            style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px; margin-bottom: 20px;">
-    <div style="display: flex; gap: 15px; justify-content: center;">
+     <div style="margin: 16px 0 20px; text-align: left;">
+      <label for="bgBrightness" style="display: block; margin-bottom: 8px; font-size: 14px;">
+        Background Brightness  <span id="brightnessValue">65%</span>
+      </label>
+      <input type="range" id="bgBrightness" min="0" max="100" value="65" step="1"
+             style="width: 100%; accent-color: var(--primary-color);">
+      <div style="text-align: center; margin-top: 6px; font-size: 13px; opacity: 0.9;">
+       
+      </div>
+    </div>
+    
+      <div style="display: flex; gap: 15px; justify-content: center;">
       <button id="cancelBgBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
       <button id="applyBgBtn" style="padding: 10px 25px; background: var(--primary-color); color: black; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Apply ♡</button>
     </div>
@@ -1877,7 +1931,7 @@ body.widget-mode .widget-right {
 </div>
 
 <button id="widgetBackBtn" style="display:none; position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.4); border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; z-index:9999;">
-  <img src="build/miniplayer.svg" height="20" style="filter: brightness(0) invert(1);"/> 
+  <img src="build/widget.svg" height="20" style="filter: brightness(0) invert(1);"/> 
 </button>
     <footer>
   <img src="build/kat.png" alt=':)' style="    width: 15px;
@@ -1928,7 +1982,6 @@ katbubbleImages[0].src = 'build/kat.png';
   let videoQuality = localStorage.getItem('videoQuality') || '480';
   let selectedDuration = localStorage.getItem('videoDuration') || 30;
   const playlistElem = document.getElementById('playlist');
-  console.log(`QUALTIY GOT INITIAL : ${videoQuality}`)
   const audio = document.getElementById('audio');
   const visualizerCanvas = document.getElementById('visualizer');
   const ctx = visualizerCanvas.getContext('2d');
@@ -2012,6 +2065,9 @@ stage2.connect(makeupGain);
   let src;
   let displayName;
 
+
+
+  
 
   const repeatBtn = document.getElementById('repeatBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
@@ -2246,12 +2302,10 @@ function updateArtworkDuration() {
         let sec = parseInt(customArtworkInput.value, 10);
         selectedDuration = (isNaN(sec) || sec < 5) ? 30 : Math.min(sec, 600);
         localStorage.setItem('videoDuration', selectedDuration);
-        console.log(`DUR: ${selectedDuration}`)
     } else {
         customArtworkInput.style.display = 'none';
         selectedDuration = (val === 'full') ? Infinity : Number(val);
         localStorage.setItem('videoDuration', selectedDuration);
-        console.log(`DUR: ${selectedDuration}`)
     }
 }
 
@@ -2305,6 +2359,86 @@ function applyCustomBackground(url = null) {
     img.src = url;
 }
 
+const brightnessSlider = document.getElementById('bgBrightness');
+const brightnessValueDisplay = document.getElementById('brightnessValue');
+let currentBrightness = 65;
+function loadSavedBrightness() {
+  const params = new URLSearchParams(window.location.search);
+  const urlBrightness = params.get('bg-brightness');
+  
+  if (urlBrightness !== null) {
+    currentBrightness = Math.max(0, Math.min(100, Number(urlBrightness)));
+  } else {
+    const saved = localStorage.getItem('customBgBrightness');
+    if (saved !== null) {
+      currentBrightness = Number(saved);
+    }
+  }
+  
+  brightnessSlider.value = currentBrightness;
+  brightnessValueDisplay.textContent = currentBrightness + '%';
+  applyBrightness();
+  document.documentElement.style.setProperty(
+    '--brightness-fill', 
+    currentBrightness + '%'
+  );
+}
+
+
+function applyBrightness() {
+  const opacity = (100 - currentBrightness) / 100;
+  container.style.setProperty('--bg-overlay-opacity', opacity.toFixed(3));
+}
+
+
+
+let previewBrightness = currentBrightness; 
+
+brightnessSlider.addEventListener('input', () => {
+  previewBrightness = Number(brightnessSlider.value);
+  brightnessValueDisplay.textContent = previewBrightness + '%';
+  document.documentElement.style.setProperty(
+    '--brightness-fill', 
+    previewBrightness + '%'
+  );
+  
+  const tempOpacity = (100 - previewBrightness) / 100;
+  container.style.setProperty('--bg-overlay-opacity', tempOpacity.toFixed(3));
+});
+
+
+
+
+applyBgBtn.addEventListener('click', () => {
+  const url = customBgInput.value.trim();
+  localStorage.setItem('customBgBrightness', currentBrightness);
+  const params = new URLSearchParams(window.location.search);
+  params.set('bg-brightness', currentBrightness);
+  const newUrl = window.location.pathname + '?' + params.toString();
+  window.history.replaceState({}, '', newUrl);
+  applyCustomBackground(url);
+  currentBrightness = previewBrightness;
+  localStorage.setItem('customBgBrightness', currentBrightness);
+  customBgModal.style.display = 'none';
+});
+
+
+customBgToggle.addEventListener('click', () => {
+  customBgInput.value = localStorage.getItem('customBackgroundUrl') || '';
+  brightnessSlider.value = currentBrightness;         
+  document.documentElement.style.setProperty('--brightness-fill', currentBrightness + '%');
+
+  brightnessValueDisplay.textContent = currentBrightness + '%';
+  
+  customBgModal.style.display = 'flex';
+  customBgInput.focus();
+});
+
+
+loadSavedBrightness();
+
+
+
 
 const saved = localStorage.getItem('autoUpdateEnabled');
 const isEnabled = saved === 'true'; 
@@ -2325,12 +2459,6 @@ if (savedCustomBg) {
 }
 
 
-customBgToggle.addEventListener('click', () => {
-    customBgInput.value = localStorage.getItem('customBackgroundUrl') || '';
-    customBgModal.style.display = 'flex';
-    customBgInput.focus();
-});
-
 audio.addEventListener('play',   () => visualizerVideo.play().catch(e=>0));
 audio.addEventListener('pause',  () => visualizerVideo.pause());
 audio.addEventListener('seeking',() => {
@@ -2347,15 +2475,18 @@ audio.addEventListener('timeupdate', () => {
   }
 });
 
-applyBgBtn.addEventListener('click', () => {
-    const url = customBgInput.value.trim();
-    applyCustomBackground(url);
-    customBgModal.style.display = 'none';
-});
+
 
 
 cancelBgBtn.addEventListener('click', () => {
-    customBgModal.style.display = 'none';
+  brightnessSlider.value = currentBrightness;
+  brightnessValueDisplay.textContent = currentBrightness + '%';
+  document.documentElement.style.setProperty(
+    '--brightness-fill', 
+    currentBrightness + '%'
+  );
+  applyBrightness(); 
+  customBgModal.style.display = 'none';
 });
 
 
@@ -2913,14 +3044,12 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
   const artworkDurationSelect = document.getElementById('exportDurationSelect');
   const customExportInput   = document.getElementById('customExportSeconds');
-  console.log(`QUALTIY GOT : ${videoQuality}`)
    if (videoQuality) {
     videoQualitySelect.value = videoQuality;
   }
  
  if (selectedDuration === Infinity) {
    artworkDurationSelect.value = "Infinity";
-    console.log(`SHIT ${selectedDuration}`)
 } else if (selectedDuration !== null) {
   selectedDuration = Number(selectedDuration);
    artworkDurationSelect.value = selectedDuration;
@@ -2934,7 +3063,6 @@ if (qualitySelect) {
     const val = qualitySelect.value;
     videoQuality = val;
     localStorage.setItem('videoQuality', videoQuality);
-    console.log(`QUALTIY SET : ${videoQuality}`)
   });
   videoQuality = qualitySelect.value || videoQuality;
 }
@@ -2950,12 +3078,10 @@ if (qualitySelect) {
         let sec = parseInt(customExportInput.value) || 30;
         selectedDuration = Math.max(5, Math.min(600, sec));
         localStorage.setItem('videoDuration', selectedDuration);
-        console.log(`DUR: ${selectedDuration}`)
       } else {
         customExportInput.style.display = 'none';
         selectedDuration = val === 'full' ? Infinity : Number(val);
         localStorage.setItem('videoDuration', selectedDuration);
-        console.log(`DUR: ${selectedDuration}`)
       }
     });
   }
@@ -2965,7 +3091,6 @@ if (qualitySelect) {
       let sec = parseInt(customExportInput.value) || 30;
       selectedDuration = Math.max(5, Math.min(600, sec));
       localStorage.setItem('videoDuration', selectedDuration);
-      console.log(`DUR: ${selectedDuration}`)
     });
   }
 
@@ -3128,8 +3253,9 @@ aboutBtn.addEventListener('click', () => {
       <p style="font-size: 16px; margin: 15px 0;">Made With ❤️ By <strong>PaleCache</strong></p>
       <p style="font-size: 14px; margin-bottom: 20px;">A music player with yt-dlp support, streams, and neon vibes. Check out the source and star it if you love it!</p>
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
+      <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.3 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.4 alpha</p>
       </div>
   </div>
   `;
@@ -3137,8 +3263,13 @@ aboutBtn.addEventListener('click', () => {
   document.body.appendChild(aboutModal);
   const closeBtn = document.getElementById('closeAboutBtn');
   const gitHubBtn = document.getElementById('openGitHubBtn');
+  const patchBtn = document.getElementById('patchBtn');
   gitHubBtn.addEventListener('click', async () => {
     await window.electronAPI.openExternal('https://github.com/PaleCache/NeonKat');
+  });
+
+  patchBtn.addEventListener('click', async () => {
+    await window.electronAPI.openExternal('https://github.com/PaleCache/NeonKat/releases/latest');
   });
   closeBtn.addEventListener('click', () => aboutModal.remove());
   aboutModal.addEventListener('click', (e) => {
@@ -3207,12 +3338,14 @@ const addStreamBtn = document.getElementById('addStreamBtn');
 const streamModal = document.getElementById('streamModal');
 const streamUrlInput = document.getElementById('streamUrlInput');
 const streamNameInput = document.getElementById('streamNameInput');
+const streamArtworkInput = document.getElementById('streamArtworkInput');
 const cancelStreamBtn = document.getElementById('cancelStreamBtn');
 const addStreamConfirmBtn = document.getElementById('addStreamConfirmBtn');
 
 addStreamBtn.addEventListener('click', () => {
   streamUrlInput.value = '';
   streamNameInput.value = '';
+  streamArtworkInput.value = '';
   streamModal.style.display = 'flex';
   streamUrlInput.focus();
 });
@@ -3229,6 +3362,7 @@ addStreamConfirmBtn.addEventListener('click', () => {
   }
 
   let name = streamNameInput.value.trim() || new URL(url).hostname;
+  let artUrl = streamArtworkInput.value.trim() || null;
   if (url.toLowerCase().endsWith('.pls') || url.toLowerCase().endsWith('.m3u')) {
     fetch(url)
       .then(r => r.text())
@@ -3252,7 +3386,7 @@ addStreamConfirmBtn.addEventListener('click', () => {
         alert('Couldn\'t fetch the playlist file. Try a direct stream URL.');
       });
   } else {
-    addStreamToPlaylist(url, name);
+    addStreamToPlaylist(url, name,artUrl);
     streamModal.style.display = 'none';
   }
 });
@@ -3272,7 +3406,8 @@ function addStreamToPlaylist(url, customName = null) {
   const streamEntry = {
     url: url,
     name: name,
-    isStream: true
+    isStream: true,
+    artwork: streamArtworkInput.value.trim() || null
   };
 
   audioFiles.push(streamEntry);
@@ -3812,73 +3947,99 @@ if (pickNewFolderBtn) {
   });
 }
 
-  savePlaylistBtn.addEventListener('click', async () => {
-    if (audioFiles.length === 0) {
-      alert('No tracks to save!');
-      return;
+ savePlaylistBtn.addEventListener('click', async () => {
+  if (audioFiles.length === 0) {
+    alert('No tracks to save!');
+    return;
+  }
+
+  const serializablePlaylist = audioFiles.map(item => {
+    if (typeof item === 'string') {
+      return { type: 'file', path: item };
+    } else if (item.isStream) {
+      return {
+        type: 'stream',
+        url: item.url,
+        name: item.name,
+        artwork: item.artwork || null
+      };
+    } else if (item.isJellyfin) {
+      return {
+        type: 'jellyfin',
+        url: item.url,
+        name: item.name,
+        itemId: item.itemId,
+        albumArt: item.albumArt
+      };
     }
-    const playlist = audioFiles;
-    const success = await window.electronAPI.savePlaylist(playlist);
-    alert(success ? 'Playlist saved!' : 'Failed to save playlist');
-  });
+    return null;
+  }).filter(Boolean);
+
+  const success = await window.electronAPI.savePlaylist(serializablePlaylist);
+  if (success) {
+    alert('Playlist saved!');
+  } else {
+    alert('Failed to save playlist');
+  }
+});
 
  loadPlaylistBtn.addEventListener('click', async () => {
-    const { canceled, filePaths } = await window.electronAPI.openFile();
-    if (canceled || !filePaths.length) return;
+  const { canceled, filePaths } = await window.electronAPI.openFile();
+  if (canceled || !filePaths.length) return;
 
-    const playlistPath = filePaths[0];
-    const ext = playlistPath.split('.').pop().toLowerCase();
+  const playlistPath = filePaths[0];
+  const ext = playlistPath.split('.').pop().toLowerCase();
 
-    let loadedFiles = [];
+  let loadedItems = [];
 
-    if (ext === 'playlist') {
-        const playlistData = await window.electronAPI.readFile(playlistPath);
-        loadedFiles = JSON.parse(playlistData);
-    } else if (ext === 'm3u') {
-        loadedFiles = await parseM3UFile(playlistPath);
-    } else {
-        alert('Unsupported playlist format');
-        return;
-    }
-    const previousPlaying = audioFiles[currentIndex] || null;
-    audioFiles = loadedFiles;
-    savedSortedOrder = [];
-    isShuffled = false;
-    shuffleBtn.classList.remove('enabled');
-    await applySavedSort();
-    if (previousPlaying && audioFiles.length > 0) {
-        currentIndex = audioFiles.findIndex(item => {
-            if (typeof item === 'string' && typeof previousPlaying === 'string') {
-                return item === previousPlaying;
-            }
-            if (item?.isJellyfin && previousPlaying?.isJellyfin) {
-                return item.itemId === previousPlaying.itemId;
-            }
-            if (item?.isStream && previousPlaying?.isStream) {
-                return item.url === previousPlaying.url;
-            }
-            return false;
-        });
-        if (currentIndex === -1) {
-            currentIndex = 0;
-        }
-    } else {
-        currentIndex = 0;
-    }
+  if (ext === 'playlist') {
+    const raw = await window.electronAPI.readFile(playlistPath);
+    const data = JSON.parse(raw);
 
-    if (currentIndex >= audioFiles.length || currentIndex < 0) {
-        currentIndex = 0;
-    }
+    loadedItems = data.map(entry => {
+      if (entry.type === 'file') return entry.path;
+      if (entry.type === 'stream') {
+        return {
+          url: entry.url,
+          name: entry.name,
+          isStream: true,
+          artwork: entry.artwork || null
+        };
+      }
+      if (entry.type === 'jellyfin') {
+        return {
+          url: entry.url,
+          name: entry.name,
+          isJellyfin: true,
+          itemId: entry.itemId,
+          albumArt: entry.albumArt
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  } 
+  else if (ext === 'm3u') {
+    loadedItems = await parseM3UFile(playlistPath);
+  } 
+  else {
+    alert('Unsupported playlist format');
+    return;
+  }
 
-    renderPlaylist();
-    updateSelectionVisuals();
-    scrollToCurrentTrack();
-    if (audioFiles.length > 0) {
-        playTrack(currentIndex);
-    } else {
-        audio.pause();
-        audio.src = '';
-    }
+  audioFiles = loadedItems;
+  savedSortedOrder = [];
+  isShuffled = false;
+  shuffleBtn.classList.remove('enabled');
+  await applySavedSort();
+
+  currentIndex = 0;
+  renderPlaylist();
+  updateSelectionVisuals();
+  scrollToCurrentTrack();
+
+  if (audioFiles.length > 0) {
+    playTrack(0);
+  }
 });
 
   const volumePercent = document.getElementById('volumePercent');
@@ -4351,7 +4512,26 @@ if (videoEl.src && videoEl.readyState >= 2) {
     if (!foundContent) {
         artworkEl.src = 'build/default-artwork.jpg';
         artworkEl.style.opacity = '1';
+         if (item?.isStream && item.artwork) {
+        artworkEl.src = item.artwork;
+        artworkEl.onload = () => {
+            artworkEl.style.opacity = '1';
+            foundContent = true;
+        };
+        artworkEl.onerror = () => {
+            console.warn("Stream artwork failed in video-only mode:", item.artwork);
+            artworkEl.src = 'build/default-artwork.jpg';
+            artworkEl.style.opacity = '1';
+        };
+    } else if (item?.isJellyfin && item.albumArt) {
+        artworkEl.src = item.albumArt;
+    } else {
+        artworkEl.src = 'build/default-artwork.jpg';
+        artworkEl.style.opacity = '1';
     }
+  }
+
+   
 }
 
 
@@ -4479,22 +4659,16 @@ if (widgetBtn) {
   widgetBtn.addEventListener('click', () => {
     isWidgetMode = !isWidgetMode;
     document.body.classList.toggle('widget-mode', isWidgetMode);
-
-    console.log('[Widget] Toggled → isWidgetMode:', isWidgetMode);
-
     if (isWidgetMode) {
-     
-      
-      console.log(`[Widget] Entering - resize + setup ${displayName}`);
       const vol = document.querySelector('.volume-control');
       if (vol && !originalVolumeParent) {
         originalVolumeParent = vol.parentElement;
       }
 
- 
+      
       window.electronAPI?.AlwaysOnTop(true, 'screen-saver');
       window.electronAPI?.resizeWindow?.(380, 110);
-      try { window.resizeTo(380, 110); } catch(e) { console.log('[Resize fallback failed]', e); }
+      try { window.resizeTo(380, 110); } catch(e) { console.error('[Resize fallback failed]', e); }
       const backBtn = document.getElementById('widgetBackBtn');
       if (backBtn) backBtn.style.display = 'flex';
       let right = document.querySelector('.widget-right') || document.createElement('div');
@@ -4520,8 +4694,6 @@ if (widgetBtn) {
       }
   } else {
  
-  console.log('[Widget] Exiting - full reset');
-
   window.electronAPI?.resizeWindow?.(441, 743);
   window.electronAPI?.AlwaysOnTop(false, 'screen-saver');
   try { window.resizeTo(441, 743); } catch(e) {}
@@ -4538,16 +4710,13 @@ if (widgetBtn) {
     const progress = document.getElementById('progressContainer');
     if (progress && progress.parentElement === originalVolumeParent) {
       originalVolumeParent.insertBefore(vol, progress);
-      console.log('[Widget] Volume placed directly BEFORE progress bar ✓');
     } 
     else if (document.getElementById('visualizerWrapper')) {
       const vis = document.getElementById('visualizerWrapper');
       originalVolumeParent.insertBefore(vol, vis.nextElementSibling || null);
-      console.log('[Widget] Volume fallback: before visualizer next sibling');
     } 
     else {
       originalVolumeParent.appendChild(vol);
-      console.log('[Widget] Volume last-resort append');
     }
 
     vol.style.display = 'none';
@@ -4561,7 +4730,6 @@ if (widgetBtn) {
       slider.offsetHeight;
       slider.value = val;
       slider.dispatchEvent(new Event('input', { bubbles: true }));
-      console.log('[Widget] Slider value forced refresh');
     }
   }
 
@@ -4574,6 +4742,13 @@ if (widgetBtn) {
     vis.style.paddingLeft = '';
     vis.style.marginBottom = '';
   }
+      selectedIndices.clear();
+      selectedIndices.add(currentIndex);
+      renderPlaylist();
+      updateSelectionVisuals();
+      setTimeout(() => {
+       scrollToCurrentTrack();
+      }, 150);
 
   setTimeout(visualize, 120);
 }
@@ -4601,18 +4776,15 @@ function updateVideoSongName(title) {
 }
 
 function updateWidgetSongName(title) {
-  const maxLength = 40;  
+  const maxLength = 35;
   const titleEl = document.getElementById('widgetSongTitle');
-  console.log(`SHITABYSS`)
   if (!titleEl) {
     console.warn("Widget title element not found");
     return;
   }
-
-  console.log("Widget title element:", titleEl);
-  console.log("Current text:", titleEl.textContent);
-  if (title.length > maxLength) {
-    titleEl.textContent = title.slice(0, maxLength - 3) + "...";
+  const chars = [...title];
+  if (chars.length > maxLength) {
+    titleEl.textContent = chars.slice(0, maxLength).join('') + "...";
   } else {
     titleEl.textContent = title;
   }
@@ -4676,6 +4848,31 @@ async function setVisualizerBackground(item) {
 
     let artUrl = null;
     let usedGifOrVideo = false;
+
+    if (item?.artwork) {
+        const loader = document.getElementById('artLoader');
+        if (loader) {
+            loader.crossOrigin = "anonymous";
+            loader.src = item.artwork;
+            await new Promise((resolve, reject) => {
+                loader.onload = () => {
+                    currentArtImage = loader;
+                    resolve();
+                };
+                loader.onerror = () => {
+                    console.warn("Custom artwork failed to load:", item.artwork);
+                    reject();
+                };
+            }).catch(() => {
+             
+            });
+
+            if (currentArtImage) {
+                visualize();
+                return;  
+            }
+        }
+    }
     if (item?.isStream && item.url?.includes('.m3u8')) {
         visualizerVideo.style.display = 'block';
         visualizerVideo.loop = true;
@@ -4835,7 +5032,7 @@ let hlsInstance = null;
   const encodedPath = encodeURI(normalizedPath).replace(/#/g, '%23');
   src = `file://${encodedPath}`;
 
-  displayName = normalizedPath.split('/').pop();
+  displayName = getCleanName(item);
 
 
 
@@ -5080,6 +5277,13 @@ progressBar.addEventListener('change', () => {
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
+  function getCleanName(item) {
+  if (!item) return 'Unknown Track';
+  if (typeof item === 'string') {
+    return item.split(/[\\/]/).pop().replace(/\.[^.]+$/, '').trim();
+  }
+  return item.name || 'Unknown Track';
+}
 
 let energyHistory;
 let lastBeat = false;
@@ -5144,7 +5348,7 @@ function visualize() {
     const currentItem = audioFiles[currentIndex];
     if (currentItem) {
       if (typeof currentItem === 'string') {
-        songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
+        songName = getCleanName(currentItem) || 'Unknown Track';
       } else if (currentItem.isStream) {
         isRadioStream = true;
         songName = currentItem.name?.trim() || (new URL(currentItem.url).hostname || 'Radio Stream');
@@ -5182,14 +5386,18 @@ function visualize() {
     }
 
     let textX = width / 2;
-    if (isRadioStream && radioIconImg.complete) {
-      const totalWidth = ctx.measureText(displayText).width + iconSize + 8;
-      const startX = width / 2 - totalWidth / 2;
-      ctx.save();
-      ctx.filter = 'brightness(0) invert(1)';
-      ctx.drawImage(radioIconImg, startX, textY - iconSize + 2, iconSize, iconSize);
-      ctx.restore();
-      textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
+    if (isRadioStream && radioIconImg.complete && !document.body.classList.contains('widget-mode')) {
+    const totalWidth = ctx.measureText(displayText).width + iconSize + 8;
+    const startX = width / 2 - totalWidth / 2;
+
+    ctx.save();
+    ctx.filter = 'brightness(0) invert(1)';
+    ctx.drawImage(radioIconImg, startX, textY - iconSize + 2, iconSize, iconSize);
+    ctx.restore();
+
+    textX = startX + iconSize + 8 + ctx.measureText(displayText).width / 2;
+    } else if (isRadioStream) {
+        textX = width / 2;
     }
     if(!isWidgetMode){
     ctx.globalAlpha = 1.0;
@@ -5911,6 +6119,28 @@ function checkForUpdatesSilently() {
 }
 
 
+const allModalsFromHamburger = [
+  document.getElementById('ytModal'),         
+  document.getElementById('aboutModal'),       
+  document.getElementById('customBgModal'),  
+ 
+];
+
+allModalsFromHamburger.forEach(modal => {
+  if (modal) {
+    const observer = new MutationObserver(() => {
+      if (modal.style.display === 'flex' || modal.style.display === 'block') {
+        hamburgerMenu.style.display = 'none';
+        menuOpen = false;
+      }
+    });
+    observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
+  }
+});
+
+//added brightness slider
+//removed .mp3 flac etc from song name in most places
+//fixed hamburger menu staying open when entering sub menu
 </script>
 </div>
 </body>
