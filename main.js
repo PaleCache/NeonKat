@@ -534,6 +534,12 @@ ipcMain.on('resize-window', (event, width, height) => {
   win.setSize(width, height, true);
 });
 
+ipcMain.on('Always-Top', (event, isit) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+  win.setAlwaysOnTop(isit, 'screen-saver');
+});
+
   mainWindow.loadFile('index.html');
 
   mainWindow.on('close', (event) => {

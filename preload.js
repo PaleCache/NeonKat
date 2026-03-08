@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pathExtname: (filePath) => ipcRenderer.invoke('path-extname', filePath),
   pathJoin: (...args) => ipcRenderer.invoke('path-join', ...args),
   resizeWindow: (w, h) => ipcRenderer.send('resize-window', w, h),
+  AlwaysOnTop: (isit) => ipcRenderer.send('Always-Top', isit),
   loadFolderDirect: (path) => ipcRenderer.invoke('load-folder-direct', path),
   setResizable: (value) => ipcRenderer.send('set-resizable', value),
 
