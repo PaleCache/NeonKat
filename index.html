@@ -730,14 +730,11 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
 #container.custom-bg::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(17, 17, 17, 0.65);
-  border-radius: 0px;               
-  pointer-events: none;               
-  z-index: 1;                         
+  inset: 0;
+  background: rgba(17, 17, 17, var(--bg-overlay-opacity, 0.65));
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
 }
 
 #container.custom-bg {
@@ -1524,6 +1521,51 @@ body.widget-mode #container .custom-bg {
 
 
 
+#bgBrightness {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;                 
+  background: #333;             
+  border-radius: 4px;
+  outline: none;
+  margin: 12px 0 8px;
+  padding: 0;
+  cursor: pointer;
+}
+
+
+#bgBrightness::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--primary-color) 0%,
+    var(--primary-color) var(--brightness-fill, 65%),
+    #333 var(--brightness-fill, 65%),
+    #333 100%
+  );
+  border-radius: 4px;
+  height: 100%;
+}
+
+
+#bgBrightness::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  border: 2px solid #1a1a1a;
+  cursor: pointer;
+  margin-top: -5px;       
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  transition: transform 0.12s;
+}
+
+
+
+
+
 
   </style>
 </head>
@@ -1731,7 +1773,18 @@ body.widget-mode #container .custom-bg {
     <p style="margin: 10px 0 20px;">Paste an image URL or local file path <br><small>(leave empty to remove current bg ♡)</small></p>
     <input type="text" id="customBgInput" placeholder="https://... or file:///C:/.../cute.jpg" 
            style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px; margin-bottom: 20px;">
-    <div style="display: flex; gap: 15px; justify-content: center;">
+     <div style="margin: 16px 0 20px; text-align: left;">
+      <label for="bgBrightness" style="display: block; margin-bottom: 8px; font-size: 14px;">
+        Background Brightness  <span id="brightnessValue">65%</span>
+      </label>
+      <input type="range" id="bgBrightness" min="0" max="100" value="65" step="1"
+             style="width: 100%; accent-color: var(--primary-color);">
+      <div style="text-align: center; margin-top: 6px; font-size: 13px; opacity: 0.9;">
+       
+      </div>
+    </div>
+    
+      <div style="display: flex; gap: 15px; justify-content: center;">
       <button id="cancelBgBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
       <button id="applyBgBtn" style="padding: 10px 25px; background: var(--primary-color); color: black; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Apply ♡</button>
     </div>
@@ -2012,6 +2065,9 @@ stage2.connect(makeupGain);
   let src;
   let displayName;
 
+
+
+  
 
   const repeatBtn = document.getElementById('repeatBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
@@ -2303,6 +2359,86 @@ function applyCustomBackground(url = null) {
     img.src = url;
 }
 
+const brightnessSlider = document.getElementById('bgBrightness');
+const brightnessValueDisplay = document.getElementById('brightnessValue');
+let currentBrightness = 65;
+function loadSavedBrightness() {
+  const params = new URLSearchParams(window.location.search);
+  const urlBrightness = params.get('bg-brightness');
+  
+  if (urlBrightness !== null) {
+    currentBrightness = Math.max(0, Math.min(100, Number(urlBrightness)));
+  } else {
+    const saved = localStorage.getItem('customBgBrightness');
+    if (saved !== null) {
+      currentBrightness = Number(saved);
+    }
+  }
+  
+  brightnessSlider.value = currentBrightness;
+  brightnessValueDisplay.textContent = currentBrightness + '%';
+  applyBrightness();
+  document.documentElement.style.setProperty(
+    '--brightness-fill', 
+    currentBrightness + '%'
+  );
+}
+
+
+function applyBrightness() {
+  const opacity = (100 - currentBrightness) / 100;
+  container.style.setProperty('--bg-overlay-opacity', opacity.toFixed(3));
+}
+
+
+
+let previewBrightness = currentBrightness; 
+
+brightnessSlider.addEventListener('input', () => {
+  previewBrightness = Number(brightnessSlider.value);
+  brightnessValueDisplay.textContent = previewBrightness + '%';
+  document.documentElement.style.setProperty(
+    '--brightness-fill', 
+    previewBrightness + '%'
+  );
+  
+  const tempOpacity = (100 - previewBrightness) / 100;
+  container.style.setProperty('--bg-overlay-opacity', tempOpacity.toFixed(3));
+});
+
+
+
+
+applyBgBtn.addEventListener('click', () => {
+  const url = customBgInput.value.trim();
+  localStorage.setItem('customBgBrightness', currentBrightness);
+  const params = new URLSearchParams(window.location.search);
+  params.set('bg-brightness', currentBrightness);
+  const newUrl = window.location.pathname + '?' + params.toString();
+  window.history.replaceState({}, '', newUrl);
+  applyCustomBackground(url);
+  currentBrightness = previewBrightness;
+  localStorage.setItem('customBgBrightness', currentBrightness);
+  customBgModal.style.display = 'none';
+});
+
+
+customBgToggle.addEventListener('click', () => {
+  customBgInput.value = localStorage.getItem('customBackgroundUrl') || '';
+  brightnessSlider.value = currentBrightness;         
+  document.documentElement.style.setProperty('--brightness-fill', currentBrightness + '%');
+
+  brightnessValueDisplay.textContent = currentBrightness + '%';
+  
+  customBgModal.style.display = 'flex';
+  customBgInput.focus();
+});
+
+
+loadSavedBrightness();
+
+
+
 
 const saved = localStorage.getItem('autoUpdateEnabled');
 const isEnabled = saved === 'true'; 
@@ -2323,12 +2459,6 @@ if (savedCustomBg) {
 }
 
 
-customBgToggle.addEventListener('click', () => {
-    customBgInput.value = localStorage.getItem('customBackgroundUrl') || '';
-    customBgModal.style.display = 'flex';
-    customBgInput.focus();
-});
-
 audio.addEventListener('play',   () => visualizerVideo.play().catch(e=>0));
 audio.addEventListener('pause',  () => visualizerVideo.pause());
 audio.addEventListener('seeking',() => {
@@ -2345,15 +2475,18 @@ audio.addEventListener('timeupdate', () => {
   }
 });
 
-applyBgBtn.addEventListener('click', () => {
-    const url = customBgInput.value.trim();
-    applyCustomBackground(url);
-    customBgModal.style.display = 'none';
-});
+
 
 
 cancelBgBtn.addEventListener('click', () => {
-    customBgModal.style.display = 'none';
+  brightnessSlider.value = currentBrightness;
+  brightnessValueDisplay.textContent = currentBrightness + '%';
+  document.documentElement.style.setProperty(
+    '--brightness-fill', 
+    currentBrightness + '%'
+  );
+  applyBrightness(); 
+  customBgModal.style.display = 'none';
 });
 
 
@@ -3122,7 +3255,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.4 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.5 alpha</p>
       </div>
   </div>
   `;
@@ -4643,7 +4776,7 @@ function updateVideoSongName(title) {
 }
 
 function updateWidgetSongName(title) {
-  const maxLength = 30;
+  const maxLength = 35;
   const titleEl = document.getElementById('widgetSongTitle');
   if (!titleEl) {
     console.warn("Widget title element not found");
@@ -4899,7 +5032,7 @@ let hlsInstance = null;
   const encodedPath = encodeURI(normalizedPath).replace(/#/g, '%23');
   src = `file://${encodedPath}`;
 
-  displayName = normalizedPath.split('/').pop();
+  displayName = getCleanName(item);
 
 
 
@@ -5050,13 +5183,13 @@ playPauseBtn.addEventListener('click', () => {
     audio.play();
     visualizerVideo.play();
     if (notifyEnabled && Notification.permission === 'granted') {
-    window.electronAPI.notify('Resuming');
+    window.electronAPI.notify(`Resuming`, displayName);
   }
   } else {
     audio.pause();
     visualizerVideo.pause();
     if (notifyEnabled && Notification.permission === 'granted') {
-    window.electronAPI.notify('Paused');
+    window.electronAPI.notify('Paused', displayName);
   }
   }
 });
@@ -5144,6 +5277,13 @@ progressBar.addEventListener('change', () => {
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
+  function getCleanName(item) {
+  if (!item) return 'Unknown Track';
+  if (typeof item === 'string') {
+    return item.split(/[\\/]/).pop().replace(/\.[^.]+$/, '').trim();
+  }
+  return item.name || 'Unknown Track';
+}
 
 let energyHistory;
 let lastBeat = false;
@@ -5208,7 +5348,7 @@ function visualize() {
     const currentItem = audioFiles[currentIndex];
     if (currentItem) {
       if (typeof currentItem === 'string') {
-        songName = currentItem.split(/[\\/]/).pop() || 'Unknown Track';
+        songName = getCleanName(currentItem) || 'Unknown Track';
       } else if (currentItem.isStream) {
         isRadioStream = true;
         songName = currentItem.name?.trim() || (new URL(currentItem.url).hostname || 'Radio Stream');
@@ -5977,6 +6117,26 @@ function checkForUpdatesSilently() {
     });
   }
 }
+
+
+const allModalsFromHamburger = [
+  document.getElementById('ytModal'),         
+  document.getElementById('aboutModal'),       
+  document.getElementById('customBgModal'),  
+ 
+];
+
+allModalsFromHamburger.forEach(modal => {
+  if (modal) {
+    const observer = new MutationObserver(() => {
+      if (modal.style.display === 'flex' || modal.style.display === 'block') {
+        hamburgerMenu.style.display = 'none';
+        menuOpen = false;
+      }
+    });
+    observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
+  }
+});
 
 
 </script>
