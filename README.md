@@ -20,6 +20,7 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 - **Radio streams support**
 - **Neon Mode** (color changes to the beat)
 - **Custom Picture In Picture Mode**
+- **Widget Mode** (Good for obs)
 - **Custom Backgrounds** (local or url)
 - **Canvas Mode** (short MP4 previews)
 - **Supports Jellyfin servers for music streaming**
