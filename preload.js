@@ -13,17 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   savePlaylist: (playlist) => ipcRenderer.invoke('save-playlist', playlist),
   downloadYoutube: (args) => ipcRenderer.invoke('download-youtube', args),
   setMiniMode: (isMini) => ipcRenderer.send('set-mini-mode', isMini),
-  toggleMiniplayer: () => ipcRenderer.send('toggle-miniplayer'),
-  updateTrack: (data) => ipcRenderer.send('update-track', data),
-  updateTheme: (data) => ipcRenderer.send('update-theme', data),
-  updateVolume: (volume) => ipcRenderer.send('update-volume', volume),
-  updateVisualizer: (data) => ipcRenderer.send('update-visualizer', data),
-  updateTime: (currentTime, duration) => ipcRenderer.send('update-time', currentTime, duration),
   notify: (title, body) => ipcRenderer.send('notify', { title, body }),
-  playPrevious: () => ipcRenderer.send('play-previous'),
-  playNext: () => ipcRenderer.send('play-next'),
-  togglePlay: () => ipcRenderer.send('toggle-play'),
-  seekFromMini: (time) => ipcRenderer.send('seek-from-mini', time),
   fileExists: (path) => ipcRenderer.invoke('file-exists', path),
   setAutoUpdateEnabled: (enabled) => ipcRenderer.send('set-auto-update-enabled', enabled),
   sendAutoUpdateState: (enabled) => ipcRenderer.send('init-auto-update-state', enabled),
@@ -36,45 +26,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   AlwaysOnTop: (isit) => ipcRenderer.send('Always-Top', isit),
   loadFolderDirect: (path) => ipcRenderer.invoke('load-folder-direct', path),
   setResizable: (value) => ipcRenderer.send('set-resizable', value),
+  getAudioMetadata: (filePath) => ipcRenderer.invoke('get-audio-metadata', filePath),
 
-  onUpdateTrack: (callback) => {
-    ipcRenderer.on('update-track', (event, data) => callback(data));
-    return () => ipcRenderer.removeAllListeners('update-track');
-  },
-  onUpdateTheme: (callback) => {
-    ipcRenderer.on('update-theme', (event, data) => callback(data));
-    return () => ipcRenderer.removeAllListeners('update-theme');
-  },
-  onUpdateVolume: (callback) => {
-    ipcRenderer.on('update-volume', (event, volume) => callback(volume));
-    return () => ipcRenderer.removeAllListeners('update-volume');
-  },
   onRequestCurrentState: (callback) => {
     ipcRenderer.on('request-current-state', () => callback());
     return () => ipcRenderer.removeAllListeners('request-current-state');
   },
-  onPlayPrevious: (callback) => {
-    ipcRenderer.on('play-previous', () => callback());
-    return () => ipcRenderer.removeAllListeners('play-previous');
-  },
-  onPlayNext: (callback) => {
-    ipcRenderer.on('play-next', () => callback());
-    return () => ipcRenderer.removeAllListeners('play-next');
-  },
-  onTogglePlay: (callback) => {
-    ipcRenderer.on('toggle-play', () => callback());
-    return () => ipcRenderer.removeAllListeners('toggle-play');
-  },
 
 
-  onUpdateTime: (callback) => {
-    ipcRenderer.on('update-time', (event, currentTime, duration) => callback(currentTime, duration));
-    return () => ipcRenderer.removeAllListeners('update-time');
-  },
-  onSeekFromMini: (callback) => {
-    ipcRenderer.on('seek-from-mini', (event, time) => callback(time));
-    return () => ipcRenderer.removeAllListeners('seek-from-mini');
-  },
   onDownloadProgress: (callback) => {
     const listener = (event, data) => callback(data);
     ipcRenderer.on('download-progress', listener);

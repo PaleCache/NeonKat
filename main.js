@@ -6,6 +6,7 @@ const { spawn } = require('child_process');
 const { shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 let autoUpdateEnabled = false
+const { execFile } = require('child_process');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let logger = console;
 try {
@@ -29,6 +30,67 @@ if (process.platform === 'win32') {
 app.commandLine.appendSwitch('ozone-platform', 'x11');
 app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
 
+const ffprobeStatic = require('ffprobe-static');
+
+function getFfprobePath() {
+  return ffprobeStatic.path;
+}
+
+ipcMain.handle('get-audio-metadata', async (event, filePath) => {
+  if (typeof filePath !== 'string') return null;
+
+  const ext = path.extname(filePath).toLowerCase();
+  if (!['.mp3','.flac','.wav','.m4a','.ogg','.aac','.opus'].includes(ext)) {
+    return null;
+  }
+
+  const ffprobePath = getFfprobePath();
+
+  return new Promise((resolve) => {
+    execFile(ffprobePath, [
+      '-v', 'quiet',
+      '-select_streams', 'a:0',
+      '-show_entries', 'stream=codec_name,bit_rate,sample_rate,bits_per_raw_sample:format=duration',
+      '-of', 'json',
+      filePath
+    ], { timeout: 3000 }, (error, stdout) => {
+
+      if (error) {
+        console.warn(`[Metadata] ffprobe failed for ${filePath.split('/').pop()}`);
+        return resolve({
+          codec: ext.replace('.', '').toUpperCase(),
+          bitrate: null,
+          sampleRate: null,
+          bitDepth: null,
+          duration: null
+        });
+      }
+
+      try {
+        const data = JSON.parse(stdout);
+        const stream = data.streams?.[0] || {};
+        const format = data.format || {};
+
+        resolve({
+          codec: (stream.codec_name || '').toUpperCase(),
+          bitrate: stream.bit_rate ? Math.round(parseInt(stream.bit_rate) / 1000) + ' kbps' : null,
+          sampleRate: stream.sample_rate ? (parseInt(stream.sample_rate) / 1000).toFixed(1) + ' kHz' : null,
+          bitDepth: stream.bits_per_raw_sample ? stream.bits_per_raw_sample + ' bit' : null,
+          duration: format.duration ? parseFloat(format.duration) : null
+        });
+      } catch (e) {
+        console.warn('[Metadata] Failed to parse ffprobe output');
+        resolve({
+          codec: ext.replace('.', '').toUpperCase(),
+          bitrate: null,
+          sampleRate: null,
+          bitDepth: null,
+          duration: null
+        });
+      }
+    });
+  });
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -50,7 +112,23 @@ function createWindow() {
     icon: path.join(__dirname, 'build', 'kat.png'),
   });
 
+mainWindow.webContents.on('context-menu', (event, params) => {
+  if (!params.isEditable) return;
 
+  const menuTemplate = [
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' },
+    { role: 'selectall' }
+  ];
+
+  const menu = Menu.buildFromTemplate(menuTemplate);
+  menu.popup({
+    window: mainWindow,
+    x: params.x,
+    y: params.y
+  });
+});
 
 
 const spawnSafe = (cmd, args) => {
@@ -699,6 +777,8 @@ ipcMain.handle('load-playlist', async () => {
   }
 });
 
+
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
@@ -730,6 +810,8 @@ ipcMain.handle('get-file-stats', async (event, filePath) => {
     throw new Error(`Failed to get file stats: ${error.message}`);
   }
 });
+
+
 
 ipcMain.on('set-auto-update-enabled', (event, enabled) => {
   autoUpdateEnabled = !!enabled;
