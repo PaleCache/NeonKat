@@ -50,7 +50,7 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 
 ## 🤗 Special Thanks
 - Friends who helped with the artwork 
-- [YT-dlp team](https://github.com/yt-dlp/yt-dlp) for their amazing project
+- [YT-dlp team](https://github.com/yt-dlp/yt-dlp) and the [FFmpeg team](https://github.com/FFmpeg/FFmpeg) <br> for their amazing projects, none of this would be possible without them <3 
 
 ---
 
