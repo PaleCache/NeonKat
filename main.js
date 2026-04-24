@@ -142,7 +142,7 @@ const spawnSafe = (cmd, args) => {
 };
 
 
-async function downloadSoundCloudPlaylist(url, downloadFolder, event) {
+async function downloadSoundCloudPlaylist(url, downloadFolder, event, genre) {
   const sender = event?.sender;
   const sendProgress = (percent, extra = {}) => {
     if (sender) sender.send('download-progress', {
@@ -174,6 +174,7 @@ async function downloadSoundCloudPlaylist(url, downloadFolder, event) {
   for (let i = 0; i < totalTracks; i++) {
     const entry = entries[i];
     const titleSafe = sanitize(entry.title);
+    const tempPath = path.join(downloadFolder, `NEONKAT_SC_TEMP_${Date.now()}_${i}.mp3`);
     const outPath = path.join(downloadFolder, `${titleSafe}.mp3`);
 
     await new Promise((resolve, reject) => {
@@ -183,10 +184,9 @@ async function downloadSoundCloudPlaylist(url, downloadFolder, event) {
         '--audio-format', 'mp3',
         '--audio-quality', '0',
         '--embed-thumbnail',
-        '--embed-metadata',
         '--convert-thumbnails', 'jpg',
         '--no-playlist',
-        '-o', outPath,
+        '-o', tempPath,
         '--newline'
       ]);
 
@@ -195,7 +195,7 @@ async function downloadSoundCloudPlaylist(url, downloadFolder, event) {
         for (const line of lines) {
           const match = line.match(/(\d+(?:\.\d+)?)%/);
           if (match) {
-            const filePercent = parseFloat(match[1]);
+            const filePercent = parseFloat(match);
             const overallPercent = ((i + filePercent / 100) / totalTracks) * 100;
             sendProgress(overallPercent, {
               status: 'downloading',
@@ -207,11 +207,27 @@ async function downloadSoundCloudPlaylist(url, downloadFolder, event) {
         }
       });
 
-      p.on('close', (code) => {
+      p.on('close', async (code) => {
         if (code === 0) {
-          results.push(outPath);
-          resolve();
-        } else reject(new Error(`yt-dlp failed for track: ${entry.title}`));
+          try {
+            await spawnSafe('ffmpeg', [
+              '-i', tempPath,
+              '-c:a', 'copy',
+              '-metadata', `title=${entry.title}`,
+              '-metadata', `artist=${entry.uploader || 'Unknown'}`,
+              '-metadata', `album=${entry.album || entry.title}`,
+              '-metadata', `genre=${genre}`,
+              '-y', outPath
+            ]);
+            await fs.unlink(tempPath).catch(() => {});
+            results.push(outPath);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        } else {
+          reject(new Error(`yt-dlp failed for track: ${entry.title}`));
+        }
       });
 
       p.on('error', reject);
@@ -245,7 +261,7 @@ function spawnYtDlpWithProgress(args, sendProgress, basePercent = 0, percentScal
 }
 
 
-async function downloadSingleSoundCloud(url, downloadFolder, sendProgress = () => {}) {
+async function downloadSingleSoundCloud(url, downloadFolder, sendProgress = () => {}, genre) {
   const sanitize = (s) => (s || '').replace(/[/\\?%*:|"<>]/g, '').trim() || 'Unknown';
 
   let info;
@@ -262,6 +278,7 @@ async function downloadSingleSoundCloud(url, downloadFolder, sendProgress = () =
   }
 
   const titleSafe = sanitize(info.title);
+  const tempPath = path.join(downloadFolder, `NEONKAT_SC_TEMP_${Date.now()}.mp3`);
   const outPath = path.join(downloadFolder, `${titleSafe}.mp3`);
   await spawnYtDlpWithProgress(
     [
@@ -270,15 +287,27 @@ async function downloadSingleSoundCloud(url, downloadFolder, sendProgress = () =
       '--audio-format', 'mp3',
       '--audio-quality', '0',
       '--embed-thumbnail',
-      '--embed-metadata',
       '--convert-thumbnails', 'jpg',
       '--no-playlist',
-      '-o', outPath
+      '-o', tempPath
     ],
     sendProgress,
-  0,  
-  1    
+    0,  
+    1    
   );
+
+
+  await spawnSafe('ffmpeg', [
+    '-i', tempPath,
+    '-c:a', 'copy',
+    '-metadata', `title=${info.title}`,
+    '-metadata', `artist=${info.uploader || 'Unknown'}`,
+    '-metadata', `album=${info.album || info.title}`,
+    '-metadata', `genre=${genre}`,
+    '-y', outPath
+  ]);
+
+  await fs.unlink(tempPath).catch(() => {});
 
   return outPath;
 }
@@ -335,7 +364,8 @@ ipcMain.handle('download-youtube', async (event, {
   downloadFolder, 
   skipVideo = false, 
   artworkDuration = 30, 
-  format = 'bestvideo[height<=480]+bestaudio/best[height<=480]' 
+  format = 'bestvideo[height<=480]+bestaudio/best[height<=480]' ,
+   genre = 'Music'
 }) => {
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
     return { success: false, message: 'Pick a valid folder' };
@@ -345,10 +375,10 @@ ipcMain.handle('download-youtube', async (event, {
   const sendProgress = (percent) => sender.send('download-progress', { percent });
 
   if (/\/sets\//.test(url)) {
-    const files = await downloadSoundCloudPlaylist(url, downloadFolder, event);
+    const files = await downloadSoundCloudPlaylist(url, downloadFolder, event, genre);
     return { success: true, count: files.length, files };
   } else {
-    const file = await downloadSingleSoundCloud(url, downloadFolder, sendProgress);
+    const file = await downloadSingleSoundCloud(url, downloadFolder, sendProgress, genre);
     return { success: true, count: 1, files: [file] };
   }
 
@@ -446,6 +476,7 @@ ipcMain.handle('download-youtube', async (event, {
         '-metadata', `title=${info.title}`,
         '-metadata', `artist=${info.uploader || 'Unknown'}`,
         '-metadata', `album=${info.album || info.title}`,
+        '-metadata', `genre=${genre}`,
         '-disposition:v', 'attached_pic',
         '-y', mp3Path
       ]);
@@ -538,6 +569,7 @@ ipcMain.handle('download-youtube', async (event, {
       '-metadata', `title=${info.title}`,
       '-metadata', `artist=${info.uploader || 'Unknown'}`,
       '-metadata', `album=${info.album || info.title}`,
+      '-metadata', `genre=${genre}`, 
       '-disposition:v', 'attached_pic',
       '-y', mp3Path
     ]);

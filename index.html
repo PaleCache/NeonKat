@@ -357,7 +357,8 @@ a {
       #jellyfinSearchInput,
       #playlistQuickSearch,
       #customBgInput,
-      #videoQualitySelect {
+      #videoQualitySelect,
+      #genreInput {
         outline: none !important;
     }
 
@@ -1009,7 +1010,7 @@ body.video-only .volume-control > label{
     background-color: rgba(33, 33, 33, 0.5);
     border-radius: 10px;
     padding: 0px 8px;
-    width: 175px;
+    width: 182px;
     height: 29px;
     backdrop-filter: blur(4px);
     top: 0vh;
@@ -1592,7 +1593,24 @@ body.low-perf #visualizerWrapper.playing::after {
 }
 
 
+#recentDlFolders {
+  scrollbar-color: var(--primary-color) rgba(33, 33, 33, 0.5);
+  scrollbar-width: thin;
+}
 
+#recentDlFolders::-webkit-scrollbar {
+  width: 8px;
+}
+
+#recentDlFolders::-webkit-scrollbar-track {
+ background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+}
+
+#recentDlFolders::-webkit-scrollbar-thumb {
+   background: rgb(49, 49, 49);
+  border-radius: 5px;
+}
 
 
 
@@ -2998,6 +3016,8 @@ updateVisualizerModeUI();
 const hamburgerBtn = document.getElementById('hamburgerBtn');
 const hamburgerMenu = document.getElementById('hamburgerMenu');
 const downloadYoutubeBtn = document.getElementById('downloadYoutubeBtn');
+let downloadFolder = localStorage.getItem('lastDownloadFolder') || null;
+let removeProgressListener = null;
 
 let menuOpen = false;
 
@@ -3044,10 +3064,31 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
     <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
 
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-      <button id="chooseDlFolderBtn" style="padding: 10px 15px; background: #212121; border: none; border-radius: 6px; color: white; cursor: pointer; flex: 1;">Choose Folder</button>
-      <span id="selectedDlFolder" style="color: var(--primary-color); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 2;">No folder selected</span>
-    </div>
+   <div style="position: relative; margin-bottom: 15px;">
+  <button id="chooseDlFolderBtn" style="padding: 10px 15px; background: #212121; border: none; border-radius: 6px; color: white; cursor: pointer; width: 100%;">Choose Folder ▼</button>
+  <span id="selectedDlFolder" style="color: var(--primary-color); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 8px; padding: 0 10px;">No folder selected</span>
+<div id="recentDlFoldersMenu" style="
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  min-width: 100%;
+  border: 2px solid var(--primary-color);
+  border-radius: 6px;
+  margin-top: 4px;
+  z-index: 10000;
+  backdrop-filter: blur(8px) !important;
+  background: rgba(34, 34, 34, 0.92) !important;
+">
+  <button id="pickNewDlFolder" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer;">
+    Choose new folder…
+  </button>
+  <hr style="border: none; border-top: 1px solid #444; margin: 6px 0;">
+  <div id="recentDlFolders" style="max-height: 220px; overflow-y: auto; padding: 2px 0;">
+  </div>
+</div>
+</div>
 
     <div style="margin-bottom: 15px;">
   <select id="videoQualitySelect" style="width: 100%; padding: 10px; background: #222; color: white; border: 1px solid #444; border-radius: 6px; font-size: 14px;">
@@ -3058,6 +3099,11 @@ downloadYoutubeBtn.addEventListener('click', () => {
 </select>
     </div>
 
+    <div style="margin-bottom: 15px;">
+  <label style="color: white; font-size: 14px; display: block; margin-bottom: 8px;">Genre:</label>
+  <input type="text" id="genreInput" placeholder="e.g. EDM, Country, Hip-Hop" style="width: 100%; padding: 10px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px;" value="Music" />
+</div>
+
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
       <span style="color: white; font-size: 14px;">Audio only (skip gif preview)</span>
       <div id="skipVideoToggle" style="width: 40px; height: 20px; background: #444; border-radius: 10px; position: relative; cursor: pointer;">
@@ -3066,6 +3112,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
     </div>
 <div style="display: flex; align-items: center; gap: 12px; margin: 8px 0; flex-wrap: wrap;">
   <label style="color: #ccc; font-size: 13px;">Gif preview length:</label>
+  
   
   <select id="exportDurationSelect" style="
     background: #222;
@@ -3082,11 +3129,14 @@ downloadYoutubeBtn.addEventListener('click', () => {
     <option value="90">90 seconds</option>
     <option value="custom">Custom...</option>
   </select>
+
   <input type="number" id="customExportSeconds"
          placeholder="seconds"
          min="5" max="600"
          style="display:none; width: 90px; background:#222; color:white; border:1px solid #444; border-radius:6px; padding:6px; font-size:13px;" />
 </div>
+
+
 
     <div style="display: flex; gap: 10px; justify-content: flex-end;">
       <button id="cancelYtBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Cancel</button>
@@ -3101,6 +3151,7 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
 
   document.body.insertAdjacentHTML('beforeend', modalHTML);
+  initDownloadFolderDropdown();
    const skipToggle = document.getElementById('skipVideoToggle');
   const skipThumb = document.getElementById('skipVideoThumb');
   const ytModal = document.getElementById('ytModal');
@@ -3163,8 +3214,7 @@ if (qualitySelect) {
   }
 
 
-  let downloadFolder = null; 
-  let removeProgressListener = null;
+
 
 function updateToggleUI() {
     if (skipVideo) {
@@ -3179,15 +3229,7 @@ function updateToggleUI() {
 updateToggleUI();
 
   ytUrlInput.focus();
-  chooseFolderBtn.addEventListener('click', async () => {
-    const result = await window.electronAPI.pickDownloadFolder();
-    if (result.success) {
-      downloadFolder = result.folderPath;
-      selectedFolderSpan.textContent = downloadFolder;
-    } else {
-      selectedFolderSpan.textContent = 'Canceled';
-    }
-  });
+
 
   cancelBtn.addEventListener('click', () => ytModal.remove()); if (removeProgressListener) {
     removeProgressListener();
@@ -3263,12 +3305,10 @@ skipToggle.addEventListener('click', () => {
     }
   }
 
-  if (!downloadFolder) {
-    alert('Pick a folder first!');
-    return;
-  }
+ 
 
   const qualityFormat = document.getElementById('videoQualitySelect').value;
+  const genre = document.getElementById('genreInput').value.trim() || 'Music';
 
   confirmBtn.textContent = 'Downloading...';
   confirmBtn.disabled = true;
@@ -3279,7 +3319,8 @@ skipToggle.addEventListener('click', () => {
       downloadFolder,
       skipVideo: skipVideo,
       format: qualityFormat,
-      artworkDuration: selectedDuration
+      artworkDuration: selectedDuration,
+      genre: genre
     });
 
     if (result.success) {
@@ -3323,7 +3364,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.6 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.7 alpha</p>
       </div>
   </div>
   `;
@@ -6175,6 +6216,148 @@ allModalsFromHamburger.forEach(modal => {
     observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
   }
 });
+
+let recentDlFolders = JSON.parse(localStorage.getItem('neonkatRecentDlFolders') || '[]');
+
+function addToRecentDlFolders(folderPath) {
+  if (!folderPath || typeof folderPath !== 'string') return;
+  recentDlFolders = recentDlFolders.filter(p => p !== folderPath);
+  recentDlFolders.unshift(folderPath);
+  if (recentDlFolders.length > 10) {
+    recentDlFolders = recentDlFolders.slice(0, 10);
+  }
+  localStorage.setItem('neonkatRecentDlFolders', JSON.stringify(recentDlFolders));
+   localStorage.setItem('lastDownloadFolder', folderPath);
+  renderRecentDlFolders();
+}
+
+function renderRecentDlFolders() {
+  const container = document.getElementById('recentDlFolders');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (recentDlFolders.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.padding = '10px';
+    empty.style.color = '#777';
+    empty.textContent = 'No recent folders yet';
+    container.appendChild(empty);
+    return;
+  }
+
+  recentDlFolders.forEach((path, idx) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '8px 12px';
+    row.style.cursor = 'pointer';
+    row.style.transition = 'background 0.12s';
+
+    row.addEventListener('mouseenter', () => {
+      row.style.setProperty('background', 'var(--primary-color)', 'important');
+    });
+    row.addEventListener('mouseleave', () => {
+      row.style.background = '';
+    });
+
+    const label = document.createElement('span');
+    let display = path.split(/[\\/]/).pop() || path;
+    if (display.length > 45) {
+      display = '…' + display.slice(-42);
+    }
+    label.textContent = display;
+    label.title = path;
+    label.style.flex = '1';
+    label.style.whiteSpace = 'nowrap';
+    label.style.overflow = 'hidden';
+    label.style.textOverflow = 'ellipsis';
+    label.style.fontSize = '13px';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '×';
+    removeBtn.style.cssText = `
+      background: none;
+      border: none;
+      color: #ff5555;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 2px 8px;
+      margin-left: 12px;
+      opacity: 0.6;
+      transition: all 0.15s;
+      line-height: 1;
+    `;
+
+    removeBtn.addEventListener('mouseenter', () => {
+      removeBtn.style.opacity = '1';
+      removeBtn.style.transform = 'scale(1.15)';
+    });
+    removeBtn.addEventListener('mouseleave', () => {
+      removeBtn.style.opacity = '0.6';
+      removeBtn.style.transform = 'scale(1)';
+    });
+
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      recentDlFolders.splice(idx, 1);
+      localStorage.setItem('neonkatRecentDlFolders', JSON.stringify(recentDlFolders));
+      renderRecentDlFolders();
+    });
+
+    row.addEventListener('click', () => {
+      downloadFolder = path;
+      document.getElementById('selectedDlFolder').textContent = path;
+      addToRecentDlFolders(path);
+      document.getElementById('recentDlFoldersMenu').style.display = 'none';
+    });
+
+    row.appendChild(label);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+  });
+}
+
+function initDownloadFolderDropdown() {
+  const chooseDlFolderBtn = document.getElementById('chooseDlFolderBtn');
+  const recentDlFoldersMenu = document.getElementById('recentDlFoldersMenu');
+  const pickNewDlFolderBtn = document.getElementById('pickNewDlFolder');
+
+  if (downloadFolder) {
+    document.getElementById('selectedDlFolder').textContent = downloadFolder;
+  }
+
+  downloadFolder = localStorage.getItem('lastDownloadFolder') || null;
+  if (downloadFolder) {
+    document.getElementById('selectedDlFolder').textContent = downloadFolder;
+  }
+
+  if (!chooseDlFolderBtn || !recentDlFoldersMenu) return;
+  chooseDlFolderBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = recentDlFoldersMenu.style.display === 'block';
+    recentDlFoldersMenu.style.display = isOpen ? 'none' : 'block';
+    
+    if (!isOpen) {
+      renderRecentDlFolders();
+    }
+  });
+
+  if (pickNewDlFolderBtn) {
+    pickNewDlFolderBtn.addEventListener('click', async () => {
+      recentDlFoldersMenu.style.display = 'none';
+      const result = await window.electronAPI.pickDownloadFolder();
+      if (result.success) {
+        downloadFolder = result.folderPath;
+        document.getElementById('selectedDlFolder').textContent = downloadFolder;
+        addToRecentDlFolders(result.folderPath);
+      }
+    });
+  }
+}
+
 
 
 </script>
