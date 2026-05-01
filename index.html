@@ -188,9 +188,7 @@ a {
       background: linear-gradient(to bottom, #212121, var(--primary-color));
       border-radius: 5px;
     }
-    #playlist::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(to bottom, var(--primary-color), #b19cd9);
-    }
+
     input[type="range"] {
       appearance: none;
       width: 100%;
@@ -1593,23 +1591,84 @@ body.low-perf #visualizerWrapper.playing::after {
 }
 
 
-#recentDlFolders {
+
+
+
+
+
+#folderMenu {
   scrollbar-color: var(--primary-color) rgba(33, 33, 33, 0.5);
   scrollbar-width: thin;
 }
 
-#recentDlFolders::-webkit-scrollbar {
+#folderMenu::-webkit-scrollbar {
   width: 8px;
 }
 
-#recentDlFolders::-webkit-scrollbar-track {
- background: rgba(0, 0, 0, 0.5);
+#folderMenu::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
   border-radius: 5px;
 }
 
-#recentDlFolders::-webkit-scrollbar-thumb {
-   background: rgb(49, 49, 49);
+#folderMenu::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #212121, var(--primary-color));
   border-radius: 5px;
+}
+
+
+
+
+#recentDlFoldersMenu {
+  scrollbar-color: var(--primary-color) rgba(33, 33, 33, 0.5);
+  scrollbar-width: thin;
+}
+
+#recentDlFoldersMenu::-webkit-scrollbar {
+  width: 8px;
+}
+
+#recentDlFoldersMenu::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+}
+
+#recentDlFoldersMenu::-webkit-scrollbar-thumb {
+ background: linear-gradient(to bottom, #212121, var(--primary-color));
+  border-radius: 5px;
+}
+
+#recentDlFoldersMenu {
+  max-height: 311px;
+  overflow: hidden auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) rgba(33, 33, 33, 0.5);
+  box-sizing: border-box;
+  padding: 2px 0;
+}
+
+#recentDlFolders {
+  max-height: none;            
+  overflow: visible !important;
+  padding: 2px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+.vis-mode-toggle:hover .slider {
+  background-color: var(--primary-color);
+}
+
+.vis-mode-toggle:hover .slider:before {
+  background-color: #bbb;
+}
+
+.vis-mode-toggle input:checked:hover + .slider {
+  background-color: var(--primary-color);
+}
+
+.vis-mode-toggle input:checked:hover + .slider:before {
+  background-color: #222;
 }
 
 
@@ -1769,24 +1828,16 @@ body.low-perf #visualizerWrapper.playing::after {
    <button id="addStreamBtn" class="control-btn" style="flex: 1;">Network Streams</button>
   <button id="connectJellyfinBtn" class="control-btn" style="flex: 1;">Jellyfin</button>
 
-  <div id="folderMenu" style="
-      display:none;
-      position:absolute;
-      top:100%;
-      left:0;
-      min-width:260px;
-      background:rgba(34,34,34,0.92);
-      border:2px solid var(--primary-color);
-      border-radius:6px;
-      margin-top:4px;
+
+
+  <div id="folderMenu" style= "display:none; max-height: 400px; min-height: 150px; overflow-y: auto; padding: 2px 0;">
     
-  ">
-    
-    <button id="pickNewFolder" style="width:100%; padding:14px 20px; background:none; border:none; color:white; text-align:left; font-size:14px; cursor:pointer;">
-      Choose new folder…
-    </button>
-    <hr style="border:none; border-top:1px solid #444; margin:6px 0;">
-    <div id="recentFolders" style="max-height: 260px; overflow-y: auto; padding: 2px 0;">
+   <button id="pickNewFolder" style="width:100%; padding:14px 20px; background:none; border:none; color:white; text-align:left; font-size:14px; cursor:pointer; display: flex; justify-content: space-between; align-items: center;">
+  <span>Choose new folder…</span>
+  <span id="folderCountBadge" style="font-size: 12px; opacity: 0.7;"></span>
+</button>
+    <hr style="border:none; border-top:1px solid #444; margin:0px 0;">
+    <div id="recentFolders" style="max-height: none; min-height: 0; overflow-y: visible; padding: 2px 0;">
     </div>
 </div>
 </div>
@@ -1875,7 +1926,7 @@ body.low-perf #visualizerWrapper.playing::after {
       style="width: 100%; padding: 10px 40px 10px 12px; background: #282828; border: none; border-radius: 6px; color: #fff; font-size: 13px; box-sizing: border-box;"
     />
     <button id="clearQuickSearch" 
-      style="position: absolute; right: 10px; top: 0%; background: none; border: none; color: #777; font-size: 18px; cursor: pointer; display: none;">
+      style="position: absolute; right: 10px; top: -2%; background: none; border: none; color: #777; font-size: 18px; cursor: pointer; display: none;">
       ×
     </button>
   </div>
@@ -1889,8 +1940,6 @@ body.low-perf #visualizerWrapper.playing::after {
   </div>
 
   <hr style="border: none; border-top: 1px solid #444; margin: 8px 0;">
-
- 
   <button id="closeSortMenuBtn" style="width: 100%; padding: 8px; background: #28282878; border: none; border-radius: 6px; color: white; cursor: pointer;">
     Close
   </button>
@@ -2142,7 +2191,7 @@ if (jellyfinConfig.token) {
 updateJellyfinModalButtons();
 let recentFolders = JSON.parse(localStorage.getItem('neonkatRecentFolders') || '[]');
 
-const MAX_RECENT_FOLDERS = 10;
+const MAX_RECENT_FOLDERS = 100;
 function addToRecentFolders(folderPath) {
   if (!folderPath || typeof folderPath !== 'string') return;
   recentFolders = recentFolders.filter(p => p !== folderPath);
@@ -2167,6 +2216,8 @@ function getShortFolderName(fullPath) {
 
 function renderRecentFolders() {
   const container = document.getElementById('recentFolders');
+   const countBadge = document.getElementById('folderCountBadge');
+   countBadge.textContent = `${recentFolders.length}/100`;
   if (!container) return;
 
   container.innerHTML = '';
@@ -3053,13 +3104,13 @@ downloadYoutubeBtn.addEventListener('click', () => {
 
  const modalHTML = `
 <div id="ytModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 99999;">
-  <div style="background: #111; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; border: 3px solid var(--primary-color);">
+  <div style="background: #111; padding: 25px; border-radius: 12px; width: 85%; max-width: 420px; border: 3px solid var(--primary-color);">
     <h3 style="margin-top: 0; color: var(--primary-color); text-align: center;">Download With Yt-Dlp</h3>
 
     <div style="background: #330000; border: 1px solid #ff3333; padding: 12px; border-radius: 8px; margin: 15px 0 20px 0; font-size: 13px; color: #ffaaaa; text-align: center;">
       <strong>⚠️ HEADS UP ⚠️</strong><br><br>
-      Downloading large playlists (50+ videos) at once can get your IP temporarily rate-limited by YouTube for up to 24 hours.<br>
-      So i have disabled playlist downloads for youtube :(
+      Downloading more than 50 songs at once can result in a temporary IP rate-limit from YouTube (up to 24 hours). 
+      Therefore, I have disabled playlist downloads for YouTube. SoundCloud however, appears to handle several hundred downloads without issue.
     </div>
 
     <input type="text" id="ytUrlInput" placeholder="Paste YouTube / Soundcloud URL here..." style="width: 100%; padding: 12px; background: #222; border: none; border-radius: 6px; color: white; margin-bottom: 10px; font-size: 14px;" />
@@ -3067,7 +3118,8 @@ downloadYoutubeBtn.addEventListener('click', () => {
    <div style="position: relative; margin-bottom: 15px;">
   <button id="chooseDlFolderBtn" style="padding: 10px 15px; background: #212121; border: none; border-radius: 6px; color: white; cursor: pointer; width: 100%;">Choose Folder ▼</button>
   <span id="selectedDlFolder" style="color: var(--primary-color); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 8px; padding: 0 10px;">No folder selected</span>
-<div id="recentDlFoldersMenu" style="
+
+  <div id="recentDlFoldersMenu" style="
   display: none;
   position: absolute;
   top: 100%;
@@ -3080,12 +3132,15 @@ downloadYoutubeBtn.addEventListener('click', () => {
   z-index: 10000;
   backdrop-filter: blur(8px) !important;
   background: rgba(34, 34, 34, 0.92) !important;
+  max-height: 311px; 
+  overflow-y: auto;
 ">
-  <button id="pickNewDlFolder" style="width: 100%; padding: 14px 20px; background: none; border: none; color: white; text-align: left; font-size: 14px; cursor: pointer;">
-    Choose new folder…
-  </button>
-  <hr style="border: none; border-top: 1px solid #444; margin: 6px 0;">
-  <div id="recentDlFolders" style="max-height: 220px; overflow-y: auto; padding: 2px 0;">
+ <button id="pickNewDlFolder" style="width:100%; padding:14px 20px; background:none; border:none; color:white; text-align:left; font-size:14px; cursor:pointer; display: flex; justify-content: space-between; align-items: center;">
+  <span>Choose new folder…</span>
+  <span id="dlFolderCountBadge" style="font-size: 12px; opacity: 0.7;"></span>
+</button>
+  <hr style="border: none; border-top: 1px solid #444; margin: 0px 0;">
+ <div id="recentDlFolders" style="max-height: 400px; min-height: 150px; overflow-y: auto; padding: 2px 0;">
   </div>
 </div>
 </div>
@@ -3100,8 +3155,8 @@ downloadYoutubeBtn.addEventListener('click', () => {
     </div>
 
     <div style="margin-bottom: 15px;">
-  <label style="color: white; font-size: 14px; display: block; margin-bottom: 8px;">Genre:</label>
-  <input type="text" id="genreInput" placeholder="e.g. EDM, Country, Hip-Hop" style="width: 100%; padding: 10px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px;" value="Music" />
+  <label style="color: white; font-size: 14px; display: block; margin-bottom: 8px;">Genre Tag:</label>
+  <input type="text" id="genreInput" placeholder="e.g. EDM, Country, Hip-Hop (default: Music)" style="width: 100%; padding: 10px; background: #222; border: none; border-radius: 6px; color: white; font-size: 14px;" />
 </div>
 
     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -3308,7 +3363,9 @@ skipToggle.addEventListener('click', () => {
  
 
   const qualityFormat = document.getElementById('videoQualitySelect').value;
-  const genre = document.getElementById('genreInput').value.trim() || 'Music';
+  const genreInput = document.getElementById('genreInput').value.trim();
+  const genre = genreInput || 'Music';
+
 
   confirmBtn.textContent = 'Downloading...';
   confirmBtn.disabled = true;
@@ -3364,7 +3421,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.7 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.3.8 alpha</p>
       </div>
   </div>
   `;
@@ -3970,6 +4027,7 @@ playlistElem.addEventListener('drop', async (event) => {
     clearBackground();
     updateVideoSongName(`No Track`)
     document.getElementById('folderNameDisplay').textContent = 'Choose Folder';
+    document.getElementById('folderMenuBtn').title = '';
     wrapper.classList.remove("playing");
   });
 
@@ -4371,6 +4429,7 @@ function updateSelectionVisuals() {
       'albumart.jpg',
       'front.jpg',
       'cover.png',
+      'cover.jpeg',
       'folder.png'
     ];
 
@@ -5416,17 +5475,12 @@ function visualize() {
     ctx.clearRect(0, 0, width, height);
     if (currentArtImage && currentArtImage.complete && currentArtImage.naturalWidth > 0) {
       try {
-        const scale = Math.max(
-          width / currentArtImage.naturalWidth,
-          height / currentArtImage.naturalHeight
-        );
-        const drawW = currentArtImage.naturalWidth * scale;
-        const drawH = currentArtImage.naturalHeight * scale;
-        const offsetX = (width - drawW) / 2;
-        const offsetY = (height - drawH) / 2;
-
         ctx.globalAlpha = 0.4;
-        ctx.drawImage(currentArtImage, offsetX, offsetY, drawW, drawH);
+        ctx.drawImage(
+          currentArtImage,
+          0, 0, currentArtImage.naturalWidth, currentArtImage.naturalHeight,
+          0, 0, width, height
+        );
         ctx.globalAlpha = 1.0;
       } catch (e) {
         console.warn('[VISUALIZER] Failed to draw art this frame:', e);
@@ -6223,8 +6277,8 @@ function addToRecentDlFolders(folderPath) {
   if (!folderPath || typeof folderPath !== 'string') return;
   recentDlFolders = recentDlFolders.filter(p => p !== folderPath);
   recentDlFolders.unshift(folderPath);
-  if (recentDlFolders.length > 10) {
-    recentDlFolders = recentDlFolders.slice(0, 10);
+  if (recentDlFolders.length > 100) {
+    recentDlFolders = recentDlFolders.slice(0, 100);
   }
   localStorage.setItem('neonkatRecentDlFolders', JSON.stringify(recentDlFolders));
    localStorage.setItem('lastDownloadFolder', folderPath);
@@ -6233,6 +6287,8 @@ function addToRecentDlFolders(folderPath) {
 
 function renderRecentDlFolders() {
   const container = document.getElementById('recentDlFolders');
+    const countBadge = document.getElementById('dlFolderCountBadge');
+  countBadge.textContent = `${recentDlFolders.length}/100`;
   if (!container) return;
 
   container.innerHTML = '';
