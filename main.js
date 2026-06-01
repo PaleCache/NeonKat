@@ -374,13 +374,16 @@ ipcMain.handle('download-youtube', async (event, {
   const sender = event.sender;
   const sendProgress = (percent) => sender.send('download-progress', { percent });
 
-  if (/\/sets\//.test(url)) {
-    const files = await downloadSoundCloudPlaylist(url, downloadFolder, event, genre);
-    return { success: true, count: files.length, files };
-  } else {
-    const file = await downloadSingleSoundCloud(url, downloadFolder, sendProgress, genre);
-    return { success: true, count: 1, files: [file] };
-  }
+ let scResult;
+if (/\/sets\//.test(url)) {
+  const files = await downloadSoundCloudPlaylist(url, downloadFolder, event, genre);
+  scResult = { success: true, count: files.length, files };
+} else {
+  const file = await downloadSingleSoundCloud(url, downloadFolder, sendProgress, genre);
+  scResult = { success: true, count: 1, files: [file] };
+}
+sendProgress(100, { status: 'finished', message: 'Download complete' });
+return scResult;
 
 
 }
