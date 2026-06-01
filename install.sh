@@ -25,7 +25,7 @@ cat > "$DESKTOP_FILE" <<EOF
 Name=NeonKat
 Comment=Meeoooooww
 Exec=$INSTALL_DIR/NeonKat.AppImage
-Icon=$INSTALL_DIR/icon.png
+Icon=$INSTALL_DIR/kat.png
 Terminal=false
 Type=Application
 Categories=AudioVideo;Audio;Player;
