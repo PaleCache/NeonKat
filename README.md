@@ -29,6 +29,43 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 
 ---
 
+## 📥 Installation
+
+### Windows
+Simply launch the `setup.exe` file. The installer will guide you through the process.
+
+### Linux
+
+#### Option 1: Install the application (recommended)
+
+1. Download the source code and the `.AppImage` from the release page.
+2. Place the `.AppImage` file into the `dist` folder.
+3. Open a terminal in the project directory.
+4. Make the installation script executable:
+   ```bash
+   chmod +x install.sh
+   ```
+5. Run the installer:
+   ```bash
+   ./install.sh
+   ```
+
+#### Option 2: Run the AppImage directly
+
+If you prefer not to install the application, you can run the AppImage directly:
+
+1. Make the AppImage executable:
+   ```bash
+   chmod +x NeonKat-<version number>-x86_64.AppImage
+   ```
+2. Launch it:
+   ```bash
+   ./NeonKat-<version number>-x86_64.AppImage
+   ```
+
+> **Note:** On some Linux distributions, you can also right click the AppImage, open **Properties -> Permissions**, and enable **"Allow executing file as a program"** before launching it.
+
+
 ## Previews
 
 | Visualizer | Color Selector | Neon Mode |
