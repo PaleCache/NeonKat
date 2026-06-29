@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadFolderDirect: (path) => ipcRenderer.invoke('load-folder-direct', path),
   setResizable: (value) => ipcRenderer.send('set-resizable', value),
   getAudioMetadata: (filePath) => ipcRenderer.invoke('get-audio-metadata', filePath),
+  resolveStreamUrl: (pageUrl) => ipcRenderer.invoke('resolve-stream-url', pageUrl),
+  cancelDownload: () => ipcRenderer.invoke('cancel-download'),
 
   onRequestCurrentState: (callback) => {
     ipcRenderer.on('request-current-state', () => callback());

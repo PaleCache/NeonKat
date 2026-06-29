@@ -1,10 +1,11 @@
 {
   "name": "neonkat",
-  "version": "0.3.9",
+  "version": "0.4.0",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
   "homepage": "https://github.com/palecache/neonkat",
   "main": "main.js",
+  "desktopName": "com.palecache.NeonKat.desktop",
   "scripts": {
     "start": "GTK_USE_PORTAL=0 GDK_BACKEND=wayland electron .",
     "build": "electron-builder",
@@ -37,8 +38,8 @@
       }
     ],
     "asarUnpack": [
-    "node_modules/ffprobe-static/**"
-  ],
+      "node_modules/ffprobe-static/**"
+    ],
     "win": {
       "target": [
         "nsis"
@@ -48,15 +49,12 @@
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        "AppImage"
       ],
       "icon": "build/kat.png",
       "category": "Audio",
       "maintainer": "PaleCache",
-      "desktop": {
-        "StartupWMClass": "NeonKat"
-      },
+      "syncDesktopName": true,
       "artifactName": "${productName}-${version}-x86_64.${ext}"
     },
     "deb": {
@@ -72,8 +70,8 @@
     }
   },
   "devDependencies": {
-    "electron": "^28.1.0",
-    "electron-builder": "^24.13.3"
+    "electron": "31.0.0",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {
     "electron-log": "^5.4.3",

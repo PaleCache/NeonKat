@@ -27,9 +27,6 @@ if (process.platform === 'win32') {
   app.setAppUserModelId("NeonKat");
 }
 
-app.commandLine.appendSwitch('ozone-platform', 'x11');
-app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
-
 const ffprobeStatic = require('ffprobe-static');
 
 function getFfprobePath() {
@@ -364,31 +361,33 @@ ipcMain.handle('download-youtube', async (event, {
   downloadFolder, 
   skipVideo = false, 
   artworkDuration = 30, 
-  format = 'bestvideo[height<=480]+bestaudio/best[height<=480]' ,
-   genre = 'Music'
+  format,
+  genre = 'Music',
+  extraYtdlpArgs = ''
 }) => {
+  downloadCancelled = false;
+
   if (!downloadFolder || !fsSync.existsSync(downloadFolder)) {
     return { success: false, message: 'Pick a valid folder' };
   }
+
   if (/soundcloud\.com/.test(url)) {
-  const sender = event.sender;
-  const sendProgress = (percent) => sender.send('download-progress', { percent });
+    const sender = event.sender;
+    const sendProgress = (percent) => sender.send('download-progress', { percent });
 
- let scResult;
-if (/\/sets\//.test(url)) {
-  const files = await downloadSoundCloudPlaylist(url, downloadFolder, event, genre);
-  scResult = { success: true, count: files.length, files };
-} else {
-  const file = await downloadSingleSoundCloud(url, downloadFolder, sendProgress, genre);
-  scResult = { success: true, count: 1, files: [file] };
-}
-sendProgress(100, { status: 'finished', message: 'Download complete' });
-return scResult;
+    let scResult;
+    if (/\/sets\//.test(url)) {
+      const files = await downloadSoundCloudPlaylist(url, downloadFolder, event, genre);
+      scResult = { success: true, count: files.length, files };
+    } else {
+      const file = await downloadSingleSoundCloud(url, downloadFolder, sendProgress, genre);
+      scResult = { success: true, count: 1, files: [file] };
+    }
+    sendProgress(100, { status: 'finished', message: 'Download complete' });
+    return scResult;
+  }
 
-
-}
-
-
+  const extraArgs = parseExtraArgs(extraYtdlpArgs);
   const sender = event.sender;
   const sendProgress = (percent, extra = {}) => {
     sender.send('download-progress', { 
@@ -408,14 +407,22 @@ return scResult;
   const thumbTemp = path.join(downloadFolder, `NEONKAT_THUMB_${uniqueSuffix}.%(ext)s`);
 
   try {
+    if (downloadCancelled) return { success: false, message: 'Cancelled' };
+
     sendProgress(3, { status: 'fetching-info', message: 'Fetching video info...' });
     let infoOutput = '';
-    const infoProc = spawn('yt-dlp', ['--dump-single-json', '--no-playlist', url]);
+    const infoProc = trackProcess(spawn('yt-dlp', ['--dump-single-json', '--no-playlist', ...extraArgs, url]));
     infoProc.stdout.on('data', d => infoOutput += d.toString());
+    let infoStderr = '';
+    infoProc.stderr.on('data', d => infoStderr += d.toString());
 
     await new Promise((resolve, reject) => {
-      infoProc.on('close', code => code === 0 ? resolve() : reject(new Error('Info fetch failed')));
-      infoProc.on('error', reject);
+      infoProc.on('close', code => {
+        clearProcess(infoProc);
+        if (downloadCancelled) reject(new Error('Cancelled'));
+         else code === 0 ? resolve() : reject(new Error(`Info fetch failed:\n${infoStderr}`));
+      });
+      infoProc.on('error', (err) => { clearProcess(infoProc); reject(err); });
     });
 
     const info = JSON.parse(infoOutput);
@@ -423,34 +430,50 @@ return scResult;
     const titleSafe = sanitizedTitle(info.title);
     sendProgress(10, { status: 'thumbnail', message: 'Downloading thumbnail...' });
 
-    await spawnSafe('yt-dlp', [
+    if (downloadCancelled) throw new Error('Cancelled');
+
+    const thumbProc = trackProcess(spawn('yt-dlp', [
       url,
       '--write-thumbnail',
       '--convert-thumbnails', 'jpg',
       '--skip-download',
       '--no-playlist',
+      ...extraArgs,
       '-o', thumbTemp
-    ]);
+    ]));
+    await new Promise((resolve, reject) => {
+      thumbProc.on('close', (code) => {
+        clearProcess(thumbProc);
+        if (downloadCancelled) reject(new Error('Cancelled'));
+        else resolve(code);
+      });
+      thumbProc.on('error', (err) => { clearProcess(thumbProc); reject(err); });
+    });
 
     const thumbFiles = await fs.readdir(downloadFolder);
     const thumbFile = thumbFiles.find(f => f.startsWith(`NEONKAT_THUMB_${uniqueSuffix}`));
     if (!thumbFile) throw new Error('Thumbnail not found after download');
-    const fullThumbPath = path.join(downloadFolder, thumbFile);
+    const fullThumbPath = path.join(downloadFolder, `NEONKAT_THUMB_${uniqueSuffix}.jpg`);
     sendProgress(15);
+
+    if (downloadCancelled) throw new Error('Cancelled');
+
     if (skipVideo) {
       sendProgress(20, { status: 'audio', message: 'Downloading audio...' });
 
       const mp3Path = path.join(downloadFolder, `${titleSafe}.mp3`);
       const tempAudioPath = path.join(downloadFolder, `NEONKAT_AUDIO_${uniqueSuffix}.%(ext)s`);
 
-      const audioProc = spawn('yt-dlp', [
+      const audioProc = trackProcess(spawn('yt-dlp', [
         url,
         '-f', 'bestaudio/best',
         '--no-playlist',
+        ...extraArgs,
         '-o', tempAudioPath
-      ]);
+      ]));
 
       let lastAudioPercent = 0;
+      let audioStderr = '';
       audioProc.stdout.on('data', (data) => {
         const line = data.toString();
         const match = line.match(/(\d{1,3}(?:\.\d+)?)%/);
@@ -463,15 +486,26 @@ return scResult;
         }
       });
 
+      audioProc.stderr.on('data', (d) => { audioStderr += d.toString(); });
+
       await new Promise((res, rej) => {
-        audioProc.on('close', code => code === 0 ? res() : rej(new Error(`Audio download failed: ${code}`)));
-        audioProc.on('error', rej);
+        audioProc.on('close', code => {
+          clearProcess(audioProc);
+          if (downloadCancelled) rej(new Error('Cancelled'));
+          else code === 0 ? res() : rej(new Error(`Audio download failed:\n${audioStderr}`));
+        });
+        audioProc.on('error', (err) => { clearProcess(audioProc); rej(err); });
       });
+
+      if (downloadCancelled) throw new Error('Cancelled');
 
       sendProgress(60, { status: 'audio-processing', message: 'Embedding thumbnail...' });
 
-      await spawnSafe('ffmpeg', [
-        '-i', path.join(downloadFolder, (await fs.readdir(downloadFolder)).find(f => f.startsWith(`NEONKAT_AUDIO_${uniqueSuffix}`))),
+      const audioTempFile = (await fs.readdir(downloadFolder)).find(f => f.startsWith(`NEONKAT_AUDIO_${uniqueSuffix}`));
+      const audioTempFull = path.join(downloadFolder, audioTempFile);
+
+      const embedProc = trackProcess(spawn('ffmpeg', [
+        '-i', audioTempFull,
         '-i', fullThumbPath,
         '-map', '0:a', '-map', '1:v?',
         '-c:a', 'libmp3lame', '-q:a', '0',
@@ -482,9 +516,18 @@ return scResult;
         '-metadata', `genre=${genre}`,
         '-disposition:v', 'attached_pic',
         '-y', mp3Path
-      ]);
+      ], { stdio: ['ignore', 'pipe', 'pipe'] }));
 
-      await fs.unlink(path.join(downloadFolder, (await fs.readdir(downloadFolder)).find(f => f.startsWith(`NEONKAT_AUDIO_${uniqueSuffix}`)))).catch(() => {});
+      await new Promise((res, rej) => {
+        embedProc.on('close', (code) => {
+          clearProcess(embedProc);
+          if (downloadCancelled) rej(new Error('Cancelled'));
+          else res(code);
+        });
+        embedProc.on('error', (err) => { clearProcess(embedProc); rej(err); });
+      });
+
+      await fs.unlink(audioTempFull).catch(() => {});
       await fs.unlink(fullThumbPath).catch(() => {});
 
       sendProgress(100, { status: 'finished', message: 'Audio download complete' });
@@ -493,15 +536,17 @@ return scResult;
 
     sendProgress(20, { status: 'video', message: 'Downloading video + audio...' });
 
-    const videoProc = spawn('yt-dlp', [
+    const videoProc = trackProcess(spawn('yt-dlp', [
       url,
       '-f', format,
       '--merge-output-format', 'mp4',
       '--no-playlist',
+      ...extraArgs,
       '-o', tempVideoPath
-    ]);
+    ]));
 
     let lastVideoPercent = 0;
+    let videoStderr = '';
     videoProc.stdout.on('data', (data) => {
       const line = data.toString();
       const match = line.match(/(\d{1,3}(?:\.\d+)?)%/);
@@ -513,30 +558,50 @@ return scResult;
         }
       }
     });
+    videoProc.stderr.on('data', (d) => { videoStderr += d.toString(); });
 
-    await new Promise((res, rej) => {
-      videoProc.on('close', code => code === 0 ? res() : rej(new Error(`Video download failed: ${code}`)));
-      videoProc.on('error', rej);
-    });
+ await new Promise((res, rej) => {
+  videoProc.on('close', code => {
+    clearProcess(videoProc);
+    if (downloadCancelled) rej(new Error('Cancelled'));
+    else code === 0 ? res() : rej(new Error(`Video download failed:\n${videoStderr}`));
+  });
+  videoProc.on('error', (err) => { clearProcess(videoProc); rej(err); });
+});
 
-    sendProgress(75, { status: 'processing', message: 'Processing video...' });
+    if (downloadCancelled) throw new Error('Cancelled');
 
-    const tempFiles = await fs.readdir(downloadFolder);
-    const tempFile = tempFiles.find(f => f.startsWith(`NEONKAT_TEMP_${uniqueSuffix}`));
-    if (!tempFile) throw new Error('Temp video file not found');
-    const fullTempPath = path.join(downloadFolder, tempFile);
-    const fullDuration = await new Promise((resolve) => {
-      const ffprobe = spawn('ffprobe', [
-        '-v', 'error',
-        '-show_entries', 'format=duration',
-        '-of', 'default=noprint_wrappers=1:nokey=1',
-        fullTempPath
-      ]);
-      let out = '';
-      ffprobe.stdout.on('data', d => out += d);
-      ffprobe.on('close', () => resolve(parseFloat(out) || 0));
-      ffprobe.on('error', () => resolve(0));
-    });
+   sendProgress(75, { status: 'processing', message: 'Processing video...' });
+
+
+let fullTempPath = path.join(downloadFolder, `NEONKAT_TEMP_${uniqueSuffix}.mp4`);
+const tempExists = await fs.access(fullTempPath).then(() => true).catch(() => false);
+
+if (!tempExists) {
+  const tempFiles = await fs.readdir(downloadFolder);
+  const tempFile = tempFiles.find(f => f.startsWith(`NEONKAT_TEMP_${uniqueSuffix}`));
+  if (!tempFile) throw new Error('Temp video file not found after download');
+  fullTempPath = path.join(downloadFolder, tempFile);
+}
+
+const fullDuration = await new Promise((resolve) => {
+  execFile(
+    getFfprobePath(),
+    [
+      '-v', 'error',
+      '-show_entries', 'format=duration',
+      '-of', 'default=noprint_wrappers=1:nokey=1',
+      fullTempPath
+    ],
+    { timeout: 10000 },
+    (error, stdout) => {
+      if (error) console.warn('[ffprobe] error:', error.message);
+      resolve(parseFloat(stdout) || 0);
+    }
+  );
+});
+
+    if (downloadCancelled) throw new Error('Cancelled');
 
     const videoPath = path.join(downloadFolder, `${titleSafe}.mp4`);
     let clipDuration = fullDuration;
@@ -547,24 +612,33 @@ return scResult;
       startTime = Math.max(0, (fullDuration / 2) - (clipDuration / 2));
     }
 
-    await spawnSafe('ffmpeg', [
+    const clipProc = trackProcess(spawn('ffmpeg', [
       '-nostdin',
       '-ss', startTime.toFixed(2),
       '-i', fullTempPath,
       '-t', clipDuration.toFixed(2),
-      '-vf', 'fps=30',
-      '-an',
-      '-movflags', '+faststart',
-      '-pix_fmt', 'yuv420p',
-      '-preset', 'veryfast',
-      '-crf', '23',
+      '-c', 'copy',
       '-y', videoPath
-    ]);
+    ], { stdio: ['ignore', 'pipe', 'pipe'] }));
+
+    await new Promise((res, rej) => {
+      clipProc.on('close', (code) => {
+        clearProcess(clipProc);
+        if (downloadCancelled) rej(new Error('Cancelled'));
+        else res(code);
+      });
+      let clipStderr = '';
+      clipProc.stderr.on('data', (d) => { 
+        clipStderr += d.toString();
+      });
+    });
+
+    if (downloadCancelled) throw new Error('Cancelled');
 
     sendProgress(90, { status: 'audio-extract', message: 'Creating audio version...' });
 
     const mp3Path = path.join(downloadFolder, `${titleSafe}.mp3`);
-    await spawnSafe('ffmpeg', [
+    const mp3Proc = trackProcess(spawn('ffmpeg', [
       '-i', fullTempPath,
       '-i', fullThumbPath,
       '-map', '0:a', '-map', '1:v',
@@ -575,7 +649,16 @@ return scResult;
       '-metadata', `genre=${genre}`, 
       '-disposition:v', 'attached_pic',
       '-y', mp3Path
-    ]);
+    ], { stdio: ['ignore', 'pipe', 'pipe'] }));
+
+    await new Promise((res, rej) => {
+      mp3Proc.on('close', (code) => {
+        clearProcess(mp3Proc);
+        if (downloadCancelled) rej(new Error('Cancelled'));
+        else res(code);
+      });
+      mp3Proc.on('error', (err) => { clearProcess(mp3Proc); rej(err); });
+    });
 
     await fs.unlink(fullTempPath).catch(() => {});
     await fs.unlink(fullThumbPath).catch(() => {});
@@ -589,12 +672,29 @@ return scResult;
       actualDuration: targetDuration === Infinity ? 'full' : clipDuration
     };
 
-  } catch (err) {
-    console.error('Download failed:', err);
-    sendProgress(0, { status: 'error', message: err.message || 'Download failed' });
-    return { success: false, message: err.message || 'Unknown error' };
+} catch (err) {
+  if (currentDownloadProcess) {
+    try { currentDownloadProcess.kill('SIGKILL'); } catch (e) {}
+    currentDownloadProcess = null;
   }
+  const isCancel = err.message === 'Cancelled';
+  console.error(isCancel ? 'Download cancelled by user' : 'Download failed:', isCancel ? '' : err);
+  sendProgress(0, { status: isCancel ? 'cancelled' : 'error', message: isCancel ? 'Download cancelled' : (err.message || 'Download failed') });
+  return { success: false, message: isCancel ? 'Cancelled' : (err.message || 'Unknown error'), cancelled: isCancel };
+}
 });
+
+
+  function parseExtraArgs(str) {
+    if (!str || !str.trim()) return [];
+    const args = [];
+    const regex = /(?:[^\s"']+|"[^"]*"|'[^']*')+/g;
+    let match;
+    while ((match = regex.exec(str)) !== null) {
+      args.push(match[0].replace(/^["']|["']$/g, ''));
+    }
+    return args;
+  }
 
 
 ipcMain.handle('file-exists', async (event, filePath) => {
@@ -894,3 +994,50 @@ function startPeriodicUpdateChecks() {
     }
   }, 10000);
 }
+
+
+let currentDownloadProcess = null;
+let downloadCancelled = false;
+
+function trackProcess(proc) {
+  currentDownloadProcess = proc;
+  downloadCancelled = false;
+  return proc;
+}
+
+function clearProcess(proc) {
+  if (currentDownloadProcess === proc) {
+    currentDownloadProcess = null;
+  }
+}
+
+ipcMain.handle('cancel-download', () => {
+  downloadCancelled = true;
+  if (currentDownloadProcess) {
+    try { currentDownloadProcess.kill('SIGTERM'); } catch (e) {}
+    currentDownloadProcess = null;
+    return { cancelled: true };
+  }
+  return { cancelled: false };
+});
+
+ipcMain.handle('resolve-stream-url', async (event, pageUrl) => {
+  return new Promise((resolve) => {
+    let output = '';
+    const proc = spawn('yt-dlp', ['-g', '--no-playlist', pageUrl]);
+    proc.stdout.on('data', d => output += d.toString());
+    proc.on('close', (code) => {
+      const urls = output.trim().split('\n').filter(Boolean);
+      if (code === 0 && urls.length) {
+        resolve({
+          success: true,
+          url: urls[urls.length - 1],
+          videoUrl: urls.length > 1 ? urls[0] : null
+        });
+      } else {
+        resolve({ success: false });
+      }
+    });
+    proc.on('error', () => resolve({ success: false }));
+  });
+});
