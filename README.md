@@ -70,11 +70,11 @@ If you prefer not to install the application, you can run the AppImage directly:
 
 | Visualizer | Color Selector | Neon Mode |
 |------------|----------------|-----------|
-| <img src="./assets/visualizer.png" width="200"> | <img src="./assets/color-selector.png" width="200"> | <img src="./assets/neonmode.gif" width="210"> |
+| <img src="./assets/visualizer.gif" width="200"> | <img src="./assets/color-selector.png" width="200"> | <img src="./assets/neonmode.gif" width="210"> |
 
 | Mini Mode | Radio Streams | YT-dlp Support | 
 |-----------|---------------|----------------|
-| <img src="./assets/mini-mode.png" width="200"> | <img src="./assets/radio-streams.png" width="200"> | <img src="./assets/yt-dlp-support.png" width="210"> |
+| <img src="./assets/mini-mode.png" width="200"> | <img src="./assets/radio-streams.png" width="200"> | <img src="./assets/yt-dlp-menu.gif" width="210"> |
 
 | Canvas Mode | Jellyfin Support | Custom Backgrounds |
 |-------------|-------------|-------------|
@@ -83,6 +83,10 @@ If you prefer not to install the application, you can run the AppImage directly:
 | Custom Picture In Picture Mode|
 |-------------|
 | <img src="./assets/video-only-mode.png" width="665"> |
+
+| Widget Mode|
+|-------------|
+| <img src="./assets/widget-mode.png" width="665"> |
 ---
 
 ## 🤗 Special Thanks
