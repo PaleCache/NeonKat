@@ -1763,7 +1763,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.1 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.2 alpha</p>
       </div>
   </div>
   `;

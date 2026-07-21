@@ -744,7 +744,15 @@ ipcMain.on('open-external', (event, url) => {
 ipcMain.on('resize-window', (event, width, height) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;
-  win.setSize(width, height, true);
+
+  win.setSize(width, height, false);
+  win.webContents.invalidate();
+
+  if (process.platform === 'linux') {
+    const [x, y] = win.getPosition();
+    win.setBounds({ x: x + 1, y, width, height });
+    setImmediate(() => win.setBounds({ x, y, width, height }));
+  }
 });
 
 ipcMain.on('Always-Top', (event, isit) => {
