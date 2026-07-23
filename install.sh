@@ -24,7 +24,7 @@ cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=NeonKat
 Comment=Meeoooooww
-Exec=$INSTALL_DIR/NeonKat.AppImage
+Exec=$INSTALL_DIR/NeonKat.AppImage --ozone-platform=x11
 Icon=$INSTALL_DIR/kat.png
 Terminal=false
 Type=Application
