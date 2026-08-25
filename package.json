@@ -1,13 +1,13 @@
 {
   "name": "neonkat",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
   "homepage": "https://github.com/palecache/neonkat",
   "main": "main.js",
   "desktopName": "com.palecache.NeonKat.desktop",
   "scripts": {
-    "start": "GTK_USE_PORTAL=0 GDK_BACKEND=wayland electron .",
+    "start": "electron .",
     "build": "electron-builder",
     "build:linux": "electron-builder --linux",
     "build:win": "electron-builder --win"

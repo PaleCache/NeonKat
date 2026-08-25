@@ -61,6 +61,7 @@ katbubbleImages[0].src = 'build/kat.png';
   const nukebubblesToggleBtn = document.getElementById('nukebubblesToggleBtn');
   let rainbowFrameId = null;
   let currentArtImage = null;
+  let currentArtUrl = null;
   let currentMetadataCache = new Map();
   let activeExtraArgs = localStorage.getItem('lastYtdlpArgs') || '';
   let searchLoopEnabled = localStorage.getItem('searchLoopEnabled') === 'true';
@@ -1763,7 +1764,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.2 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.3 alpha</p>
       </div>
   </div>
   `;
@@ -2341,48 +2342,54 @@ playlistElem.addEventListener('drop', async (event) => {
   event.preventDefault();
   playlistElem.style.border = '';
   dropWarning.style.display = 'none';
-  let files = Array.from(event.dataTransfer.files || []);
-  const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.opus'];
-  let collectedAudioPaths = [];
-  for (const file of files) {
-    const filePath = file.path;
-    let folderResultsObj = null;
-    try {
-      folderResultsObj = await window.electronAPI.loadFolderDirect(filePath);
-    } catch (err) {
-      console.error("Folder load failed:", err);
-    }
 
-    if (
-      folderResultsObj &&
-      Array.isArray(folderResultsObj.audioFilePaths) &&
-      folderResultsObj.audioFilePaths.length > 0
-    ) {
-      collectedAudioPaths.push(...folderResultsObj.audioFilePaths);
-    } else {
-      const ext = '.' + filePath.split('.').pop().toLowerCase();
-      if (audioExts.includes(ext)) collectedAudioPaths.push(filePath);
-    }
+  let files = Array.from(event.dataTransfer.files || []);
+  const audioExts = ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.opus', '.aac'];
+  const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+  const skipExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', 
+                  '.mp4', '.webm', '.mkv', '.avi', '.mov',
+                  '.txt', '.nfo', '.cue', '.log', '.lrc',
+                  '.m3u', '.playlist', '.pls'];
+  let collectedAudioPaths = [];
+
+  for (const file of files) {
+  const filePath = window.electronAPI.getPathForFile(file);
+  const ext = '.' + filePath.split('.').pop().toLowerCase();
+
+  if (skipExts.includes(ext)) continue;
+
+  if (audioExts.includes(ext)) {
+    collectedAudioPaths.push(filePath);
+    continue;
   }
+
+  
+  try {
+    const folderResult = await window.electronAPI.loadFolderDirect(filePath);
+    if (folderResult && Array.isArray(folderResult.audioFilePaths) && folderResult.audioFilePaths.length > 0) {
+      collectedAudioPaths.push(...folderResult.audioFilePaths);
+    }
+  } catch (err) {
+    console.error("Folder load failed:", err);
+  }
+}
+
   collectedAudioPaths = collectedAudioPaths.filter(filePath => {
     const ext = '.' + filePath.split('.').pop().toLowerCase();
     return audioExts.includes(ext);
   });
+
   if (!collectedAudioPaths.length) {
-    alert("Now you did it LOL, drag and drop in electron could now be broken due to a bug in electron :( if you dragged too many files like 200+ you're done for pal... if you dragged a non audio file you should be fine still");
+    alert("No audio files found in what you dropped.");
     if (event.dataTransfer) {
-      try {
-        event.dataTransfer.clearData();
-      } catch {}
+      try { event.dataTransfer.clearData(); } catch {}
     }
     return;
   }
 
   audioFiles = audioFiles.concat(collectedAudioPaths);
   if (event.dataTransfer) {
-    try {
-      event.dataTransfer.clearData();
-    } catch {}
+    try { event.dataTransfer.clearData(); } catch {}
   }
   renderPlaylist();
   await applySavedSort();
@@ -2858,6 +2865,7 @@ function clearBackground() {
   visualizerCanvas.style.backgroundImage = 'none';
   visualizerCanvas.style.backgroundColor = '#111111';
   currentArtImage = null;
+  currentArtUrl = null;
   visualizerCanvas.style.backgroundColor = 'transparent';
   document.getElementById('visualizerBgGif').style.display = 'none';
 }
@@ -3333,6 +3341,7 @@ async function setVisualizerBackground(item) {
     visualizerVideo.pause();
     visualizerVideo.src = '';
     currentArtImage = null;
+    currentArtUrl = null;
 
     let artUrl = null;
     let usedGifOrVideo = false;
@@ -3345,6 +3354,7 @@ async function setVisualizerBackground(item) {
             await new Promise((resolve, reject) => {
                 loader.onload = () => {
                     currentArtImage = loader;
+                    currentArtUrl = item.artwork;
                     resolve();
                 };
                 loader.onerror = () => {
@@ -3475,11 +3485,18 @@ if (item?.isStream) {
             const loader = document.getElementById('artLoader');
             if (loader) {
                 loader.src = artUrl;
-                loader.onload = () => { currentArtImage = loader; };
-                loader.onerror = () => {
-                    console.warn("[ART] Album art failed to load");
-                    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-                };
+                await new Promise((resolve) => {
+                    loader.onload = () => {
+                        currentArtImage = loader;
+                        currentArtUrl = artUrl;
+                        resolve();
+                    };
+                    loader.onerror = () => {
+                        console.warn("[ART] Album art failed to load");
+                        visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+                        resolve();
+                    };
+                });
             }
             return;
         }
@@ -3498,15 +3515,22 @@ if (item?.isStream) {
         }
     }
 
-    else if (item?.isJellyfin && item.albumArt) {
+      else if (item?.isJellyfin && item.albumArt) {
         artUrl = item.albumArt;
         const loader = document.getElementById('artLoader');
         if (loader) {
             loader.src = artUrl;
-            loader.onload = () => { currentArtImage = loader; };
-            loader.onerror = () => {
-                visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-            };
+            await new Promise((resolve) => {
+                loader.onload = () => {
+                    currentArtImage = loader;
+                    currentArtUrl = artUrl;
+                    resolve();
+                };
+                loader.onerror = () => {
+                    visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+                    resolve();
+                };
+            });
         }
         return;
     }
@@ -3533,6 +3557,25 @@ function saveTrackLoudnessCache() {
   } catch (e) {
     console.warn('Failed to save loudness cache (probably full):', e);
   }
+}
+
+async function resolveArtworkForMediaSession(artUrl) {
+  console.log('[resolveArtwork] input:', artUrl?.slice(0, 60));
+  if (!artUrl) return null;
+  if (artUrl.startsWith('file://') || artUrl.startsWith('http')) return artUrl;
+
+  if (artUrl.startsWith('data:')) {
+    try {
+      const tempPath = await window.electronAPI.writeTempArtwork(artUrl);
+      console.log('[resolveArtwork] got tempPath:', tempPath);
+      return tempPath || null;
+    } catch (e) {
+      console.warn('Failed to write temp artwork for MediaSession:', e);
+      return null;
+    }
+  }
+  console.log('[resolveArtwork] artUrl matched none of the branches');
+  return null;
 }
 
 
@@ -3782,11 +3825,26 @@ onDead: async (reason) => {
 
   const trackData = {
     songName: displayName,
-    artUrl: visualizerCanvas.style.backgroundImage.slice(5, -2) || null,
+    artUrl: currentArtUrl || null,
     isPlaying: true,
     volume: audio.volume
   };
 
+if ('mediaSession' in navigator) {
+  const artUrl = trackData.artUrl;
+  const { artist, title } = splitArtistTitle(displayName);
+  const resolvedArtUrl = await resolveArtworkForMediaSession(trackData.artUrl);
+  const isUsableArt = !!resolvedArtUrl;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title,
+    artist,
+    album: '',
+    artwork: isUsableArt ? [
+      { src: resolvedArtUrl, sizes: '512x512', type: 'image/png' }
+    ] : []
+  });
+  navigator.mediaSession.playbackState = 'playing';
+}
   if (!videoOnlyMode && !isMini && !isWidgetMode) {
     wrapper.classList.add("playing");
   } else {
@@ -3818,6 +3876,9 @@ if (item.isStream) {
   if (notifyEnabled && Notification.permission === 'granted') {
     window.electronAPI.notify('Now Playing', displayName);
   }
+
+  document.title = displayName || 'NeonKat';
+  
 }
 
 
@@ -3845,12 +3906,14 @@ audio.addEventListener('play', () => {
   renderPlaylist();
   playPauseIcon.src = 'build/pause.svg';
   playPauseIcon.alt = 'Pause';
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 });
 
 audio.addEventListener('pause', () => {
   renderPlaylist();
   playPauseIcon.src = 'build/play.svg';
   playPauseIcon.alt = 'Play';
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 });
 
 
@@ -5347,4 +5410,20 @@ function initGenreDropdown() {
     });
   }
 }
+
+
+function splitArtistTitle(name) {
+  if (!name) return { artist: 'Unknown Artist', title: 'Unknown Track' };
+  const dashMatch = name.match(/[-–—]\s*/);
+  if (dashMatch) {
+    const idx = dashMatch.index;
+    const len = dashMatch[0].length;
+    return {
+      artist: name.slice(0, idx).trim() || 'Unknown Artist',
+      title: name.slice(idx + len).trim() || name
+    };
+  }
+  return { artist: 'Unknown Artist', title: name };
+}
+
 

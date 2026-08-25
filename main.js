@@ -5,10 +5,18 @@ const fsSync = require('fs');
 const { spawn } = require('child_process');
 const { shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const http = require('http');
+let artServerPort = null;
+let currentArtBuffer = null;
+let currentArtMime = 'image/jpeg';
 let autoUpdateEnabled = false
 const { execFile } = require('child_process');
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let logger = console;
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('class', 'com.palecache.NeonKat');
+}
+
 try {
   logger = require('electron-log');
   logger.transports.file.level = isDev ? 'warn' : 'info';
@@ -93,6 +101,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 441,
     height: 743,
+    title: 'NeonKat',
     frame: false,
     transparent: false,
      backgroundColor: '#000000',
@@ -1048,4 +1057,36 @@ ipcMain.handle('resolve-stream-url', async (event, pageUrl) => {
     });
     proc.on('error', () => resolve({ success: false }));
   });
+});
+
+
+
+
+const artServer = http.createServer((req, res) => {
+  if (currentArtBuffer) {
+    res.writeHead(200, { 'Content-Type': currentArtMime });
+    res.end(currentArtBuffer);
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+
+artServer.listen(0, '127.0.0.1', () => {
+  artServerPort = artServer.address().port;
+  console.log('[ArtServer] listening on port', artServerPort);
+});
+
+ipcMain.handle('write-temp-artwork', async (event, dataUrl) => {
+  try {
+    const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+    if (!match) return null;
+    currentArtMime = match[1];
+    currentArtBuffer = Buffer.from(match[2], 'base64');
+    return `http://127.0.0.1:${artServerPort}/art.jpg?t=${Date.now()}`;
+  } catch (e) {
+    console.error('[write-temp-artwork] failed:', e);
+    return null;
+  }
 });

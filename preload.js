@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   dragWindow: (deltaX, deltaY) => ipcRenderer.send('drag-window', deltaX, deltaY),
@@ -29,12 +29,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAudioMetadata: (filePath) => ipcRenderer.invoke('get-audio-metadata', filePath),
   resolveStreamUrl: (pageUrl) => ipcRenderer.invoke('resolve-stream-url', pageUrl),
   cancelDownload: () => ipcRenderer.invoke('cancel-download'),
-
+  getPathForFile: (file) => webUtils.getPathForFile(file),
+  writeTempArtwork: (dataUrl) => ipcRenderer.invoke('write-temp-artwork', dataUrl),
   onRequestCurrentState: (callback) => {
     ipcRenderer.on('request-current-state', () => callback());
     return () => ipcRenderer.removeAllListeners('request-current-state');
   },
-
 
   onDownloadProgress: (callback) => {
     const listener = (event, data) => callback(data);
