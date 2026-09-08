@@ -26,8 +26,12 @@ NeonKat is perfect for users who want a **fast, private, and visually engaging m
 - **Supports Jellyfin servers for music streaming**
 - **Auto Updates (disabled by default for privacy reasons)**
 - **Zero outside connections** – your music and data stay with you.
+- **Media server and a pwa for mobile and web browser support** (Offline support for when you're away from home).
 
 ---
+
+
+
 
 ## 📥 Installation
 
@@ -65,6 +69,13 @@ If you prefer not to install the application, you can run the AppImage directly:
 
 > **Note:** On some Linux distributions, you can also right click the AppImage, open **Properties -> Permissions**, and enable **"Allow executing file as a program"** before launching it.
 
+## ℹ️ How to use the Progressive Web App
+
+* Start the media server and set a strong PIN code.
+* You can stream music locally by opening your machine's local IP address on port `13337` in any browser, including on mobile. Log in using the PIN code you set.
+* To use offline support, you need to serve the media server through a reverse proxy such as Nginx or Caddy.
+* Once the reverse proxy is set up, install the PWA using the **Install for offline use** button on desktop or Android. On iPhone, open the browser's share menu and select **Add to Home Screen**.
+* Songs can be cached individually, or you can cache an entire library playlist that was created in the desktop app.
 
 ## Previews
 
