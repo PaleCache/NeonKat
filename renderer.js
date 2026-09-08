@@ -41,6 +41,11 @@ katbubbleImages[0].src = 'build/kat.png';
   const audioHlsRef = { current: null };
   const vizHlsRef = { current: null };
   let audioFiles = [];
+  window.setRemoteAudioFiles = (files) => {
+  audioFiles = files;
+  initializeFilteredIndices();
+  renderPlaylist();
+};
   let rainbowIntervalId = null;
   let currentIndex = 0;
   let flashIntensity = 0; 
@@ -60,13 +65,14 @@ katbubbleImages[0].src = 'build/kat.png';
   const katbubblesToggleBtn = document.getElementById('katbubblesToggleBtn');
   const nukebubblesToggleBtn = document.getElementById('nukebubblesToggleBtn');
   let rainbowFrameId = null;
-  let currentArtImage = null;
-  let currentArtUrl = null;
   let currentMetadataCache = new Map();
   let activeExtraArgs = localStorage.getItem('lastYtdlpArgs') || '';
   let searchLoopEnabled = localStorage.getItem('searchLoopEnabled') === 'true';
-const searchLoopCheckbox = document.getElementById('searchLoopCheckbox');
-const searchLoopToggle = document.getElementById('searchLoopToggle');
+  const searchLoopCheckbox = document.getElementById('searchLoopCheckbox');
+  const searchLoopToggle = document.getElementById('searchLoopToggle');
+  let currentArtImage = null;
+  let currentArtUrl = null;
+  let mediaSessionArtUrl = null;
 
 if (searchLoopCheckbox) searchLoopCheckbox.checked = searchLoopEnabled;
 
@@ -110,7 +116,7 @@ const trackNormGain = audioCtx.createGain();
 trackNormGain.gain.value = 1;
 
 const postEqLimiter = audioCtx.createDynamicsCompressor();
-postEqLimiter.threshold.value = 10;
+postEqLimiter.threshold.value = -10;
 postEqLimiter.ratio.value = 8;
 postEqLimiter.knee.value = 6;
 postEqLimiter.attack.value = 0.02;
@@ -184,6 +190,17 @@ function eqLabel(val) {
   if (v >= 20) return `${v} dB (HIGH)`;
   if (v <= -20) return `${v} dB (LOW)`;
   return `${v} dB`;
+}
+
+
+async function getMediaSessionArtSource(item) {
+  if (item?.artwork) return item.artwork;        
+  if (item?.isJellyfin && item.albumArt) return item.albumArt;
+  if (typeof item === 'string') {
+    const real = await getAlbumArtUrl(item);        
+    if (real && real !== 'build/default-artwork.jpg') return real;
+  }
+  return null; 
 }
 
 function setEqBand(key, value, save = true) {
@@ -300,7 +317,11 @@ if (jellyfinConfig.token) {
 }
 
 updateJellyfinModalButtons();
+
 let recentFolders = JSON.parse(localStorage.getItem('neonkatRecentFolders') || '[]');
+if (window.electronAPI?.syncRecentFolders) {
+  window.electronAPI.syncRecentFolders(recentFolders);
+}
 
 const MAX_RECENT_FOLDERS = 100;
 function addToRecentFolders(folderPath) {
@@ -313,6 +334,10 @@ function addToRecentFolders(folderPath) {
   
   localStorage.setItem('neonkatRecentFolders', JSON.stringify(recentFolders));
   renderRecentFolders();
+
+  if (window.electronAPI?.syncRecentFolders) {
+    window.electronAPI.syncRecentFolders(recentFolders);
+  }
 }
 
 function getShortFolderName(fullPath) {
@@ -1764,7 +1789,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.3 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.4 alpha</p>
       </div>
   </div>
   `;
@@ -2747,7 +2772,113 @@ function renderPlaylist() {
   });
   
   updateSelectionVisuals();
+  syncPlaylistToServer();
 }
+
+
+const mediaServerToggle = document.getElementById('mediaServerToggle');
+const mediaServerCheckbox = document.getElementById('mediaServerCheckbox');
+const mediaServerStatus = document.getElementById('mediaServerStatus');
+
+async function refreshMediaServerUI() {
+  const status = await window.electronAPI.getMediaServerStatus();
+  mediaServerCheckbox.checked = status.running;
+  mediaServerToggle.classList.toggle('active', status.running);
+  if (status.running) {
+    mediaServerStatus.textContent = `Running at: ${status.url}`;
+    mediaServerStatus.style.display = 'block';
+  } else {
+    mediaServerStatus.style.display = 'none';
+  }
+}
+
+async function toggleMediaServer() {
+  const status = await window.electronAPI.getMediaServerStatus();
+  if (status.running) {
+    await window.electronAPI.stopMediaServer();
+  } else {
+    const result = await window.electronAPI.startMediaServer();
+    if (result && result.needsPin) {
+      showCreatePinModal();
+      return;
+    }
+    syncPlaylistToServer();
+  }
+  await refreshMediaServerUI();
+}
+
+function showCreatePinModal() {
+  let modal = document.getElementById('createPinModal');
+  if (modal) { modal.style.display = 'flex'; return; }
+
+  modal = document.createElement('div');
+  modal.id = 'createPinModal';
+  modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 99999;';
+  modal.innerHTML =
+    '<div style="background: #111; padding: 25px; border-radius: 12px; width: 85%; max-width: 380px; border: 3px solid var(--primary-color); text-align: center;">' +
+      '<h3 style="margin-top: 0; color: var(--primary-color);">Set a PIN for Web Access</h3>' +
+      '<p style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Anyone on your network will need this PIN to open the web player. Minimum 4 digits.</p>' +
+      '<input type="password" id="createPinInput" placeholder="Enter PIN" inputmode="numeric" autocomplete="off" style="width: 100%; padding: 12px; background: #222 !important; border: none; border-radius: 6px; color: white !important; margin-bottom: 12px; font-size: 16px; text-align: center; letter-spacing: 2px;" />' +
+      '<div id="createPinError" style="color: #ff5555; font-size: 12px; min-height: 16px; margin-bottom: 8px;"></div>' +
+      '<div style="display: flex; gap: 10px; justify-content: center;">' +
+        '<button id="createPinCancelBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 5px; color: white; cursor: pointer;">Cancel</button>' +
+        '<button id="createPinConfirmBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold;">Set PIN & Start</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(modal);
+
+  const input = document.getElementById('createPinInput');
+  const errorEl = document.getElementById('createPinError');
+  const cancelBtn = document.getElementById('createPinCancelBtn');
+  const confirmBtn = document.getElementById('createPinConfirmBtn');
+
+  input.focus();
+
+  cancelBtn.addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+  async function submitPin() {
+    const pin = input.value.trim();
+    if (pin.length < 4) {
+      errorEl.textContent = 'PIN must be at least 4 characters';
+      return;
+    }
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Starting...';
+    const result = await window.electronAPI.setMediaServerPin(pin);
+    if (result.success) {
+      modal.remove();
+      syncPlaylistToServer();
+      await refreshMediaServerUI();
+    } else {
+      errorEl.textContent = result.message || 'Failed to set PIN';
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Set PIN & Start';
+    }
+  }
+
+  confirmBtn.addEventListener('click', submitPin);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitPin(); });
+}
+
+if (mediaServerToggle) {
+  mediaServerToggle.addEventListener('click', (e) => {
+    if (e.target.closest('input[type="checkbox"]') || e.target.closest('.slider')) return;
+    toggleMediaServer();
+  });
+}
+
+if (mediaServerCheckbox) {
+  mediaServerCheckbox.addEventListener('change', () => {
+    toggleMediaServer();
+  });
+}
+
+
+refreshMediaServerUI();
+
+
 
 
 const selectedIndices = new Set();
@@ -3121,15 +3252,15 @@ document.getElementById('popoutVideoBtn').addEventListener('click', async () => 
             artworkEl.style.opacity = '1';
         }
 
-        const videoEl = document.getElementById('visualizerVideo');
-        if (videoEl && videoEl.src) {
-            try {
-                videoEl.currentTime = 0;
-                await videoEl.play();
-            } catch (err) {
-                console.warn("Video-only playback failed:", err);
-            }
-        }
+          const videoEl = document.getElementById('visualizerVideo');
+          if (videoEl && videoEl.src) {
+              try {
+                  videoEl.currentTime = 0;
+                  await videoEl.play();
+              } catch (err) {
+                  console.warn("Video-only playback failed:", err);
+              }
+          }
 
          if (videoOnlyMode && visualizerVideo.src) {
           visualizerVideo.currentTime =
@@ -3342,6 +3473,7 @@ async function setVisualizerBackground(item) {
     visualizerVideo.src = '';
     currentArtImage = null;
     currentArtUrl = null;
+    mediaSessionArtUrl = null;
 
     let artUrl = null;
     let usedGifOrVideo = false;
@@ -3355,76 +3487,79 @@ async function setVisualizerBackground(item) {
                 loader.onload = () => {
                     currentArtImage = loader;
                     currentArtUrl = item.artwork;
+                    mediaSessionArtUrl = item.artwork;
                     resolve();
                 };
                 loader.onerror = () => {
                     console.warn("Custom artwork failed to load:", item.artwork);
                     reject();
                 };
-            }).catch(() => {
-             
-            });
+            }).catch(() => {});
 
             if (currentArtImage) {
                 visualize();
-                return;  
+                return;
             }
         }
     }
 
     if (item?.isStream && item.videoUrl) {
-    visualizerVideo.src = item.videoUrl;
-    visualizerVideo.style.display = 'block';
-    visualizerVideo.style.opacity = '1';
-    visualizerVideo.style.zIndex = '0';
-    visualizerVideo.loop = true;
-    visualizerVideo.muted = true;
-    visualizerVideo.playsInline = true;
-    visualizerVideo.play().catch(() => {});
-    visualizerCanvas.style.backgroundColor = 'transparent';
-    return;
-}
-   
-if (item?.isStream && item.url?.includes('.m3u8')) {
-    visualizerVideo.style.display = 'block';
-    visualizerVideo.loop = true;
-    visualizerVideo.muted = true;
-    visualizerVideo.playsInline = true;
-    visualizerVideo.style.opacity = '1';
-    visualizerVideo.style.zIndex = '0';
-    visualizerCanvas.style.backgroundColor = 'transparent';
+        visualizerVideo.src = item.videoUrl;
+        visualizerVideo.style.display = 'block';
+        visualizerVideo.style.opacity = '1';
+        visualizerVideo.style.zIndex = '0';
+        visualizerVideo.loop = true;
+        visualizerVideo.muted = true;
+        visualizerVideo.playsInline = true;
+        visualizerVideo.play().catch(() => {});
+        visualizerCanvas.style.backgroundColor = 'transparent';
+        return;
+    }
 
-    if (resilientVizHls) resilientVizHls.destroy();
-    resilientVizHls = createResilientHls(() => item.url, visualizerVideo, {
-        isVisualizer: true,
-        onDead: async () => {
-            if (resilientVizHls) resilientVizHls.destroy();
-            resilientVizHls = createResilientHls(() => item.url, visualizerVideo, { isVisualizer: true });
-            resilientVizHls.start();
-        }
-    });
-    resilientVizHls.start();
-    return;
-}
+    if (item?.isStream && item.url?.includes('.m3u8')) {
+        visualizerVideo.style.display = 'block';
+        visualizerVideo.loop = true;
+        visualizerVideo.muted = true;
+        visualizerVideo.playsInline = true;
+        visualizerVideo.style.opacity = '1';
+        visualizerVideo.style.zIndex = '0';
+        visualizerCanvas.style.backgroundColor = 'transparent';
 
-if (item?.isStream) {
-    if (item.artwork) {
-        const loader = document.getElementById('artLoader');
-        loader.crossOrigin = "anonymous";
-        loader.src = item.artwork;
-        loader.onload = () => { currentArtImage = loader; };
-        loader.onerror = () => {
+        if (resilientVizHls) resilientVizHls.destroy();
+        resilientVizHls = createResilientHls(() => item.url, visualizerVideo, {
+            isVisualizer: true,
+            onDead: async () => {
+                if (resilientVizHls) resilientVizHls.destroy();
+                resilientVizHls = createResilientHls(() => item.url, visualizerVideo, { isVisualizer: true });
+                resilientVizHls.start();
+            }
+        });
+        resilientVizHls.start();
+        return;
+    }
+
+    if (item?.isStream) {
+        if (item.artwork) {
+            const loader = document.getElementById('artLoader');
+            loader.crossOrigin = "anonymous";
+            loader.src = item.artwork;
+            loader.onload = () => {
+                currentArtImage = loader;
+                currentArtUrl = item.artwork;
+                mediaSessionArtUrl = item.artwork;
+            };
+            loader.onerror = () => {
+                visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
+                visualizerCanvas.style.backgroundSize = 'cover';
+                visualizerCanvas.style.backgroundPosition = 'center';
+            };
+        } else {
             visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
             visualizerCanvas.style.backgroundSize = 'cover';
             visualizerCanvas.style.backgroundPosition = 'center';
-        };
-    } else {
-        visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-        visualizerCanvas.style.backgroundSize = 'cover';
-        visualizerCanvas.style.backgroundPosition = 'center';
+        }
+        return;
     }
-    return;
-}
 
     if (typeof item === 'string') {
         const filePath = item;
@@ -3463,7 +3598,27 @@ if (item?.isStream) {
             }
         }
 
-        if (usedGifOrVideo) return;
+        if (usedGifOrVideo) {
+            getAlbumArtUrl(filePath).then(async realArt => {
+                if (realArt && realArt !== 'build/default-artwork.jpg') {
+                    mediaSessionArtUrl = realArt;
+                    if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
+                        const resolvedArtUrl = await resolveArtworkForMediaSession(realArt);
+                        if (resolvedArtUrl) {
+                            const { title, artist } = navigator.mediaSession.metadata;
+                            navigator.mediaSession.metadata = new MediaMetadata({
+                                artist,
+                                title,
+                                album: '',
+                                artwork: [{ src: resolvedArtUrl, sizes: '512x512', type: 'image/png' }]
+                            });
+                        }
+                    }
+                }
+            });
+            return;
+        }
+
         const sameNameGif = baseName + '.gif';
         const sameNameGifPath = await window.electronAPI.pathJoin(dir, sameNameGif);
         if (await window.electronAPI.fileExists(sameNameGifPath) && gifPreviewEnabled) {
@@ -3479,7 +3634,27 @@ if (item?.isStream) {
             usedGifOrVideo = true;
         }
 
-        if (usedGifOrVideo) return;
+        if (usedGifOrVideo) {
+            getAlbumArtUrl(filePath).then(async realArt => {
+                if (realArt && realArt !== 'build/default-artwork.jpg') {
+                    mediaSessionArtUrl = realArt;
+                    if ('mediaSession' in navigator && navigator.mediaSession.metadata) {
+                        const resolvedArtUrl = await resolveArtworkForMediaSession(realArt);
+                        if (resolvedArtUrl) {
+                            const { title, artist } = navigator.mediaSession.metadata;
+                            navigator.mediaSession.metadata = new MediaMetadata({
+                                artist,  
+                                title,
+                                album: '',
+                                artwork: [{ src: resolvedArtUrl, sizes: '512x512', type: 'image/png' }]
+                            });
+                        }
+                    }
+                }
+            });
+            return;
+        }
+
         artUrl = await getAlbumArtUrl(filePath);
         if (artUrl && artUrl !== 'build/default-artwork.jpg') {
             const loader = document.getElementById('artLoader');
@@ -3489,6 +3664,7 @@ if (item?.isStream) {
                     loader.onload = () => {
                         currentArtImage = loader;
                         currentArtUrl = artUrl;
+                        mediaSessionArtUrl = artUrl;
                         resolve();
                     };
                     loader.onerror = () => {
@@ -3515,7 +3691,7 @@ if (item?.isStream) {
         }
     }
 
-      else if (item?.isJellyfin && item.albumArt) {
+    else if (item?.isJellyfin && item.albumArt) {
         artUrl = item.albumArt;
         const loader = document.getElementById('artLoader');
         if (loader) {
@@ -3524,6 +3700,7 @@ if (item?.isStream) {
                 loader.onload = () => {
                     currentArtImage = loader;
                     currentArtUrl = artUrl;
+                    mediaSessionArtUrl = artUrl;
                     resolve();
                 };
                 loader.onerror = () => {
@@ -3536,12 +3713,21 @@ if (item?.isStream) {
     }
 
     if (!usedGifOrVideo && (!artUrl || artUrl === 'build/default-artwork.jpg')) {
-        visualizerCanvas.style.backgroundImage = `url('build/default-artwork.jpg')`;
-        visualizerCanvas.style.backgroundSize = 'cover';
-        visualizerCanvas.style.backgroundPosition = 'center';
+        const loader = document.getElementById('artLoader');
+        if (loader) {
+            loader.src = 'build/default-artwork.jpg';
+            await new Promise((resolve) => {
+                loader.onload = () => {
+                    currentArtImage = loader;
+                    currentArtUrl = 'build/default-artwork.jpg';
+                    mediaSessionArtUrl = 'build/default-artwork.jpg';
+                    resolve();
+                };
+                loader.onerror = () => resolve();
+            });
+        }
     }
 }
-
 
 const TRACK_LOUDNESS_CACHE_KEY = 'neonkatTrackLoudness';
 let trackLoudnessCache = {};
@@ -3560,22 +3746,35 @@ function saveTrackLoudnessCache() {
 }
 
 async function resolveArtworkForMediaSession(artUrl) {
-  console.log('[resolveArtwork] input:', artUrl?.slice(0, 60));
-  if (!artUrl) return null;
-  if (artUrl.startsWith('file://') || artUrl.startsWith('http')) return artUrl;
-
-  if (artUrl.startsWith('data:')) {
+  if (!artUrl) {
     try {
-      const tempPath = await window.electronAPI.writeTempArtwork(artUrl);
-      console.log('[resolveArtwork] got tempPath:', tempPath);
-      return tempPath || null;
-    } catch (e) {
-      console.warn('Failed to write temp artwork for MediaSession:', e);
+      return await window.electronAPI.writeTempArtwork(await getDefaultArtworkDataUrl());
+    } catch {
       return null;
     }
   }
-  console.log('[resolveArtwork] artUrl matched none of the branches');
+  if (artUrl.startsWith('file://') || artUrl.startsWith('http')) return artUrl;
+  if (artUrl.startsWith('data:')) {
+    try {
+      return await window.electronAPI.writeTempArtwork(artUrl) || null;
+    } catch {
+      return null;
+    }
+  }
   return null;
+}
+
+let cachedDefaultArtDataUrl = null;
+async function getDefaultArtworkDataUrl() {
+  if (cachedDefaultArtDataUrl) return cachedDefaultArtDataUrl;
+  const res = await fetch('build/default-artwork.jpg');
+  const blob = await res.blob();
+  cachedDefaultArtDataUrl = await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+  return cachedDefaultArtDataUrl;
 }
 
 
@@ -3823,21 +4022,14 @@ onDead: async (reason) => {
 }
   await setVisualizerBackground(item);
 
-  const trackData = {
-    songName: displayName,
-    artUrl: currentArtUrl || null,
-    isPlaying: true,
-    volume: audio.volume
-  };
-
-if ('mediaSession' in navigator) {
-  const artUrl = trackData.artUrl;
+  if ('mediaSession' in navigator) {
   const { artist, title } = splitArtistTitle(displayName);
-  const resolvedArtUrl = await resolveArtworkForMediaSession(trackData.artUrl);
+  const realArtSource = await getMediaSessionArtSource(item);
+  const resolvedArtUrl = await resolveArtworkForMediaSession(realArtSource);
   const isUsableArt = !!resolvedArtUrl;
   navigator.mediaSession.metadata = new MediaMetadata({
-    title,
     artist,
+    title,
     album: '',
     artwork: isUsableArt ? [
       { src: resolvedArtUrl, sizes: '512x512', type: 'image/png' }
@@ -3879,6 +4071,50 @@ if (item.isStream) {
 
   document.title = displayName || 'NeonKat';
   
+}
+
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('play', () => {
+    audio.play();
+  });
+
+  navigator.mediaSession.setActionHandler('pause', () => {
+    audio.pause();
+  });
+
+  navigator.mediaSession.setActionHandler('previoustrack', () => {
+    document.getElementById('prevBtn').click();
+  });
+
+  navigator.mediaSession.setActionHandler('nexttrack', () => {
+    document.getElementById('nextBtn').click();
+  });
+
+  navigator.mediaSession.setActionHandler('seekto', (details) => {
+    if (details.seekTime == null || !audio.duration) return;
+    audio.currentTime = details.seekTime;
+    progressBar.value = details.seekTime;
+    updateSliderBackground(progressBar);
+  });
+
+  navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+    const skip = details.seekOffset || 10;
+    audio.currentTime = Math.max(0, audio.currentTime - skip);
+  });
+
+  navigator.mediaSession.setActionHandler('seekforward', (details) => {
+    const skip = details.seekOffset || 10;
+    if (audio.duration) {
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + skip);
+    }
+  });
+  try {
+    navigator.mediaSession.setActionHandler('stop', () => {
+      audio.pause();
+      audio.currentTime = 0;
+    });
+  } catch (e) {
+  }
 }
 
 
@@ -4772,7 +5008,27 @@ function stopRainbowLoop() {
 }
 
 
-
+if (window.electronAPI?.onRemoteRequestedFolder) {
+  window.electronAPI.onRemoteRequestedFolder(async (folderPath) => {
+    try {
+      const result = await window.electronAPI.loadFolderDirect(folderPath);
+      if (result && !result.canceled && result.audioFilePaths?.length > 0) {
+        audioFiles = result.audioFilePaths;
+        addToRecentFolders(folderPath);
+        updateFolderButtonDisplay(folderPath);
+        savedSortedOrder = [];
+        isShuffled = false;
+        shuffleBtn.classList.remove('enabled');
+        currentIndex = 0;
+        renderPlaylist();
+        await applySavedSort();
+        scrollToCurrentTrack(true);
+      }
+    } catch (err) {
+      console.error('Remote folder load failed:', err);
+    }
+  });
+}
 
 
   window.electronAPI.onRequestCurrentState(() => {
@@ -5424,6 +5680,21 @@ function splitArtistTitle(name) {
     };
   }
   return { artist: 'Unknown Artist', title: name };
+}
+
+function syncPlaylistToServer() {
+  if (!window.electronAPI?.syncPlaylist) return;
+  const serializable = audioFiles.map(item => {
+    if (typeof item === 'string') {
+      return { type: 'file', path: item, name: getCleanName(item) };
+    } else if (item.isStream) {
+      return { type: 'stream', url: item.url, name: item.name, artwork: item.artwork || null };
+    } else if (item.isJellyfin) {
+      return { type: 'jellyfin', url: item.url, name: item.name, albumArt: item.albumArt };
+    }
+    return { type: 'unknown', name: 'Unknown Track' };
+  });
+  window.electronAPI.syncPlaylist(serializable);
 }
 
 

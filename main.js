@@ -11,6 +11,9 @@ let currentArtBuffer = null;
 let currentArtMime = 'image/jpeg';
 let autoUpdateEnabled = false
 const { execFile } = require('child_process');
+const mediaServerModule = require('./mediaServer');
+
+
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let logger = console;
 if (process.platform === 'linux') {
@@ -40,6 +43,46 @@ const ffprobeStatic = require('ffprobe-static');
 function getFfprobePath() {
   return ffprobeStatic.path;
 }
+
+ipcMain.on('sync-playlist', (event, playlist) => {
+  mediaServerModule.syncPlaylist(playlist);
+});
+
+ipcMain.on('sync-recent-folders', (event, folders) => {
+  mediaServerModule.syncRecentFolders(folders);
+});
+
+ipcMain.handle('start-media-server', async () => {
+  if (!mediaServerModule.hasPin()) {
+    return { needsPin: true };
+  }
+  const port = await mediaServerModule.startMediaServer();
+  return { url: `http://${mediaServerModule.getLocalIp()}:${port}` };
+});
+
+ipcMain.handle('set-media-server-pin', async (event, pin) => {
+  if (!pin || String(pin).trim().length < 4) {
+    return { success: false, message: 'PIN must be at least 4 digits' };
+  }
+  mediaServerModule.setPin(String(pin).trim());
+  const port = await mediaServerModule.startMediaServer();
+  return { success: true, url: `http://${mediaServerModule.getLocalIp()}:${port}` };
+});
+
+ipcMain.handle('reset-media-server-pin', async () => {
+  mediaServerModule.resetPin();
+  mediaServerModule.stopMediaServer();
+  return { success: true };
+});
+
+ipcMain.handle('stop-media-server', () => {
+  mediaServerModule.stopMediaServer();
+  return true;
+});
+
+ipcMain.handle('get-media-server-status', () => {
+  return mediaServerModule.getMediaServerStatus();
+});
 
 ipcMain.handle('get-audio-metadata', async (event, filePath) => {
   if (typeof filePath !== 'string') return null;
@@ -117,6 +160,9 @@ function createWindow() {
     },
     icon: path.join(__dirname, 'build', 'kat.png'),
   });
+
+mediaServerModule.setMainWindow(mainWindow);
+
 
 mainWindow.webContents.on('context-menu', (event, params) => {
   if (!params.isEditable) return;

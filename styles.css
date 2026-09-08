@@ -36,6 +36,7 @@ button,
 #exportDurationSelect:focus-visible,
 #customExportSeconds:focus,
 #customExportSeconds:focus-visible,
+#createPinInput,
 #ytdlp-extra-args {
     outline: none !important;
 }
@@ -1741,3 +1742,4 @@ body.low-perf #visualizerWrapper.playing::after {
 .eq-preset-btn:hover {
   background: var(--primary-color) !important;
 }
+

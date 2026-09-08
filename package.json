@@ -1,13 +1,13 @@
 {
   "name": "neonkat",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
   "homepage": "https://github.com/palecache/neonkat",
   "main": "main.js",
   "desktopName": "com.palecache.NeonKat.desktop",
   "scripts": {
-    "start": "electron .",
+    "start": "electron . --ozone-platform=x11",
     "build": "electron-builder",
     "build:linux": "electron-builder --linux",
     "build:win": "electron-builder --win"
@@ -20,16 +20,20 @@
     },
     "files": [
       "main.js",
+      "public/sw.js",
+      "public/manifest.json",
       "preload.js",
       "index.html",
       "renderer.js",
+      "mediaServer.js",
       "styles.css",
       "renderer/**/*",
       "build/**/*",
       "jsmediatags.min.js",
       "hls.js@latest",
       "build/NeonKat.desktop",
-      "build/com.palecache.NeonKat.metainfo.xml"
+      "build/com.palecache.NeonKat.metainfo.xml",
+      "build/kat.png"
     ],
     "asar": true,
     "publish": [

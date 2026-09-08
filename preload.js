@@ -31,6 +31,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cancelDownload: () => ipcRenderer.invoke('cancel-download'),
   getPathForFile: (file) => webUtils.getPathForFile(file),
   writeTempArtwork: (dataUrl) => ipcRenderer.invoke('write-temp-artwork', dataUrl),
+  startMediaServer: () => ipcRenderer.invoke('start-media-server'),
+  stopMediaServer: () => ipcRenderer.invoke('stop-media-server'),
+  getMediaServerStatus: () => ipcRenderer.invoke('get-media-server-status'),
+  setMediaServerPin: (pin) => ipcRenderer.invoke('set-media-server-pin', pin),
+  resetMediaServerPin: () => ipcRenderer.invoke('reset-media-server-pin'),
+  syncRecentFolders: (folders) => ipcRenderer.send('sync-recent-folders', folders),
+  syncPlaylist: (playlist) => ipcRenderer.send('sync-playlist', playlist),
+   onRemoteRequestedFolder: (callback) => {
+  const listener = (event, folderPath) => callback(folderPath);
+  ipcRenderer.on('remote-requested-folder', listener);
+  return () => ipcRenderer.removeListener('remote-requested-folder', listener);
+},
   onRequestCurrentState: (callback) => {
     ipcRenderer.on('request-current-state', () => callback());
     return () => ipcRenderer.removeAllListeners('request-current-state');
