@@ -4,7 +4,7 @@
 
 # NeonKat – Cross-Platform Electron Music Player
 
-**NeonKat** is a lightweight, **cross-platform electron music player** for Linux and Windows. It features **playlist management, a real-time music visualizer, an always-on-top miniplayer, and support for streaming from Jellyfin servers**. NeonKat runs entirely locally - no cloud, no tracking, your music stays on your device. Advanced features include **YT-dlp integration**, **radio streams**, **Neon Mode visualizations synced to the beat**, and **Canvas Mode short video previews**, similar to Spotify’s Canvas feature.  
+**NeonKat** is a lightweight, **cross-platform music player** for Linux and Windows with a built-in **media server and Progressive Web App (PWA)** for streaming your music from desktop, mobile, and web browsers. It features **playlist management, a real-time music visualizer, an always-on-top miniplayer, Jellyfin support, and media controls**. NeonKat is **local-first and privacy-focused**, with no required cloud service or tracking. Advanced features include **YT-DLP integration, radio streams, Neon Mode visualizations synced to the beat, Canvas Mode video previews, and offline music support through the PWA**.
 
 NeonKat is perfect for users who want a **fast, private, and visually engaging music player** on Linux and Windows systems.
 
