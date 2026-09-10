@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetMediaServerPin: () => ipcRenderer.invoke('reset-media-server-pin'),
   syncRecentFolders: (folders) => ipcRenderer.send('sync-recent-folders', folders),
   syncPlaylist: (playlist) => ipcRenderer.send('sync-playlist', playlist),
+  syncLoudnessMap: (map) => ipcRenderer.send('sync-loudness-map', map),
    onRemoteRequestedFolder: (callback) => {
   const listener = (event, folderPath) => callback(folderPath);
   ipcRenderer.on('remote-requested-folder', listener);

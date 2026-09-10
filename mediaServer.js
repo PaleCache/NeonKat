@@ -3,13 +3,15 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const http = require('http');
 const os = require('os');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 
-
 let currentPin = null;
+const authenticatedTokens = new Map();
 
-
-const authenticatedSids = new Set();
+const AUTH_COOKIE = 'neonkat_auth';
+const AUTH_COOKIE_MAX_AGE = 6 * 60 * 60; 
+const MAX_BODY_BYTES = 100 * 1024; 
 
 function hasPin() {
   return !!currentPin;
@@ -17,21 +19,67 @@ function hasPin() {
 
 function setPin(pin) {
   currentPin = String(pin);
-  authenticatedSids.clear();
+  authenticatedTokens.clear();
 }
 
 function checkPin(pin) {
   return !!currentPin && String(pin) === currentPin;
 }
 
-function isAuthed(sid) {
-  return !!sid && authenticatedSids.has(sid);
+function parseCookies(req) {
+  const header = req.headers.cookie;
+  const out = {};
+  if (!header) return out;
+  header.split(';').forEach(pair => {
+    const idx = pair.indexOf('=');
+    if (idx === -1) return;
+    const k = pair.slice(0, idx).trim();
+    const v = pair.slice(idx + 1).trim();
+    if (k) out[k] = decodeURIComponent(v);
+  });
+  return out;
 }
+
+
+function isRequestSecure(req) {
+  if (req.socket.encrypted) return true;
+  const proto = req.headers['x-forwarded-proto'];
+  return proto === 'https';
+}
+
+function issueAuthToken(req, res) {
+  const token = crypto.randomBytes(24).toString('hex');
+  authenticatedTokens.set(token, Date.now() + AUTH_COOKIE_MAX_AGE * 1000);
+  const secureFlag = isRequestSecure(req) ? '; Secure' : '';
+  res.setHeader('Set-Cookie',
+    `${AUTH_COOKIE}=${token}; HttpOnly; SameSite=Strict${secureFlag}; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}`
+  );
+  return token;
+}
+
+function isAuthed(req) {
+  const token = parseCookies(req)[AUTH_COOKIE];
+  if (!token) return false;
+  const expiresAt = authenticatedTokens.get(token);
+  if (!expiresAt || Date.now() > expiresAt) {
+    authenticatedTokens.delete(token);
+    return false;
+  }
+  return true;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, expiresAt] of authenticatedTokens) {
+    if (now > expiresAt) authenticatedTokens.delete(token);
+  }
+}, 30 * 60 * 1000);
 
 const failedAttempts = new Map();
 
 function getAttemptKey(sid, req) {
-  const ip = req.socket.remoteAddress || 'unknown';
+  const xff = req.headers['x-forwarded-for'];
+  const ip = xff ? xff.split(',')[0].trim() : (req.socket.remoteAddress || 'unknown');
   return ip;
 }
 
@@ -168,6 +216,28 @@ function serveStaticFile(res, filePath, fallbackMime = 'application/octet-stream
   });
 }
 
+
+function readBodyLimited(req, maxBytes, cb) {
+  let body = '';
+  let tooLarge = false;
+  req.on('data', chunk => {
+    if (tooLarge) return;
+    body += chunk;
+    if (body.length > maxBytes) {
+      tooLarge = true;
+      req.destroy();
+      cb(new Error('Payload too large'), null);
+    }
+  });
+  req.on('end', () => {
+    if (tooLarge) return; 
+    cb(null, body);
+  });
+  req.on('error', (err) => {
+    if (!tooLarge) cb(err, null);
+  });
+}
+
 const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,7 +252,7 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
     font-family: -apple-system, system-ui, sans-serif;
     background: #0d0d0d;
     color: #fff;
-    padding: 20px 16px 140px;
+    padding: 20px 16px 220px;
     min-height: 100vh;
   }
   h1 {
@@ -330,6 +400,8 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
     position: relative;
     margin-bottom: 12px;
   }
+
+  
   #searchInput {
     width: 100%;
     padding: 10px 36px 10px 14px;
@@ -447,6 +519,27 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
     color: #000000;
 }
 
+.pill-btn.active { background: var(--primary); color: #000; }
+#playlistsPanel .frow {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px; border-bottom: 1px solid #232323;
+}
+#playlistsPanel .frow:last-child { border-bottom: none; }
+#playlistsPanel .frow span:first-child { font-size: 13px; }
+#playlistsPanel .plist-back-row {
+  cursor: pointer; color: var(--primary); font-weight: 600;
+}
+#playlistsPanel .plist-back-row:active { background: #1f1f1f; }
+.plist-del-btn {
+  background: none; border: 1px solid #33333300; border-radius: 6px;
+  color: #999; font-size: 11px; padding: 5px 10px; cursor: pointer;
+}
+.plist-del-btn:active { background: #ff0000; color: white; }
+#playlist li input[type="checkbox"] {
+  width: 16px; height: 16px; margin-right: 4px; flex-shrink: 0;
+  accent-color: var(--primary);
+}
+
 
   #expandHint { color: #666; font-size: 12px; }
   .ctl-btn.play.big { width: 68px; height: 68px; }
@@ -481,9 +574,11 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
 
 <div id="folderRow">
   <button class="pill-btn" id="folderBtn">Switch Library</button>
-  <button class="pill-btn" id="downloadAllBtn">Cache playlist</button>
+  <button class="pill-btn" id="downloadAllBtn">Cache Library</button>
   <button class="pill-btn" id="offlineToggleBtn">Go Offline</button>
   <button class="pill-btn" id="clearCacheBtn">Clear Cache</button>
+  <button class="pill-btn" id="playlistsBtn" style="flex-basis:100%;">Playlists</button>
+  <div id="playlistsPanel" style="display:none; width:100%; box-sizing:border-box; background:#161616; border:1px solid #2c2c2c00; border-radius:8px; margin-bottom:12px; max-height:240px; overflow-y:auto;"></div>
 </div>
 
 
@@ -492,6 +587,11 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
 <div id="searchRow">
   <input type="text" id="searchInput" placeholder="Search tracks..." />
   <button id="clearSearchBtn" style="display:none;">×</button>
+</div>
+
+<div id="selectRow" style="display:flex; gap:8px; margin-bottom:12px;">
+  <button class="pill-btn" id="selectBtn" style="flex:0 0 auto; padding:8px 14px;">Select tracks</button>
+  <button class="pill-btn" id="saveSelectionBtn" style="display:none; flex:0 0 auto; padding:8px 14px; background:var(--primary); color:#000;">Save as playlist</button>
 </div>
 
 <div id="nowPlaying">No track loaded</div>
@@ -530,6 +630,11 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
     <button class="ctl-btn small" id="repeatBtn" title="Repeat">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
     </button>
+
+    <button class="ctl-btn small" id="settingsBtn" title="Settings">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+    </button>
+    
   </div>
 </div>
 
@@ -565,6 +670,69 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
     <button class="ctl-btn small" id="npRepeatBtn" title="Repeat">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
     </button>
+  </div>
+</div>
+
+<div id="settingsSheet" style="
+  position: fixed; inset: 0; z-index: 9999;
+  display: none;
+">
+  <div id="settingsOverlay" style="
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.5);
+  "></div>
+  <div id="settingsPanel" style="
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #141414; border-radius: 16px 16px 0 0;
+    border-top: 1px solid #2c2c2c;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  ">
+    <div style="width:40px; height:4px; background:#333; border-radius:2px; margin:0 auto 20px;"></div>
+    
+    <div style="font-size:13px; color:#aaa; margin-bottom:12px; font-weight:600;">Equalizer</div>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span style="font-size:12px; color:#666;">Bands</span>
+      <button id="eqResetBtn" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer;">Reset</button>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:16px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; flex:1;">
+        <span style="font-size:10px; color:#888;">SUB</span>
+        <input type="range" id="eqSubSlider" min="-12" max="18" value="0" step="1" orient="vertical" style="writing-mode:vertical-lr; direction:rtl; height:80px; width:24px;">
+        <span id="eqSubVal" style="font-size:10px; color:#aaa;">0</span>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; flex:1;">
+        <span style="font-size:10px; color:#888;">BASS</span>
+        <input type="range" id="eqBassSlider" min="-12" max="18" value="0" step="1" orient="vertical" style="writing-mode:vertical-lr; direction:rtl; height:80px; width:24px;">
+        <span id="eqBassVal" style="font-size:10px; color:#aaa;">0</span>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; flex:1;">
+        <span style="font-size:10px; color:#888;">MID</span>
+        <input type="range" id="eqMidSlider" min="-12" max="18" value="0" step="1" orient="vertical" style="writing-mode:vertical-lr; direction:rtl; height:80px; width:24px;">
+        <span id="eqMidVal" style="font-size:10px; color:#aaa;">0</span>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; flex:1;">
+        <span style="font-size:10px; color:#888;">TREBLE</span>
+        <input type="range" id="eqTrebleSlider" min="-12" max="18" value="0" step="1" orient="vertical" style="writing-mode:vertical-lr; direction:rtl; height:80px; width:24px;">
+        <span id="eqTrebleVal" style="font-size:10px; color:#aaa;">0</span>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px; flex:1;">
+        <span style="font-size:10px; color:#888;">PRES</span>
+        <input type="range" id="eqPresenceSlider" min="-12" max="18" value="0" step="1" orient="vertical" style="writing-mode:vertical-lr; direction:rtl; height:80px; width:24px;">
+        <span id="eqPresenceVal" style="font-size:10px; color:#aaa;">0</span>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <button class="eq-preset" data-preset="flat" style="flex:1; padding:6px; background:#212121; border:none; border-radius:6px; color:#fff; font-size:11px; cursor:pointer;">Flat</button>
+      <button class="eq-preset" data-preset="bassBoost" style="flex:1; padding:6px; background:#212121; border:none; border-radius:6px; color:#fff; font-size:11px; cursor:pointer;">Bass Boost</button>
+      <button class="eq-preset" data-preset="vocal" style="flex:1; padding:6px; background:#212121; border:none; border-radius:6px; color:#fff; font-size:11px; cursor:pointer;">Vocal</button>
+      <button class="eq-preset" data-preset="electronic" style="flex:1; padding:6px; background:#212121; border:none; border-radius:6px; color:#fff; font-size:11px; cursor:pointer;">Electronic</button>
+      <button class="eq-preset" data-preset="rock" style="flex:1; padding:6px; background:#212121; border:none; border-radius:6px; color:#fff; font-size:11px; cursor:pointer;">Rock</button>
+    </div>
   </div>
 </div>
 
@@ -639,6 +807,219 @@ const miniArtwork = document.getElementById('miniArtwork');
 let playlistPollInterval = null;
 let onlinePollInterval = null;
 const offlineToggleBtn = document.getElementById('offlineToggleBtn');
+const webAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let selectedTracks = new Map();
+const webGainNode = webAudioCtx.createGain();
+
+const eqSub = webAudioCtx.createBiquadFilter();
+eqSub.type = 'lowshelf';
+eqSub.frequency.value = 60;
+
+const eqBass = webAudioCtx.createBiquadFilter();
+eqBass.type = 'peaking';
+eqBass.frequency.value = 200;
+eqBass.Q.value = 1;
+
+const eqMid = webAudioCtx.createBiquadFilter();
+eqMid.type = 'peaking';
+eqMid.frequency.value = 1000;
+eqMid.Q.value = 1;
+
+const eqTreble = webAudioCtx.createBiquadFilter();
+eqTreble.type = 'peaking';
+eqTreble.frequency.value = 4000;
+eqTreble.Q.value = 1;
+
+const eqPresence = webAudioCtx.createBiquadFilter();
+eqPresence.type = 'highshelf';
+eqPresence.frequency.value = 9000;
+
+const webSource = webAudioCtx.createMediaElementSource(audio);
+webSource.connect(webGainNode);
+webGainNode.connect(eqSub);
+eqSub.connect(eqBass);
+eqBass.connect(eqMid);
+eqMid.connect(eqTreble);
+eqTreble.connect(eqPresence);
+eqPresence.connect(webAudioCtx.destination);
+const eqBands = { sub: eqSub, bass: eqBass, mid: eqMid, treble: eqTreble, presence: eqPresence };
+Object.entries(eqBands).forEach(([key, filter]) => {
+  filter.gain.value = parseFloat(localStorage.getItem('neonkat_web_eq_' + key) || '0');
+});
+
+let loudnessMap = {};
+
+const playlistsBtn = document.getElementById('playlistsBtn');
+const playlistsPanel = document.getElementById('playlistsPanel');
+const selectBtn = document.getElementById('selectBtn');
+const saveSelectionBtn = document.getElementById('saveSelectionBtn');
+
+let _fullLibraryPlaylist = null;
+let selectMode = false;
+let selectedNames = new Set();
+
+function getCustomPlaylists() {
+  return JSON.parse(localStorage.getItem('neonkat_custom_playlists') || '{}');
+}
+function saveCustomPlaylists(obj) {
+  localStorage.setItem('neonkat_custom_playlists', JSON.stringify(obj));
+}
+
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  selectBtn.classList.toggle('active', selectMode);
+  saveSelectionBtn.style.display = selectMode ? 'block' : 'none';
+  updateSaveSelectionLabel();
+  renderPlaylist();
+}
+function updateSaveSelectionLabel() {
+  saveSelectionBtn.textContent = 'Save as playlist' + (selectedTracks.size ? ' (' + selectedTracks.size + ')' : '');
+}
+
+function openPlaylistsPanel() {
+  const isOpen = playlistsPanel.style.display === 'block';
+  if (isOpen) { playlistsPanel.style.display = 'none'; return; }
+  renderPlaylistsPanel();
+  playlistsPanel.style.display = 'block';
+}
+
+function renderPlaylistsPanel() {
+  const custom = getCustomPlaylists();
+  const names = Object.keys(custom);
+  playlistsPanel.innerHTML = '';
+
+  if (names.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No saved playlists yet. Tap "Select tracks" to build one.';
+    playlistsPanel.appendChild(empty);
+  }
+
+  names.forEach(name => {
+    const row = document.createElement('div');
+    row.className = 'frow';
+
+    const label = document.createElement('span');
+    label.textContent = name + ' (' + getPlaylistTracks(custom[name]).length + ')';
+    label.style.flex = '1';
+    label.style.cursor = 'pointer';
+    label.addEventListener('click', () => loadCustomPlaylist(name));
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.className = 'plist-del-btn';
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!confirm('Delete playlist "' + name + '"?')) return;
+      const c = getCustomPlaylists();
+      delete c[name];
+      saveCustomPlaylists(c);
+      renderPlaylistsPanel();
+    });
+
+    row.appendChild(label);
+    row.appendChild(del);
+    playlistsPanel.appendChild(row);
+  });
+}
+
+function loadCustomPlaylist(name) {
+  const custom = getCustomPlaylists();
+  const entry = custom[name];
+  if (!entry || (!entry.tracks && !entry.names)) {
+    alert('This playlist looks corrupted and cant be loaded. Delete it and make a new one.');
+    return;
+  }
+
+  let tracks = entry.tracks;
+
+  if (!tracks && Array.isArray(entry.names)) {
+    const source = _fullLibraryPlaylist || playlist;
+    const byName = new Map(source.map(p => [p.name, p]));
+    tracks = entry.names.map(n => byName.get(n)).filter(Boolean)
+      .map(p => ({ name: p.name, path: p.path, url: p.url }));
+
+    if (tracks.length === 0) {
+      alert('This playlist was saved before cross-library support. Load the "' + entry.lib + '" library first, then re-save it.');
+      return;
+    }
+    custom[name] = { tracks };
+    saveCustomPlaylists(custom);
+  }
+
+  if (!tracks || tracks.length === 0) return;
+
+  if (!_fullLibraryPlaylist) _fullLibraryPlaylist = playlist;
+playlist = tracks.map((t, i) => ({
+  index: -(1000000 + i), name: t.name, path: t.path, url: t.url, custom: true, lib: t.lib || null
+}));
+window._currentLibrary = '__playlist__' + name;
+currentIndex = -1;
+renderPlaylist();
+playlistsPanel.style.display = 'none';
+if (playlist.length > 0) {
+  playIndex(playlist[0].index);
+} else {
+  nowPlayingEl.textContent = 'Playlist: ' + name;
+}
+}
+
+function saveSelectionAsPlaylist() {
+  if (selectedTracks.size === 0) { alert('Check some tracks first.'); return; }
+  const custom = getCustomPlaylists();
+  const existingNames = Object.keys(custom);
+  const name = prompt(
+    'Playlist name (type an existing name to add these tracks to it):' +
+    (existingNames.length ? 'Existing: ' + existingNames.join(', ') : '')
+  );
+  if (!name) return;
+
+  const existing = custom[name];
+  const existingTracks = existing ? getPlaylistTracks(existing) : [];
+  const seen = new Set(existingTracks.map(t => t.path || t.name));
+  const merged = existingTracks.slice();
+
+  selectedTracks.forEach(t => {
+    const key = t.path || t.name;
+    if (!seen.has(key)) { merged.push(t); seen.add(key); }
+  });
+
+  custom[name] = { tracks: merged };
+  saveCustomPlaylists(custom);
+  selectedTracks.clear();
+  toggleSelectMode();
+  alert((existing ? 'Updated "' : 'Saved "') + name + '" - now ' + merged.length + ' tracks.');
+}
+playlistsBtn.addEventListener('click', openPlaylistsPanel);
+selectBtn.addEventListener('click', toggleSelectMode);
+saveSelectionBtn.addEventListener('click', saveSelectionAsPlaylist);
+
+async function fetchLoudnessMap() {
+  try {
+    const res = await fetch('/api/loudness-map?sid=' + SID);
+    if (res.ok) {
+      loudnessMap = await res.json();
+    }
+  } catch (e) {
+    console.warn('Could not fetch loudness map:', e);
+  }
+}
+
+function applyLoudnessGain(trackName, overrideGain) {
+  let gain = overrideGain != null ? overrideGain : loudnessMap[trackName];
+  if (gain == null && isOfflineMode) {
+    const offlineLoudness = JSON.parse(localStorage.getItem('neonkat_offline_loudness') || '{}');
+    gain = offlineLoudness[trackName];
+  }
+  if (gain != null && isFinite(gain)) {
+    const now = webAudioCtx.currentTime;
+    webGainNode.gain.cancelScheduledValues(now);
+    webGainNode.gain.setValueAtTime(webGainNode.gain.value, now);
+    webGainNode.gain.linearRampToValueAtTime(gain, now + 0.3);
+  } else {
+    webGainNode.gain.setTargetAtTime(1.0, webAudioCtx.currentTime, 0.1);
+  }
+}
 
 if (!isMobileDevice()) {
   volumeRow.style.display = 'flex';
@@ -655,23 +1036,102 @@ if (!isMobileDevice()) {
 
 let isCachingAll = false;
 
+
+const eqPresets = {
+  flat:       { sub: 0,  bass: 0,  mid: 0,  treble: 0,  presence: 0  },
+  bassBoost:  { sub: 8,  bass: 6,  mid: 0,  treble: 0,  presence: 0  },
+  vocal:      { sub: -4, bass: -2, mid: 6,  treble: 3,  presence: 2  },
+  electronic: { sub: 10, bass: 6,  mid: -2, treble: 4,  presence: 4  },
+  rock:       { sub: 4,  bass: 4,  mid: -2, treble: 4,  presence: 3  }
+};
+
+const eqSliderMap = {
+  sub: document.getElementById('eqSubSlider'),
+  bass: document.getElementById('eqBassSlider'),
+  mid: document.getElementById('eqMidSlider'),
+  treble: document.getElementById('eqTrebleSlider'),
+  presence: document.getElementById('eqPresenceSlider')
+};
+
+const eqValMap = {
+  sub: document.getElementById('eqSubVal'),
+  bass: document.getElementById('eqBassVal'),
+  mid: document.getElementById('eqMidVal'),
+  treble: document.getElementById('eqTrebleVal'),
+  presence: document.getElementById('eqPresenceVal')
+};
+
+function setWebEqBand(key, value) {
+  const v = Number(value);
+  eqBands[key].gain.value = v;
+  eqSliderMap[key].value = v;
+  eqValMap[key].textContent = v > 0 ? '+' + v : v;
+  localStorage.setItem('neonkat_web_eq_' + key, v);
+}
+
+
+Object.keys(eqBands).forEach(key => {
+  const saved = parseFloat(localStorage.getItem('neonkat_web_eq_' + key) || '0');
+  setWebEqBand(key, saved);
+  eqSliderMap[key].addEventListener('input', () => setWebEqBand(key, eqSliderMap[key].value));
+});
+
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsSheet = document.getElementById('settingsSheet');
+const settingsPanel = document.getElementById('settingsPanel');
+const settingsOverlay = document.getElementById('settingsOverlay');
+
+function openSettings() {
+  settingsSheet.style.display = 'block';
+  requestAnimationFrame(() => {
+    settingsPanel.style.transform = 'translateY(0)';
+  });
+}
+
+function closeSettings() {
+  settingsPanel.style.transform = 'translateY(100%)';
+  setTimeout(() => { settingsSheet.style.display = 'none'; }, 300);
+}
+
+settingsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  openSettings();
+});
+settingsOverlay.addEventListener('click', closeSettings);
+
+document.getElementById('eqResetBtn').addEventListener('click', () => {
+  Object.keys(eqBands).forEach(key => setWebEqBand(key, 0));
+});
+
+document.querySelectorAll('.eq-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const preset = eqPresets[btn.dataset.preset];
+    if (!preset) return;
+    Object.entries(preset).forEach(([key, val]) => setWebEqBand(key, val));
+    document.querySelectorAll('.eq-preset').forEach(b => { b.style.background = '#212121'; b.style.color = '#fff'; });
+    btn.style.background = 'var(--primary)';
+    btn.style.color = '#000';
+  });
+});
+
+
 async function updateDownloadAllButtonState() {
   if (isCachingAll) return; 
   const btn = document.getElementById('downloadAllBtn');
   if (!('caches' in window) || playlist.length === 0) {
-    btn.textContent = 'Cache playlist';
+    btn.textContent = 'Cache Library';
     btn.disabled = false;
     return;
   }
   const cache = await caches.open('neonkat-tracks-v1');
-  const lib = getLibraryName();
   let allCached = true;
   for (const item of playlist) {
+    const lib = item.custom ? (item.lib || 'default') : getLibraryName();
     const key = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/stream';
     const match = await cache.match(key);
     if (!match) { allCached = false; break; }
   }
-  btn.textContent = allCached ? 'Fully cached' : 'Cache playlist';
+  btn.textContent = allCached ? 'Fully cached' : 'Cache Library';
   btn.disabled = allCached;
 }
 
@@ -742,10 +1202,27 @@ filtered.forEach(item => {
       offlineIcon.style.color = 'var(--primary)';
     });
 
+    if (selectMode) {
+      const key = item.path || item.name;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selectedTracks.has(key);
+      cb.addEventListener('click', (e) => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        if (cb.checked) selectedTracks.set(key, { name: item.name, path: item.path, url: item.url, gain: loudnessMap[item.name], lib: getLibraryName() });
+        else selectedTracks.delete(key);
+        updateSaveSelectionLabel();
+      });
+      li.appendChild(cb);
+    }
+
     li.appendChild(dot);
     li.appendChild(label);
     li.appendChild(offlineIcon);
-    if (item.index === currentIndex) li.classList.add('active');
+    if (item.index === currentIndex) {
+      li.classList.add('active');
+      dot.style.display = audio.paused ? 'none' : 'block';
+    }
     li.addEventListener('click', () => playIndex(item.index));
     playlistEl.appendChild(li);
 });
@@ -758,12 +1235,20 @@ function getLibraryName() {
   return window._currentLibrary || localStorage.getItem('neonkat_current_lib') || 'default';
 }
 
+function getPlaylistTracks(entry) {
+  return entry.tracks || entry.names || [];
+}
+
 async function downloadTrackForOffline(idx, lib) {
-  if (!lib) lib = getLibraryName();
   const item = playlist.find(p => p.index === idx);
   if (!item) return;
-  const streamUrl = '/api/stream/' + idx + '?sid=' + SID + '&full=1';
-  const artUrl = '/api/art/' + idx + '?sid=' + SID + '&v=' + encodeURIComponent(item.name);
+  if (!lib) lib = item.custom ? (item.lib || 'default') : getLibraryName();
+  const streamUrl = item.custom
+    ? '/api/stream-path?path=' + encodeURIComponent(item.path) + '&full=1'
+    : '/api/stream/' + idx + '?sid=' + SID + '&full=1';
+  const artUrl = item.custom
+    ? '/api/art-path?path=' + encodeURIComponent(item.path)
+    : '/api/art/' + idx + '?sid=' + SID + '&v=' + encodeURIComponent(item.name);
   const streamKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/stream';
   const artKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/art';
   const cache = await caches.open('neonkat-tracks-v1');
@@ -780,12 +1265,12 @@ async function downloadTrackForOffline(idx, lib) {
 async function refreshOfflineIndicators() {
   if (!('caches' in window)) return;
   const cache = await caches.open('neonkat-tracks-v1');
-  const lib = getLibraryName();
   const icons = document.querySelectorAll('.offline-icon');
   for (const icon of icons) {
     const idx = icon.dataset.idx;
     const item = playlist.find(p => p.index === parseInt(idx));
     if (!item) continue;
+    const lib = item.custom ? (item.lib || 'default') : getLibraryName();
     const key = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/stream';
     const match = await cache.match(key);
     if (match) {
@@ -815,6 +1300,13 @@ async function loadPlaylist(preserveIndex, fresh) {
     const res = await fetch(url);
     if (res.status === 401) { handleAuthFailure(); return; }
     const data = await res.json();
+
+    if (_fullLibraryPlaylist) {
+      _fullLibraryPlaylist = data.tracks;
+      if (data.folderName) setCurrentLibrary(data.folderName);
+      return;
+    }
+
     playlist = data.tracks;
     if (data.folderName) setCurrentLibrary(data.folderName);
     if (!preserveIndex) currentIndex = -1;
@@ -828,12 +1320,15 @@ let _lastStreamUrl = null;
 let _lastArtUrl = null;
 
 async function playIndex(idx) {
+  if (webAudioCtx.state !== 'running') {
+    await webAudioCtx.resume();
+  }
   const item = playlist.find(p => p.index === idx);
   if (!item) return;
 
-  const lib = window._currentLibrary || 'default';
-  const streamKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/stream';
-  const artKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/art';
+const lib = item.custom ? (item.lib || 'default') : (window._currentLibrary || 'default');
+const streamKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/stream';
+const artKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/art';
 
   let cachedStream = null;
   let cachedArt = null;
@@ -858,7 +1353,9 @@ async function playIndex(idx) {
   _lastStreamUrl = null;
   _lastArtUrl = null;
 
-  let streamSrc = '/api/stream/' + idx + '?sid=' + SID;
+  let streamSrc = item.custom
+    ? '/api/stream-path?path=' + encodeURIComponent(item.path) + '&sid=' + SID
+    : '/api/stream/' + idx + '?sid=' + SID;
   let artSrc = null;
 
   if (cachedStream) {
@@ -876,7 +1373,9 @@ async function playIndex(idx) {
     npArtwork.src = artSrc;
     miniArtwork.src = artSrc;
   } else if (!isOfflineMode) {
-    const onlineArt = '/api/art/' + idx + '?sid=' + SID + '&v=' + encodeURIComponent(item.name);
+    const onlineArt = item.custom
+  ? '/api/art-path?path=' + encodeURIComponent(item.path) + '&sid=' + SID
+  : '/api/art/' + idx + '?sid=' + SID + '&v=' + encodeURIComponent(item.name);
     npArtwork.src = onlineArt;
     miniArtwork.src = onlineArt;
   }
@@ -887,6 +1386,7 @@ async function playIndex(idx) {
   audio.src = streamSrc;
   audio.play().catch(e => console.warn('Play blocked:', e));
   nowPlayingEl.textContent = item.name;
+  applyLoudnessGain(item.name, item.custom ? item.gain : undefined);
   npTitle.textContent = item.name;
   miniTitle.textContent = item.name;
 
@@ -906,7 +1406,7 @@ const installBtn = document.getElementById('installBtn');
 const dismissInstallBtn = document.getElementById('dismissInstallBtn');
 
 document.getElementById('clearCacheBtn').addEventListener('click', async () => {
-  if (!confirm('This will delete all downloaded tracks and cached libraries. Continue?')) return;
+  if (!confirm('This will delete all downloaded tracks, cached libraries, and saved playlists. Continue?')) return;
 
   const btn = document.getElementById('clearCacheBtn');
   btn.textContent = 'Clearing...';
@@ -919,6 +1419,7 @@ document.getElementById('clearCacheBtn').addEventListener('click', async () => {
     localStorage.removeItem('neonkat_offline_libs');
     localStorage.removeItem('neonkat_offline_mode');
     localStorage.removeItem('neonkat_current_lib');
+    localStorage.removeItem('neonkat_custom_playlists');
 
     isOfflineMode = false;
     setOfflineMode(false);
@@ -957,6 +1458,12 @@ document.getElementById('downloadAllBtn').addEventListener('click', async () => 
   }
 
   isCachingAll = false;
+  const offlineLoudness = JSON.parse(localStorage.getItem('neonkat_offline_loudness') || '{}');
+  playlist.forEach(item => {
+    const gain = loudnessMap[item.name];
+    if (gain != null) offlineLoudness[item.name] = gain;
+  });
+  localStorage.setItem('neonkat_offline_loudness', JSON.stringify(offlineLoudness));
   refreshOfflineIndicators();
   await updateDownloadAllButtonState();
   alert('Library "' + lib + '" cached for offline.');
@@ -1232,6 +1739,7 @@ folderBtn.addEventListener('click', async () => {
       row.textContent = folderName + (isCached ? ' (cached)' : '');
       row.title = p;
       row.addEventListener('click', async () => {
+        _fullLibraryPlaylist = null;
         isOfflineMode = false;
         setCurrentLibrary(folderName);
         await fetch('/api/load-folder?sid=' + SID, {
@@ -1243,7 +1751,11 @@ folderBtn.addEventListener('click', async () => {
         nowPlayingEl.innerHTML = '<span class="mini-spinner"></span><span>Loading library…</span>';
         setTimeout(async () => {
           await loadPlaylist(false, true);
-          if (currentIndex === -1) nowPlayingEl.textContent = 'No track loaded';
+          if (playlist.length > 0) {
+            playIndex(playlist[0].index);
+          } else {
+            nowPlayingEl.textContent = 'No track loaded';
+          }
         }, 1500);
       });
       folderMenu.appendChild(row);
@@ -1254,6 +1766,7 @@ folderBtn.addEventListener('click', async () => {
 });
 
 function loadOfflineLibrary(lib) {
+_fullLibraryPlaylist = null;
   const offlineLibs = JSON.parse(localStorage.getItem('neonkat_offline_libs') || '{}');
   const tracks = offlineLibs[lib];
   if (!tracks) {
@@ -1264,13 +1777,17 @@ function loadOfflineLibrary(lib) {
     npTitle.textContent = 'No offline library cached';
     return;
   }
-  isOfflineMode = true;
-  setCurrentLibrary(lib);
-  playlist = tracks;
-  currentIndex = -1;
-  renderPlaylist();
+isOfflineMode = true;
+setCurrentLibrary(lib);
+playlist = tracks;
+currentIndex = -1;
+renderPlaylist();
+if (playlist.length > 0) {
+  playIndex(playlist[0].index);
+} else {
   nowPlayingEl.textContent = 'Offline: ' + lib;
   npTitle.textContent = 'Offline: ' + lib;
+}
 }
 
 function setOfflineMode(val) {
@@ -1321,11 +1838,14 @@ function initApp() {
     loadOfflineLibrary(getLibraryName());
   } else {
     loadPlaylist();
+    fetchLoudnessMap();
+    setTimeout(fetchLoudnessMap, 3000);
   }
     updateDownloadAllButtonState();
 
   playlistPollInterval = setInterval(() => {
     if (!isOfflineMode) loadPlaylist(true);
+    fetchLoudnessMap();
   }, 6000);
 
   onlinePollInterval = setInterval(() => {
@@ -1415,15 +1935,24 @@ async function pollOnlineCount() {
     if (res.status === 401) { handleAuthFailure(); return; }
     const data = await res.json();
     const el = document.getElementById('onlineCount');
-    if (el) el.textContent = data.count;
+    if (el) el.textContent = data.count + ' Connected';
   } catch (e) {
     console.error('Failed to fetch online count', e);
   }
 }
 
+
+
 </script>
 </body>
 </html>`;
+
+
+let mediaServerLoudnessMap = {};
+
+function syncLoudnessMap(map) {
+  mediaServerLoudnessMap = map || {};
+}
 
 function startMediaServer() {
   if (mediaServer) return Promise.resolve(mediaServerPort);
@@ -1431,58 +1960,63 @@ function startMediaServer() {
     try {
       const url = new URL(req.url, 'http://localhost');
       const pathname = decodeURIComponent(url.pathname);
-if (pathname === '/api/verify-pin' && req.method === 'POST') {
-  let body = '';
-  req.on('data', chunk => body += chunk);
-  req.on('end', () => {
-    try {
-      const { sid, pin } = JSON.parse(body);
-      const attemptKey = getAttemptKey(sid, req);
 
-      const gate = checkAttemptAllowed(attemptKey);
-      if (!gate.allowed) {
-        res.writeHead(429, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: false,
-          message: 'Too many attempts. Try again in ' + Math.ceil(gate.retryAfterMs / 1000) + 's',
-          retryAfterMs: gate.retryAfterMs
-        }));
+      if (pathname === '/api/verify-pin' && req.method === 'POST') {
+        readBodyLimited(req, MAX_BODY_BYTES, (err, body) => {
+          if (err) {
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: 'Request too large' }));
+            return;
+          }
+          try {
+            const { sid, pin } = JSON.parse(body);
+            const attemptKey = getAttemptKey(sid, req);
+
+            const gate = checkAttemptAllowed(attemptKey);
+            if (!gate.allowed) {
+              res.writeHead(429, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: false,
+                message: 'Too many attempts. Try again in ' + Math.ceil(gate.retryAfterMs / 1000) + 's',
+                retryAfterMs: gate.retryAfterMs
+              }));
+              return;
+            }
+
+            if (!hasPin()) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, message: 'Server not set up yet' }));
+              return;
+            }
+
+            if (checkPin(pin)) {
+              recordSuccessfulAttempt(attemptKey);
+              issueAuthToken(req, res);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true }));
+            } else {
+              recordFailedAttempt(attemptKey);
+              const entry = failedAttempts.get(attemptKey);
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: false,
+                message: 'Wrong PIN',
+                retryAfterMs: entry ? getCooldownMs(entry.count) : 0
+              }));
+            }
+          } catch (e) {
+            res.writeHead(400); res.end('Bad request');
+          }
+        });
         return;
       }
-
-      if (!hasPin()) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, message: 'Server not set up yet' }));
-        return;
-      }
-
-      if (checkPin(pin)) {
-        recordSuccessfulAttempt(attemptKey);
-        authenticatedSids.add(sid);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true }));
-      } else {
-        recordFailedAttempt(attemptKey);
-        const entry = failedAttempts.get(attemptKey);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: false,
-          message: 'Wrong PIN',
-          retryAfterMs: entry ? getCooldownMs(entry.count) : 0
-        }));
-      }
-    } catch (e) {
-      res.writeHead(400); res.end('Bad request');
-    }
-  });
-  return;
-}
 
       const isPageShell = pathname === '/' || pathname === '/index.html';
-      const isStaticAsset = pathname === '/styles.css' || pathname === '/jsmediatags.min.js' || pathname === '/hls.js@latest' || pathname === '/manifest.json' || pathname === '/sw.js' || pathname.startsWith('/build/');
+      const isStaticAsset = pathname === '/styles.css' || pathname === '/jsmediatags.min.js' ||
+        pathname === '/hls.js@latest' || pathname === '/manifest.json' || pathname === '/sw.js' ||
+        pathname.startsWith('/build/');
       if (!isPageShell && !isStaticAsset) {
-        const sid = url.searchParams.get('sid');
-        if (!isAuthed(sid)) {
+        if (!isAuthed(req)) {
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'unauthorized' }));
           return;
@@ -1520,6 +2054,15 @@ if (pathname === '/api/verify-pin' && req.method === 'POST') {
         return;
       }
 
+
+
+
+      if (pathname === '/api/loudness-map') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(mediaServerLoudnessMap));
+        return;
+      }
+
       if (pathname === '/api/online-count') {
         const sid = url.searchParams.get('sid');
         touchSession(sid);
@@ -1530,9 +2073,12 @@ if (pathname === '/api/verify-pin' && req.method === 'POST') {
 
       const loadFolderMatch = pathname === '/api/load-folder' && req.method === 'POST';
       if (loadFolderMatch) {
-        let body = '';
-        req.on('data', chunk => body += chunk);
-        req.on('end', () => {
+        readBodyLimited(req, MAX_BODY_BYTES, (err, body) => {
+          if (err) {
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: 'Request too large' }));
+            return;
+          }
           try {
             const { folderPath } = JSON.parse(body);
             if (mainWindowRef) mainWindowRef.webContents.send('remote-requested-folder', folderPath);
@@ -1575,7 +2121,8 @@ if (pathname === '/api/verify-pin' && req.method === 'POST') {
         const fresh = url.searchParams.get('fresh') === '1';
         const list = getSessionPlaylist(sid, fresh);
         const list2 = list.map((item, i) => ({
-          index: i, name: item.name || 'Unknown Track', type: item.type
+          index: i, name: item.name || 'Unknown Track', type: item.type,
+          path: item.path || null, url: item.url || null
         }));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ 
@@ -1602,12 +2149,39 @@ if (pathname === '/api/verify-pin' && req.method === 'POST') {
           if (!stat) { res.writeHead(404); res.end('File missing'); return; }
           const ext = path.extname(filePath);
           const mime = mimeFromExt(ext);
-          const range = forceFull ? null : req.headers.range;
+          const rangeHeader = forceFull ? null : req.headers.range;
 
-          if (range) {
-            const [startStr, endStr] = range.replace(/bytes=/, '').split('-');
-            const start = parseInt(startStr, 10);
-            const end = endStr ? parseInt(endStr, 10) : stat.size - 1;
+          if (rangeHeader) {
+            const match = rangeHeader.match(/^bytes=(\d*)-(\d*)$/);
+            if (!match || (!match[1] && !match[2])) {
+              res.writeHead(416, { 'Content-Range': `bytes */${stat.size}` });
+              res.end();
+              return;
+            }
+
+            let start;
+            let end;
+            if (match[1] && match[2]) {
+              start = parseInt(match[1], 10);
+              end = parseInt(match[2], 10);
+            } else if (match[1]) {
+              start = parseInt(match[1], 10);
+              end = stat.size - 1;
+            } else {
+              const suffixLen = parseInt(match[2], 10);
+              start = Math.max(0, stat.size - suffixLen);
+              end = stat.size - 1;
+            }
+
+            start = Math.max(0, start);
+            end = Math.min(stat.size - 1, end);
+
+            if (isNaN(start) || isNaN(end) || start > end || start >= stat.size) {
+              res.writeHead(416, { 'Content-Range': `bytes */${stat.size}` });
+              res.end();
+              return;
+            }
+
             res.writeHead(206, {
               'Content-Range': `bytes ${start}-${end}/${stat.size}`,
               'Accept-Ranges': 'bytes',
@@ -1688,6 +2262,76 @@ if (pathname === '/api/verify-pin' && req.method === 'POST') {
         return;
       }
 
+      if (pathname === '/api/stream-path') {
+        const p = url.searchParams.get('path');
+        if (!p) { res.writeHead(400); res.end('Missing path'); return; }
+        const stat = await fs.stat(p).catch(() => null);
+        if (!stat) { res.writeHead(404); res.end('File missing'); return; }
+        const mime = mimeFromExt(path.extname(p));
+        const forceFull = url.searchParams.get('full') === '1';
+        const rangeHeader = forceFull ? null : req.headers.range;
+
+        if (rangeHeader) {
+          const match = rangeHeader.match(/^bytes=(\d*)-(\d*)$/);
+          if (!match || (!match[1] && !match[2])) {
+            res.writeHead(416, { 'Content-Range': `bytes */${stat.size}` });
+            res.end();
+            return;
+          }
+          let start, end;
+          if (match[1] && match[2]) { start = parseInt(match[1], 10); end = parseInt(match[2], 10); }
+          else if (match[1]) { start = parseInt(match[1], 10); end = stat.size - 1; }
+          else { start = Math.max(0, stat.size - parseInt(match[2], 10)); end = stat.size - 1; }
+          start = Math.max(0, start);
+          end = Math.min(stat.size - 1, end);
+          if (isNaN(start) || isNaN(end) || start > end || start >= stat.size) {
+            res.writeHead(416, { 'Content-Range': `bytes */${stat.size}` });
+            res.end();
+            return;
+          }
+          res.writeHead(206, {
+            'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+            'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Content-Type': mime
+          });
+          fsSync.createReadStream(p, { start, end }).pipe(res);
+        } else {
+          res.writeHead(200, { 'Content-Length': stat.size, 'Content-Type': mime, 'Accept-Ranges': 'bytes' });
+          fsSync.createReadStream(p).pipe(res);
+        }
+        return;
+      }
+
+      if (pathname === '/api/art-path') {
+        const p = url.searchParams.get('path');
+        if (!p) { res.writeHead(400); res.end(); return; }
+        const dir = path.dirname(p);
+        for (const name of ['cover.jpg', 'folder.jpg', 'cover.png', 'folder.png']) {
+          const cp = path.join(dir, name);
+          if (fsSync.existsSync(cp)) {
+            res.writeHead(200, { 'Content-Type': mimeFromExt(path.extname(name)) });
+            fsSync.createReadStream(cp).pipe(res);
+            return;
+          }
+        }
+        if (artCache.has(p)) {
+          const { mime, buffer } = artCache.get(p);
+          res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'no-store' });
+          res.end(buffer);
+          return;
+        }
+        try {
+          const buffer = await extractEmbeddedArt(p);
+          if (buffer) {
+            artCache.set(p, { mime: 'image/jpeg', buffer });
+            res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' });
+            res.end(buffer);
+            return;
+          }
+        } catch (e) {}
+        res.writeHead(404); res.end();
+        return;
+      }
+
       res.writeHead(404); res.end('Not found');
     } catch (err) {
       console.error('[MediaServer] error:', err);
@@ -1732,9 +2376,12 @@ function setMainWindow(win) {
 
 function resetPin() {
   currentPin = null;
-  authenticatedSids.clear();
+  authenticatedTokens.clear();
   failedAttempts.clear();
 }
+
+
+
 
 
 
@@ -1748,6 +2395,6 @@ module.exports = {
   getLocalIp,
   hasPin,
   setPin,
-  resetPin
+  resetPin,
+  syncLoudnessMap
 };
-

@@ -48,6 +48,10 @@ ipcMain.on('sync-playlist', (event, playlist) => {
   mediaServerModule.syncPlaylist(playlist);
 });
 
+ipcMain.on('sync-loudness-map', (event, loudnessMap) => {
+  mediaServerModule.syncLoudnessMap(loudnessMap);
+});
+
 ipcMain.on('sync-recent-folders', (event, folders) => {
   mediaServerModule.syncRecentFolders(folders);
 });

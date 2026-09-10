@@ -1,11 +1,11 @@
 {
   "name": "neonkat",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
   "homepage": "https://github.com/palecache/neonkat",
   "main": "main.js",
-  "desktopName": "com.palecache.NeonKat.desktop",
+  "desktopName": "neonkat.desktop",
   "scripts": {
     "start": "electron . --ozone-platform=x11",
     "build": "electron-builder",
