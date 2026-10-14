@@ -428,7 +428,6 @@ button,
       gap: 0px;
       margin-bottom: 1px;
       flex-wrap: nowrap;
-      -webkit-app-region: drag;
           width: 173px;
     }
     #visualizerControls {
@@ -515,11 +514,20 @@ body.video-only #visualizer {
   color: black !important;
 }
 
-#hamburgerMenu {
+#menuBackdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  -webkit-app-region: no-drag;
+}
 
-  backdrop-filter: blur(8px) !important;
-background: rgba(34, 34, 34, 0.51) !important;
-    border-radius: 10px !important;
+#hamburgerMenu {
+  z-index: 9999;
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-app-region: no-drag;
 }
 
 #hamburgerBtn svg {
@@ -1636,21 +1644,25 @@ body.low-perf #visualizerWrapper.playing::after {
 
 
 
-#folderMenu {
+#folderMenu,
+#hamburgerMenu {
   scrollbar-color: var(--primary-color) rgba(33, 33, 33, 0.5);
   scrollbar-width: thin;
 }
 
-#folderMenu::-webkit-scrollbar {
+#folderMenu::-webkit-scrollbar,
+#hamburgerMenu::-webkit-scrollbar {
   width: 8px;
 }
 
-#folderMenu::-webkit-scrollbar-track {
+#folderMenu::-webkit-scrollbar-track,
+#hamburgerMenu::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.5);
   border-radius: 5px;
 }
 
-#folderMenu::-webkit-scrollbar-thumb {
+#folderMenu::-webkit-scrollbar-thumb,
+#hamburgerMenu::-webkit-scrollbar-thumb {
   background: linear-gradient(to bottom, #212121, var(--primary-color));
   border-radius: 5px;
 }
@@ -1743,3 +1755,49 @@ body.low-perf #visualizerWrapper.playing::after {
   background: var(--primary-color) !important;
 }
 
+button,
+input,
+select,
+textarea,
+label,
+a,
+#playlist,
+#progressContainer,
+#visualizerWrapper,
+#hamburgerMenu,
+#folderMenu,
+#sortMenu,
+#contextMenu,
+#menuBackdrop,
+#streamModal,
+#customBgModal,
+#eqModal,
+#jellyfinModal,
+#ytModal,
+#aboutModal,
+#createPinModal,
+.vis-mode-toggle,
+.volume-control {
+  -webkit-app-region: no-drag;
+}.vidDragBar { display: none; }
+
+body.video-only .vidDragBar {
+  display: block;
+  position: fixed;
+  top: 0;
+  height: 69px;
+  z-index: 100;
+}
+body.video-only #vidDragL {
+  left: 0;
+  width: calc(50% - 130px); 
+}
+body.video-only #vidDragR {
+  left: calc(50% + 130px);
+  right: 44px;               
+}
+
+img, canvas, video {
+  -webkit-user-drag: none;
+  user-select: none;
+}

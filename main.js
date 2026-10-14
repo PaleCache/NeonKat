@@ -9,9 +9,12 @@ const http = require('http');
 let artServerPort = null;
 let currentArtBuffer = null;
 let currentArtMime = 'image/jpeg';
-let autoUpdateEnabled = false
+let autoUpdateEnabled = false;
+let lastOverlayOpacity = 1;
 const { execFile } = require('child_process');
 const mediaServerModule = require('./mediaServer');
+
+
 
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -43,6 +46,23 @@ const ffprobeStatic = require('ffprobe-static');
 function getFfprobePath() {
   return ffprobeStatic.path;
 }
+
+let winDrag = null;
+ipcMain.on('win-drag-start', (e, p) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win) winDrag = { win, mx: p.x, my: p.y, b: win.getBounds() };
+});
+ipcMain.on('win-drag-move', (e, p) => {
+  if (!winDrag) return;
+  const { win, mx, my, b } = winDrag;
+  win.setBounds({ x: Math.round(b.x + p.x - mx), y: Math.round(b.y + p.y - my), width: b.width, height: b.height });
+});
+ipcMain.on('win-drag-end', () => { winDrag = null; });
+
+ipcMain.on('overlay-opacity', (e, v) => {
+  lastOverlayOpacity = v;
+  if (overlayWindow && overlayReady) overlayWindow.webContents.send('overlay-opacity', v);
+});
 
 ipcMain.on('sync-playlist', (event, playlist) => {
   mediaServerModule.syncPlaylist(playlist);
@@ -831,6 +851,7 @@ ipcMain.on('Always-Top', (event, isit) => {
 }
 
 app.whenReady().then(() => {
+ if (overlaySettings.enabled) createOverlayWindow();
  if (autoUpdateEnabled) {
     startPeriodicUpdateChecks();
   }
@@ -1140,3 +1161,181 @@ ipcMain.handle('write-temp-artwork', async (event, dataUrl) => {
     return null;
   }
 });
+
+
+const { screen } = require('electron');
+const overlayCfgPath = path.join(app.getPath('userData'), 'overlay-settings.json');
+let overlaySettings = { enabled: false, x: null, y: null, w: null, h: null };
+try { Object.assign(overlaySettings, JSON.parse(fsSync.readFileSync(overlayCfgPath, 'utf8'))); } catch {}
+const saveOverlaySettings = () => {
+  try { fsSync.writeFileSync(overlayCfgPath, JSON.stringify(overlaySettings)); } catch {}
+};
+
+let overlayWindow = null;
+let overlayReady = false;
+let overlayEditMode = false;
+let lastOverlayState = null;
+let lastOverlayProgress = null;
+let dragOrigin = null;
+let lastOverlayBg = null;
+let lastOverlayCustomBg = null;
+const OVERLAY_W = 380, OVERLAY_H = 110;
+const OVERLAY_MIN_W = 260, OVERLAY_MAX_W = 900;
+const OVERLAY_MIN_H = 70,  OVERLAY_MAX_H = 300;
+let resizeOrigin = null;
+
+function createOverlayWindow() {
+  if (overlayWindow) return;
+  const wa = screen.getPrimaryDisplay().workArea;
+
+  const startW = overlaySettings.w ?? OVERLAY_W;
+  overlayWindow = new BrowserWindow({
+    width: overlaySettings.w ?? OVERLAY_W, height: overlaySettings.h ?? OVERLAY_H,
+    x: overlaySettings.x ?? wa.x + 20,
+    y: overlaySettings.y ?? wa.y + 20,
+    transparent: true, frame: false, alwaysOnTop: true,
+    skipTaskbar: true, resizable: true, thickFrame: false, focusable: false,
+    minWidth: OVERLAY_MIN_W, minHeight: OVERLAY_MIN_H,
+    maxWidth: OVERLAY_MAX_W, maxHeight: OVERLAY_MAX_H,
+    hasShadow: false, show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'overlay-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false,
+    },
+  });
+
+  overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  overlayWindow.setIgnoreMouseEvents(true);
+  overlayWindow.on('resize', refreshOverlayHitRegion);
+  overlayWindow.on('show', () => setTimeout(refreshOverlayHitRegion, 100));
+  overlayWindow.loadFile(path.join(__dirname, 'overlay.html'));
+
+  overlayWindow.webContents.on('did-finish-load', () => {
+    overlayReady = true;
+    overlayWindow.webContents.send('overlay-opacity', lastOverlayOpacity);
+    if (lastOverlayState) {
+      if (lastOverlayBg) overlayWindow.webContents.send('overlay-bg', lastOverlayBg);
+      if (lastOverlayCustomBg) overlayWindow.webContents.send('overlay-custombg', lastOverlayCustomBg);
+      overlayWindow.webContents.send('overlay-state', lastOverlayState);
+      if (lastOverlayProgress) overlayWindow.webContents.send('overlay-progress', lastOverlayProgress);
+      overlayWindow.showInactive();
+      setTimeout(refreshOverlayHitRegion, 150);
+    }
+  });
+
+  overlayWindow.on('closed', () => { overlayWindow = null; overlayReady = false; });
+}
+
+function destroyOverlayWindow() {
+  if (overlayWindow) { overlayWindow.destroy(); overlayWindow = null; overlayReady = false; }
+  overlayEditMode = false;
+}
+
+function refreshOverlayHitRegion() {
+  if (!overlayWindow) return;
+  const [w, h] = overlayWindow.getSize();
+  overlayWindow.setShape([{ x: 0, y: 0, width: w, height: h }]);
+  overlayWindow.setIgnoreMouseEvents(false);
+  overlayWindow.setIgnoreMouseEvents(!overlayEditMode);
+}
+
+const fromOverlay = (e) => overlayWindow && e.sender === overlayWindow.webContents;
+ipcMain.on('overlay-custombg', (e, c) => {
+  lastOverlayCustomBg = c || null;
+  if (overlayWindow && overlayReady) overlayWindow.webContents.send('overlay-custombg', lastOverlayCustomBg);
+});
+ipcMain.on('overlay-bg', (e, bg) => {
+  lastOverlayBg = bg || null;
+  if (overlayWindow && overlayReady) overlayWindow.webContents.send('overlay-bg', lastOverlayBg);
+});
+
+ipcMain.on('overlay-viz', (e, v) => {
+  if (overlayWindow && overlayReady) overlayWindow.webContents.send('overlay-viz', v);
+});
+
+ipcMain.on('overlay-state', (e, state) => {
+  lastOverlayState = state || null;
+  if (!overlayWindow || !overlayReady) return;
+  if (!state) { if (!overlayEditMode) overlayWindow.hide(); return; }
+  overlayWindow.webContents.send('overlay-state', state);
+    if (!overlayWindow.isVisible()) {
+    overlayWindow.showInactive();
+    setTimeout(refreshOverlayHitRegion, 150);
+  }
+});
+
+ipcMain.on('overlay-progress', (e, p) => {
+  lastOverlayProgress = p;
+  if (overlayWindow && overlayReady) overlayWindow.webContents.send('overlay-progress', p);
+});
+
+ipcMain.on('overlay-set-enabled', (e, enabled) => {
+  overlaySettings.enabled = !!enabled;
+  saveOverlaySettings();
+  if (enabled) createOverlayWindow(); else destroyOverlayWindow();
+});
+
+ipcMain.on('overlay-set-edit', (e, on) => {
+  if (!overlayWindow) return;
+  overlayEditMode = !!on;
+  overlayWindow.setIgnoreMouseEvents(!overlayEditMode);
+  overlayWindow.webContents.send('overlay-edit-mode', overlayEditMode);
+  if (overlayEditMode) overlayWindow.showInactive();
+});
+
+ipcMain.on('overlay-resize-start', (e, p) => {
+  if (!fromOverlay(e) || !overlayEditMode) return;
+  const b = overlayWindow.getBounds();
+  resizeOrigin = { mx: p.x, my: p.y, w: b.width, h: b.height, x: b.x, y: b.y };
+});
+ipcMain.on('overlay-resize-move', (e, p) => {
+  if (!fromOverlay(e) || !resizeOrigin) return;
+  const w = Math.round(Math.min(OVERLAY_MAX_W, Math.max(OVERLAY_MIN_W, resizeOrigin.w + (p.x - resizeOrigin.mx))));
+  const h = Math.round(Math.min(OVERLAY_MAX_H, Math.max(OVERLAY_MIN_H, resizeOrigin.h + (p.y - resizeOrigin.my))));
+  overlayWindow.setBounds({ x: resizeOrigin.x, y: resizeOrigin.y, width: w, height: h });
+});
+ipcMain.on('overlay-resize-end', (e) => {
+  if (!fromOverlay(e) || !resizeOrigin) return;
+  resizeOrigin = null;
+  const b = overlayWindow.getBounds();
+  overlaySettings.w = b.width; overlaySettings.h = b.height;
+  saveOverlaySettings();
+  overlayWindow.setIgnoreMouseEvents(!overlayEditMode);
+  
+});
+
+ipcMain.on('overlay-reset-position', () => {
+    overlaySettings.x = null; overlaySettings.y = null; overlaySettings.w = null; overlaySettings.h = null;
+  saveOverlaySettings();
+  if (overlayWindow) {
+    const wa = screen.getPrimaryDisplay().workArea;
+    overlayWindow.setBounds({ x: wa.x + 20, y: wa.y + 20, width: OVERLAY_W, height: OVERLAY_H });
+  }
+});
+
+ipcMain.handle('overlay-get-settings', () => ({ enabled: overlaySettings.enabled }));
+
+ipcMain.on('overlay-drag-start', (e, p) => {
+  if (!fromOverlay(e) || !overlayEditMode) return;
+  const [wx, wy] = overlayWindow.getPosition();
+  dragOrigin = { mx: p.x, my: p.y, wx, wy };
+});
+ipcMain.on('overlay-drag-move', (e, p) => {
+  if (!fromOverlay(e) || !dragOrigin) return;
+  overlayWindow.setPosition(
+    Math.round(dragOrigin.wx + p.x - dragOrigin.mx),
+    Math.round(dragOrigin.wy + p.y - dragOrigin.my)
+  );
+});
+ipcMain.on('overlay-drag-end', (e) => {
+  if (!fromOverlay(e) || !dragOrigin) return;
+  dragOrigin = null;
+  const [x, y] = overlayWindow.getPosition();
+  overlaySettings.x = x; overlaySettings.y = y;
+  saveOverlaySettings();
+});
+
+app.on('before-quit', destroyOverlayWindow);

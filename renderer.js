@@ -12,6 +12,7 @@
  const nukebubbleImages = [
   new Image()
 ];
+document.addEventListener('dragstart', e => e.preventDefault());
 nukebubbleImages[0].src = 'build/nuke.png';
 katbubbleImages[0].src = 'build/kat.png';
   const savePlaylistBtn = document.getElementById('savePlaylistBtn');
@@ -38,6 +39,8 @@ katbubbleImages[0].src = 'build/kat.png';
   const sortMenu = document.getElementById('sortMenu');
   let resilientAudioHls = null;
   let resilientVizHls = null;
+  let overlayEnabled = false;
+  let overlayEditing = false;
   const audioHlsRef = { current: null };
   const vizHlsRef = { current: null };
   let audioFiles = [];
@@ -275,6 +278,7 @@ function buildNormChain() {
 
 if (normEnabled) {
     trackNormGain.connect(inputGain);
+    inputGain.connect(makeupGain);  
     makeupGain.connect(limiter);
     limiter.connect(eqSubFilter);
 } else {
@@ -684,6 +688,7 @@ applyBgBtn.addEventListener('click', () => {
   currentBrightness = previewBrightness;
   localStorage.setItem('customBgBrightness', currentBrightness);
   customBgModal.style.display = 'none';
+  setTimeout(pushOverlayCustomBg, 400);
 });
 
 
@@ -1222,7 +1227,7 @@ function updateVisualizerModeUI() {
   katbubblesCheckbox.checked = false;
   nukebubblesCheckbox.checked = false;
 
-
+  if (overlayEnabled) return;
   if (visualizerMode === 'bars') {
     barsToggle.classList.add('active');
     barsCheckbox.checked = true;
@@ -1276,6 +1281,20 @@ const hamburgerMenu = document.getElementById('hamburgerMenu');
 const downloadYoutubeBtn = document.getElementById('downloadYoutubeBtn');
 let downloadFolder = localStorage.getItem('lastDownloadFolder') || null;
 let removeProgressListener = null;
+
+const menuBackdrop = document.createElement('div');
+menuBackdrop.id = 'menuBackdrop';
+document.body.appendChild(menuBackdrop);
+
+menuBackdrop.addEventListener('mousedown', () => {
+  menuOpen = false;
+  hamburgerMenu.style.display = 'none';
+});
+
+
+new MutationObserver(() => {
+  menuBackdrop.style.display = hamburgerMenu.style.display === 'block' ? 'block' : 'none';
+}).observe(hamburgerMenu, { attributes: true, attributeFilter: ['style'] });
 
 let menuOpen = false;
 
@@ -1789,7 +1808,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.5 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.6 alpha</p>
       </div>
   </div>
   `;
@@ -4021,12 +4040,14 @@ onDead: async (reason) => {
   audio.play().catch(console.error);
 }
   await setVisualizerBackground(item);
+  pushOverlayBackground();
 
   if ('mediaSession' in navigator) {
   const { artist, title } = splitArtistTitle(displayName);
   const realArtSource = await getMediaSessionArtSource(item);
   const resolvedArtUrl = await resolveArtworkForMediaSession(realArtSource);
   const isUsableArt = !!resolvedArtUrl;
+  pushOverlayTrack(displayName, resolvedArtUrl);
   navigator.mediaSession.metadata = new MediaMetadata({
     artist,
     title,
@@ -4466,7 +4487,7 @@ function visualize() {
       document.documentElement.style.setProperty('--primary-color', color);
       document.documentElement.style.setProperty('--primary-dark', darkColor);
     }
-
+   if (overlayEnabled) return;
    if (visualizerMode === 'bars') {
   const barCount = isMini ? 48 : 64;
   const skipBins = 3;
@@ -4832,6 +4853,7 @@ gifPreviewToggleBtn.addEventListener('click', async () => {
         visualizerVideo.style.zIndex = '-1';
         await setVisualizerBackground(currentTrack);
     }
+    pushOverlayBackground();
 });
 
 function updateGifIcon() {
@@ -4977,7 +4999,6 @@ function stopVisualizer() {
     animationFrameId = null;
   }
   ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-  window.electronAPI.disableVisualizer();
 }
 
 
@@ -5712,3 +5733,205 @@ function syncPlaylistToServer() {
 }
 
 
+let lastOverlayTrack = null;     
+let lastOverlayProgressSent = 0;
+const _origVizPlay = visualizerVideo.play.bind(visualizerVideo);
+visualizerVideo.play = () => overlayEnabled ? Promise.resolve() : _origVizPlay();
+
+const overlayStyle = document.createElement('style');
+overlayStyle.textContent = `
+  body.overlay-on #visualizerVideo,
+  body.overlay-on #visualizerBgGif { display: none !important; }
+`;
+document.head.appendChild(overlayStyle);
+
+function applyOverlayMainState() {
+  document.body.classList.toggle('overlay-on', overlayEnabled);
+  if (overlayEnabled) {
+    visualizerVideo.pause();
+    ctx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+  } else if (visualizerVideo.getAttribute('src') && !audio.paused) {
+    _origVizPlay().catch(() => {});
+  }
+}
+
+function currentAccent() {
+  return getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
+}
+
+function pushOverlayTrack(name, artUrl) {
+  if (!name) {
+    lastOverlayTrack = null;
+    window.electronAPI?.overlayState?.(null);
+    return;
+  }
+  const { artist, title } = splitArtistTitle(name);
+  lastOverlayTrack = { title, artist, artUrl: artUrl || null };
+  pushOverlayPlaying();
+}
+
+function pushOverlayPlaying() {
+  if (!lastOverlayTrack) return;
+  window.electronAPI?.overlayState?.({
+    ...lastOverlayTrack,
+    playing: !audio.paused,
+    color: currentAccent(),
+  });
+}
+
+audio.addEventListener('play', pushOverlayPlaying);
+audio.addEventListener('pause', pushOverlayPlaying);
+
+audio.addEventListener('timeupdate', () => {
+  if (!overlayEnabled) return;
+  const now = Date.now();
+  if (now - lastOverlayProgressSent < 1000) return; 
+  lastOverlayProgressSent = now;
+  const item = audioFiles[currentIndex];
+  window.electronAPI?.overlayProgress?.({
+    current: audio.currentTime,
+    duration: isFinite(audio.duration) ? audio.duration : 0,
+    live: !!item?.isStream,
+    color: currentAccent(),
+  });
+});
+
+(async function initOverlayControls() {
+  const s = await window.electronAPI?.overlayGetSettings?.();
+  overlayEnabled = !!s?.enabled;
+  applyOverlayMainState();
+
+  const row = document.getElementById('overlayToggle');
+  const cb = document.getElementById('overlayCheckbox');
+  const moveRow = document.getElementById('overlayMoveBtn');
+  const resetRow = document.getElementById('overlayResetBtn');
+  const moveLabel = moveRow.querySelector('.label');
+
+  function refresh() {
+    cb.checked = overlayEnabled;
+    row.classList.toggle('active', overlayEnabled);
+    moveRow.style.opacity = resetRow.style.opacity = overlayEnabled ? '1' : '0.4';
+  }
+
+  function toggleOverlay() {
+    overlayEnabled = !overlayEnabled;
+    window.electronAPI.overlaySetEnabled(overlayEnabled);
+    applyOverlayMainState();
+    if (!overlayEnabled) { overlayEditing = false; moveLabel.textContent = 'Move Overlay'; }
+    refresh();
+    if (overlayEnabled) setTimeout(() => { pushOverlayPlaying(); pushOverlayBackground(); pushOverlayCustomBg(); window.pushOverlayOpacity?.(); }, 300);
+  }
+
+  row.addEventListener('click', (e) => {
+    if (e.target.closest('.switch') || e.target.closest('input[type="checkbox"]')) return;
+    toggleOverlay();
+  });
+  cb.addEventListener('change', () => { if (cb.checked !== overlayEnabled) toggleOverlay(); });
+
+  moveRow.addEventListener('click', () => {
+    if (!overlayEnabled) return;
+    overlayEditing = !overlayEditing;
+    window.electronAPI.overlaySetEdit(overlayEditing);
+    moveLabel.textContent = overlayEditing ? 'Done Moving' : 'Move Overlay';
+  });
+
+  resetRow.addEventListener('click', () => {
+    if (overlayEnabled) window.electronAPI.overlayResetPosition();
+  });
+    const opSlider = document.getElementById('overlayOpacity');
+  const opLabel = document.getElementById('overlayOpacityValue');
+  const savedOp = Number(localStorage.getItem('overlayOpacity')) || 100;
+  opSlider.value = savedOp;
+  opLabel.textContent = savedOp + '%';
+  updateSliderBackground(opSlider);
+
+  window.pushOverlayOpacity = () => window.electronAPI?.overlayOpacity?.(Number(opSlider.value) / 100);
+  opSlider.addEventListener('mousedown', e => e.stopPropagation());
+  opSlider.addEventListener('click', e => e.stopPropagation());
+  opSlider.addEventListener('input', () => {
+    opLabel.textContent = opSlider.value + '%';
+    localStorage.setItem('overlayOpacity', opSlider.value);
+    updateSliderBackground(opSlider);
+    window.pushOverlayOpacity();
+  });
+  opSlider.addEventListener('click', e => e.stopPropagation());
+
+  refresh();
+  if (overlayEnabled) setTimeout(() => { pushOverlayCustomBg(); window.pushOverlayOpacity?.(); }, 500);
+})();
+
+function pushOverlayBackground() {
+  if (!window.electronAPI?.overlayBg) return;
+  const gifEl = document.getElementById('visualizerBgGif');
+  let bg = null;
+
+  if (gifPreviewEnabled) {
+    if (visualizerVideo.getAttribute('src') && visualizerVideo.style.display !== 'none') {
+      const src = visualizerVideo.getAttribute('src');
+      if (!src.includes('.m3u8')) bg = { type: 'video', url: src };
+    } else if (gifEl && gifEl.style.display !== 'none' && gifEl.getAttribute('src')) {
+      bg = { type: 'image', url: gifEl.getAttribute('src') };
+    }
+  }
+  if (!bg && currentArtUrl && currentArtUrl !== 'build/default-artwork.jpg') {
+    bg = { type: 'image', url: currentArtUrl };
+  }
+  window.electronAPI.overlayBg(bg);
+}
+
+let overlayVizWasOn = false;
+const overlayVizBuf = new Uint8Array(analyser.frequencyBinCount);
+setInterval(() => {
+  if (!overlayEnabled || !window.electronAPI?.overlayViz) return;
+  const active = visualizerToggle && !audio.paused;
+  if (!active) {
+    if (overlayVizWasOn) { window.electronAPI.overlayViz({ on: false, color: currentAccent() }); overlayVizWasOn = false; }
+    return;
+  }
+  analyser.getByteFrequencyData(overlayVizBuf);
+  window.electronAPI.overlayViz({ on: true, mode: visualizerMode, data: Array.from(overlayVizBuf), color: currentAccent() });
+  overlayVizWasOn = true;
+}, 33);
+
+function pushOverlayCustomBg() {
+  if (!window.electronAPI?.overlayCustomBg) return;
+  const url = localStorage.getItem('customBackgroundUrl');
+  const b = Number(localStorage.getItem('customBgBrightness'));
+  window.electronAPI.overlayCustomBg(url ? { url, brightness: Number.isFinite(b) ? b : 65 } : null);
+}
+
+
+const NO_DRAG = 'button,input,select,textarea,label,a,canvas,video,#playlist,#progressContainer,' +
+  '#hamburgerMenu,#folderMenu,#sortMenu,#contextMenu,#menuBackdrop,.vis-mode-toggle,.volume-control,' +
+  '[id$="Modal"]';
+
+let endCurrentDrag = null;
+
+document.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || e.target.closest(NO_DRAG)) return;
+  if (!e.target.closest('#container, #titlebar, .vidDragBar')) return;
+
+  if (endCurrentDrag) endCurrentDrag();
+
+  const id = e.pointerId;
+  window.electronAPI.windowDragStart({ x: e.screenX, y: e.screenY });
+
+  const move = (ev) => {
+    if (ev.buttons === 0) { finish(); return; }
+    window.electronAPI.windowDragMove({ x: ev.screenX, y: ev.screenY });
+  };
+  const finish = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', finish);
+    window.removeEventListener('pointercancel', finish);
+    window.removeEventListener('blur', finish);
+    endCurrentDrag = null;
+    window.electronAPI.windowDragEnd();
+  };
+
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', finish);
+  window.addEventListener('pointercancel', finish);
+  window.addEventListener('blur', finish);
+  endCurrentDrag = finish;
+});

@@ -1,6 +1,6 @@
 {
   "name": "neonkat",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "A simple yet not music player with visualizer and miniplayer",
   "author": "PaleCache",
   "homepage": "https://github.com/palecache/neonkat",
@@ -33,7 +33,9 @@
       "hls.js@latest",
       "build/NeonKat.desktop",
       "build/com.palecache.NeonKat.metainfo.xml",
-      "build/kat.png"
+      "build/kat.png",
+      "overlay-preload.js",
+      "overlay.html"
     ],
     "asar": true,
     "publish": [
@@ -76,7 +78,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^41.7.1",
+    "electron": "^44.4.3",
     "electron-builder": "^26.15.3"
   },
   "dependencies": {

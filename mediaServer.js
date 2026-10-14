@@ -7,10 +7,43 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 
 let currentPin = null;
-const authenticatedTokens = new Map();
+const SECRET_FILE = path.join(os.homedir(), '.neonkat-secret');
+const TOKEN_TTL_MS = 10 * 365 * 24 * 60 * 60 * 1000;
 
-const AUTH_COOKIE = 'neonkat_auth';
-const AUTH_COOKIE_MAX_AGE = 6 * 60 * 60; 
+let secret;
+try { secret = fsSync.readFileSync(SECRET_FILE, 'utf8').trim(); } catch {}
+if (!secret) {
+  secret = crypto.randomBytes(32).toString('hex');
+  fsSync.writeFileSync(SECRET_FILE, secret, { mode: 0o600 });
+}
+
+function sign(data) {
+  return crypto.createHmac('sha256', secret + '|' + currentPin).update(data).digest('base64url');
+}
+
+function makeToken() {
+  const payload = Buffer.from(JSON.stringify({ exp: Date.now() + TOKEN_TTL_MS })).toString('base64url');
+  return payload + '.' + sign(payload);
+}
+
+function verifyToken(token) {
+  if (!token || !currentPin) return false;
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig) return false;
+  const a = Buffer.from(sig);
+  const b = Buffer.from(sign(payload));
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  try {
+    return JSON.parse(Buffer.from(payload, 'base64url').toString()).exp > Date.now();
+  } catch { return false; }
+}
+
+function isAuthed(req) {
+  const h = req.headers.authorization || '';
+  if (h.startsWith('Bearer ') && verifyToken(h.slice(7))) return true;
+  const t = new URL(req.url, 'http://x').searchParams.get('t');
+  return verifyToken(t);
+}
 const MAX_BODY_BYTES = 100 * 1024; 
 
 function hasPin() {
@@ -19,61 +52,12 @@ function hasPin() {
 
 function setPin(pin) {
   currentPin = String(pin);
-  authenticatedTokens.clear();
 }
 
 function checkPin(pin) {
   return !!currentPin && String(pin) === currentPin;
 }
 
-function parseCookies(req) {
-  const header = req.headers.cookie;
-  const out = {};
-  if (!header) return out;
-  header.split(';').forEach(pair => {
-    const idx = pair.indexOf('=');
-    if (idx === -1) return;
-    const k = pair.slice(0, idx).trim();
-    const v = pair.slice(idx + 1).trim();
-    if (k) out[k] = decodeURIComponent(v);
-  });
-  return out;
-}
-
-
-function isRequestSecure(req) {
-  if (req.socket.encrypted) return true;
-  const proto = req.headers['x-forwarded-proto'];
-  return proto === 'https';
-}
-
-function issueAuthToken(req, res) {
-  const token = crypto.randomBytes(24).toString('hex');
-  authenticatedTokens.set(token, Date.now() + AUTH_COOKIE_MAX_AGE * 1000);
-  const secureFlag = isRequestSecure(req) ? '; Secure' : '';
-  res.setHeader('Set-Cookie',
-    `${AUTH_COOKIE}=${token}; HttpOnly; SameSite=Strict${secureFlag}; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}`
-  );
-  return token;
-}
-
-function isAuthed(req) {
-  const token = parseCookies(req)[AUTH_COOKIE];
-  if (!token) return false;
-  const expiresAt = authenticatedTokens.get(token);
-  if (!expiresAt || Date.now() > expiresAt) {
-    authenticatedTokens.delete(token);
-    return false;
-  }
-  return true;
-}
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, expiresAt] of authenticatedTokens) {
-    if (now > expiresAt) authenticatedTokens.delete(token);
-  }
-}, 30 * 60 * 1000);
 
 const failedAttempts = new Map();
 
@@ -737,6 +721,24 @@ const REMOTE_PLAYER_HTML = `<!DOCTYPE html>
 </div>
 
 <script>
+function crumb(s) {
+  localStorage.setItem('crumb', (localStorage.getItem('crumb') || '') + s + ' ');
+}
+const old = localStorage.getItem('crumb');
+if (old) { alert('LAST RUN: ' + old); localStorage.removeItem('crumb'); }
+const TOKEN_KEY = 'neonkat_token';
+const tok = () => localStorage.getItem(TOKEN_KEY) || '';
+const withTok = (u) => u + (u.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(tok());
+
+const _fetch = window.fetch.bind(window);
+window.fetch = (input, init = {}) => {
+  if (tok()) {
+    init.headers = new Headers(init.headers || {});
+    init.headers.set('Authorization', 'Bearer ' + tok());
+  }
+  return _fetch(input, init);
+};
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js')
     .then(reg => console.log('SW registered', reg))
@@ -807,45 +809,54 @@ const miniArtwork = document.getElementById('miniArtwork');
 let playlistPollInterval = null;
 let onlinePollInterval = null;
 const offlineToggleBtn = document.getElementById('offlineToggleBtn');
-const webAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function isIOS() {
+  const ua = navigator.userAgent;
+  const isAppleMobile = /iPad|iPhone|iPod/.test(ua);
+  const isIPadOS13Plus = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return isAppleMobile || isIPadOS13Plus;
+}
+const IS_IOS = isIOS();
+
+
 let selectedTracks = new Map();
-const webGainNode = webAudioCtx.createGain();
+let webAudioCtx = null;
+let webGainNode = null;
+let eqBands = {};
 
-const eqSub = webAudioCtx.createBiquadFilter();
-eqSub.type = 'lowshelf';
-eqSub.frequency.value = 60;
+if (!IS_IOS) {
+  webAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  webGainNode = webAudioCtx.createGain();
 
-const eqBass = webAudioCtx.createBiquadFilter();
-eqBass.type = 'peaking';
-eqBass.frequency.value = 200;
-eqBass.Q.value = 1;
+  const eqSub = webAudioCtx.createBiquadFilter();
+  eqSub.type = 'lowshelf'; eqSub.frequency.value = 60;
 
-const eqMid = webAudioCtx.createBiquadFilter();
-eqMid.type = 'peaking';
-eqMid.frequency.value = 1000;
-eqMid.Q.value = 1;
+  const eqBass = webAudioCtx.createBiquadFilter();
+  eqBass.type = 'peaking'; eqBass.frequency.value = 200; eqBass.Q.value = 1;
 
-const eqTreble = webAudioCtx.createBiquadFilter();
-eqTreble.type = 'peaking';
-eqTreble.frequency.value = 4000;
-eqTreble.Q.value = 1;
+  const eqMid = webAudioCtx.createBiquadFilter();
+  eqMid.type = 'peaking'; eqMid.frequency.value = 1000; eqMid.Q.value = 1;
 
-const eqPresence = webAudioCtx.createBiquadFilter();
-eqPresence.type = 'highshelf';
-eqPresence.frequency.value = 9000;
+  const eqTreble = webAudioCtx.createBiquadFilter();
+  eqTreble.type = 'peaking'; eqTreble.frequency.value = 4000; eqTreble.Q.value = 1;
 
-const webSource = webAudioCtx.createMediaElementSource(audio);
-webSource.connect(webGainNode);
-webGainNode.connect(eqSub);
-eqSub.connect(eqBass);
-eqBass.connect(eqMid);
-eqMid.connect(eqTreble);
-eqTreble.connect(eqPresence);
-eqPresence.connect(webAudioCtx.destination);
-const eqBands = { sub: eqSub, bass: eqBass, mid: eqMid, treble: eqTreble, presence: eqPresence };
-Object.entries(eqBands).forEach(([key, filter]) => {
-  filter.gain.value = parseFloat(localStorage.getItem('neonkat_web_eq_' + key) || '0');
-});
+  const eqPresence = webAudioCtx.createBiquadFilter();
+  eqPresence.type = 'highshelf'; eqPresence.frequency.value = 9000;
+
+  const webSource = webAudioCtx.createMediaElementSource(audio);
+  webSource.connect(webGainNode);
+  webGainNode.connect(eqSub);
+  eqSub.connect(eqBass);
+  eqBass.connect(eqMid);
+  eqMid.connect(eqTreble);
+  eqTreble.connect(eqPresence);
+  eqPresence.connect(webAudioCtx.destination);
+
+  eqBands = { sub: eqSub, bass: eqBass, mid: eqMid, treble: eqTreble, presence: eqPresence };
+  Object.entries(eqBands).forEach(([key, filter]) => {
+    filter.gain.value = parseFloat(localStorage.getItem('neonkat_web_eq_' + key) || '0');
+  });
+}
 
 let loudnessMap = {};
 
@@ -1006,6 +1017,7 @@ async function fetchLoudnessMap() {
 }
 
 function applyLoudnessGain(trackName, overrideGain) {
+  if (!webAudioCtx) return;
   let gain = overrideGain != null ? overrideGain : loudnessMap[trackName];
   if (gain == null && isOfflineMode) {
     const offlineLoudness = JSON.parse(localStorage.getItem('neonkat_offline_loudness') || '{}');
@@ -1062,6 +1074,7 @@ const eqValMap = {
 };
 
 function setWebEqBand(key, value) {
+  if (!eqBands[key]) return;
   const v = Number(value);
   eqBands[key].gain.value = v;
   eqSliderMap[key].value = v;
@@ -1080,6 +1093,7 @@ const settingsBtn = document.getElementById('settingsBtn');
 const settingsSheet = document.getElementById('settingsSheet');
 const settingsPanel = document.getElementById('settingsPanel');
 const settingsOverlay = document.getElementById('settingsOverlay');
+if (IS_IOS) settingsBtn.style.display = 'none';
 
 function openSettings() {
   settingsSheet.style.display = 'block';
@@ -1191,15 +1205,13 @@ filtered.forEach(item => {
     offlineIcon.style.cssText = 'font-size:14px; cursor:pointer; opacity:0.5; padding:4px;';
     offlineIcon.textContent = '⬇';
     offlineIcon.title = 'Download for offline';
+    if (cachedStreamPaths.has(streamKeyFor(item))) setIconCached(offlineIcon);
     offlineIcon.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (offlineIcon.dataset.cached === '1') return;
       offlineIcon.textContent = '…';
       await downloadTrackForOffline(item.index, getLibraryName());
-      offlineIcon.textContent = '\u2713';
-      offlineIcon.dataset.cached = '1';
-      offlineIcon.style.opacity = '1';
-      offlineIcon.style.color = 'var(--primary)';
+      await refreshOfflineIndicators();
     });
 
     if (selectMode) {
@@ -1223,7 +1235,7 @@ filtered.forEach(item => {
       li.classList.add('active');
       dot.style.display = audio.paused ? 'none' : 'block';
     }
-    li.addEventListener('click', () => playIndex(item.index));
+    li.addEventListener('click', () => {playIndex(item.index); });
     playlistEl.appendChild(li);
 });
 
@@ -1262,28 +1274,35 @@ async function downloadTrackForOffline(idx, lib) {
   if (artRes && artRes.ok) await cache.put(artKey, artRes.clone());
 }
 
+let cachedStreamPaths = new Set();
+
+function streamKeyFor(item) {
+  const lib = item.custom ? (item.lib || 'default') : getLibraryName();
+  const key = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/stream';
+  return new URL(key, location.origin).pathname;
+}
+
+function setIconCached(icon) {
+  icon.textContent = '\u2713';
+  icon.dataset.cached = '1';
+  icon.style.opacity = '1';
+  icon.style.color = 'var(--primary)';
+}
+
 async function refreshOfflineIndicators() {
   if (!('caches' in window)) return;
   const cache = await caches.open('neonkat-tracks-v1');
-  const icons = document.querySelectorAll('.offline-icon');
-  for (const icon of icons) {
-    const idx = icon.dataset.idx;
-    const item = playlist.find(p => p.index === parseInt(idx));
-    if (!item) continue;
-    const lib = item.custom ? (item.lib || 'default') : getLibraryName();
-    const key = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(item.name) + '/stream';
-    const match = await cache.match(key);
-    if (match) {
-      icon.textContent = '\u2713';
-      icon.dataset.cached = '1';
-      icon.style.opacity = '1';
-      icon.style.color = 'var(--primary)';
-    }
-  }
+  const reqs = await cache.keys();
+  cachedStreamPaths = new Set(reqs.map(r => new URL(r.url).pathname));
+  document.querySelectorAll('.offline-icon').forEach(icon => {
+    const item = playlist.find(p => p.index === parseInt(icon.dataset.idx));
+    if (item && cachedStreamPaths.has(streamKeyFor(item))) setIconCached(icon);
+  });
 }
 
 function handleAuthFailure() {
   localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(TOKEN_KEY);
   showLockScreen();
   var pinInputEl = document.getElementById('pinInput');
   if (pinInputEl) pinInputEl.focus();
@@ -1307,10 +1326,13 @@ async function loadPlaylist(preserveIndex, fresh) {
       return;
     }
 
-    playlist = data.tracks;
+    const newTracks = data.tracks;
+    const changed = JSON.stringify(newTracks) !== JSON.stringify(playlist);
+
+    playlist = newTracks;
     if (data.folderName) setCurrentLibrary(data.folderName);
     if (!preserveIndex) currentIndex = -1;
-    renderPlaylist();
+    if (changed || !preserveIndex) renderPlaylist();
   } catch (e) {
     console.warn('Playlist fetch failed, staying offline');
   }
@@ -1319,10 +1341,13 @@ async function loadPlaylist(preserveIndex, fresh) {
 let _lastStreamUrl = null;
 let _lastArtUrl = null;
 
+
+
+
 async function playIndex(idx) {
-  if (webAudioCtx.state !== 'running') {
-    await webAudioCtx.resume();
-  }
+if (webAudioCtx && webAudioCtx.state !== 'running') {
+  await webAudioCtx.resume().catch(()=>{});
+}
   const item = playlist.find(p => p.index === idx);
   if (!item) return;
 
@@ -1353,15 +1378,13 @@ const artKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(
   _lastStreamUrl = null;
   _lastArtUrl = null;
 
-  let streamSrc = item.custom
+  let streamSrc = withTok((item.custom
     ? '/api/stream-path?path=' + encodeURIComponent(item.path) + '&sid=' + SID
-    : '/api/stream/' + idx + '?sid=' + SID;
+    : '/api/stream/' + idx + '?sid=' + SID) + '&_=' + Date.now());
   let artSrc = null;
 
   if (cachedStream) {
-    const blob = await cachedStream.blob();
-    streamSrc = URL.createObjectURL(blob);
-    _lastStreamUrl = streamSrc;
+    streamSrc = streamKey;
   }
   if (cachedArt) {
     const blob = await cachedArt.blob();
@@ -1369,13 +1392,15 @@ const artKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(
     _lastArtUrl = artSrc;
   }
 
+  let onlineArtUrl = null;
   if (artSrc) {
     npArtwork.src = artSrc;
     miniArtwork.src = artSrc;
   } else if (!isOfflineMode) {
-    const onlineArt = item.custom
+    const onlineArt = withTok(item.custom
   ? '/api/art-path?path=' + encodeURIComponent(item.path) + '&sid=' + SID
-  : '/api/art/' + idx + '?sid=' + SID + '&v=' + encodeURIComponent(item.name);
+  : '/api/art/' + idx + '?sid=' + SID + '&v=' + encodeURIComponent(item.name));
+    onlineArtUrl = new URL(onlineArt, location.origin).href;
     npArtwork.src = onlineArt;
     miniArtwork.src = onlineArt;
   }
@@ -1392,6 +1417,31 @@ const artKey = '/offline/' + encodeURIComponent(lib) + '/' + encodeURIComponent(
 
   renderPlaylist();
   scrollToCurrentTrack();
+
+  if ('mediaSession' in navigator) {
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: item.name,
+    artist: 'NeonKat',
+    artwork: [{ src: artSrc || onlineArtUrl || new URL('/build/kat.png', location.origin).href, sizes: '512x512' }]
+  });
+
+  if (!artSrc && onlineArtUrl) {
+    const probe = new Image();
+    probe.onerror = () => {
+      if (currentIndex !== idx) return;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: item.name,
+        artist: 'NeonKat',
+        artwork: [{ src: new URL('/build/kat.png', location.origin).href, sizes: '512x512' }]
+      });
+    };
+    probe.src = onlineArtUrl;
+  }
+navigator.mediaSession.setActionHandler('play', () => audio.play().catch(()=>{}));
+navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+  navigator.mediaSession.setActionHandler('previoustrack', () => prevBtn.click());
+  navigator.mediaSession.setActionHandler('nexttrack', () => nextBtn.click());
+}
 }
 
 function scrollToCurrentTrack() {
@@ -1414,7 +1464,9 @@ document.getElementById('clearCacheBtn').addEventListener('click', async () => {
   try {
     if ('caches' in window) {
       await caches.delete('neonkat-tracks-v1');
-      await caches.delete('neonkat-shell-v2');
+      await caches.delete('neonkat-shell-v3');
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(AUTH_KEY);
     }
     localStorage.removeItem('neonkat_offline_libs');
     localStorage.removeItem('neonkat_offline_mode');
@@ -1530,6 +1582,8 @@ function getPrevIndex() {
 }
 
 
+
+
 audio.addEventListener('play', () => {
   const icon = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
   playIcon.innerHTML = icon;
@@ -1609,7 +1663,6 @@ npRepeatBtn.addEventListener('click', () => {
   repeatBtn.classList.toggle('active', repeatMode);
   npRepeatBtn.classList.toggle('active', repeatMode);
 });
-
 
 
 
@@ -1705,6 +1758,7 @@ folderBtn.addEventListener('click', async () => {
   try {
     const res = await fetch('/api/recent-folders?sid=' + SID);
     if (res.status === 401) { handleAuthFailure(); return; }
+    if (!res.ok || !(res.headers.get('content-type') || '').includes('json')) throw new Error('bad response');
     folders = await res.json();
   } catch (e) {
     isOffline = true;
@@ -1734,7 +1788,7 @@ folderBtn.addEventListener('click', async () => {
     folders.forEach(p => {
       const row = document.createElement('div');
       row.className = 'frow';
-      const folderName = p.split(/[\\/]/).pop();
+      const folderName = p.split(/[\\/]/).filter(Boolean).pop() || p;
       const isCached = cachedLibNames.includes(folderName);
       row.textContent = folderName + (isCached ? ' (cached)' : '');
       row.title = p;
@@ -1749,14 +1803,24 @@ folderBtn.addEventListener('click', async () => {
         });
         folderMenu.style.display = 'none';
         nowPlayingEl.innerHTML = '<span class="mini-spinner"></span><span>Loading library…</span>';
-        setTimeout(async () => {
-          await loadPlaylist(false, true);
+        (async () => {
+          const started = Date.now();
+          let ok = false;
+          while (Date.now() - started < 15000) {
+            await new Promise(r => setTimeout(r, 700));
+            await loadPlaylist(false, true);
+            if (playlist.length > 0 && playlist[0].path && playlist[0].path.startsWith(p)) { ok = true; break; }
+          }
+          if (ok) {
+            await new Promise(r => setTimeout(r, 1000));
+            await loadPlaylist(false, true);
+          }
           if (playlist.length > 0) {
             playIndex(playlist[0].index);
           } else {
             nowPlayingEl.textContent = 'No track loaded';
           }
-        }, 1500);
+        })();
       });
       folderMenu.appendChild(row);
     });
@@ -1782,12 +1846,8 @@ setCurrentLibrary(lib);
 playlist = tracks;
 currentIndex = -1;
 renderPlaylist();
-if (playlist.length > 0) {
-  playIndex(playlist[0].index);
-} else {
-  nowPlayingEl.textContent = 'Offline: ' + lib;
-  npTitle.textContent = 'Offline: ' + lib;
-}
+nowPlayingEl.textContent = 'Offline: ' + lib;
+npTitle.textContent = 'Offline: ' + lib;
 }
 
 function setOfflineMode(val) {
@@ -1826,7 +1886,13 @@ function hideLockScreen() {
   document.getElementById('pinLockScreen').style.display = 'none';
 }
 
-function initApp() {
+async function initApp() {
+  clearInterval(playlistPollInterval);
+  clearInterval(onlinePollInterval);
+  if (!isOfflineMode) {
+    const check = await fetch('/api/online-count?sid=' + SID).catch(() => null);
+    if (check && check.status === 401) { handleAuthFailure(); return; }
+  }
   hideLockScreen();
 
   const savedLib = localStorage.getItem('neonkat_current_lib');
@@ -1873,6 +1939,7 @@ async function submitPinAttempt() {
   const result = await verifyPin(pin);
   if (result.success) {
     localStorage.setItem(AUTH_KEY, '1');
+    localStorage.setItem(TOKEN_KEY, result.token);
     initApp();
     return;
   }
@@ -1991,9 +2058,8 @@ function startMediaServer() {
 
             if (checkPin(pin)) {
               recordSuccessfulAttempt(attemptKey);
-              issueAuthToken(req, res);
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: true }));
+              res.end(JSON.stringify({ success: true, token: makeToken() }));
             } else {
               recordFailedAttempt(attemptKey);
               const entry = failedAttempts.get(attemptKey);
@@ -2263,8 +2329,12 @@ function startMediaServer() {
       }
 
       if (pathname === '/api/stream-path') {
-        const p = url.searchParams.get('path');
-        if (!p) { res.writeHead(400); res.end('Missing path'); return; }
+        const raw = url.searchParams.get('path');
+        if (!raw) { res.writeHead(400); res.end('Missing path'); return; }
+        const p = path.resolve(raw);
+        const allowed = mediaServerPlaylist.some(i => i.path && path.resolve(i.path) === p) ||
+          mediaServerRecentFolders.some(f => p.startsWith(path.resolve(f) + path.sep));
+        if (!allowed) { res.writeHead(403); res.end('Forbidden'); return; }
         const stat = await fs.stat(p).catch(() => null);
         if (!stat) { res.writeHead(404); res.end('File missing'); return; }
         const mime = mimeFromExt(path.extname(p));
@@ -2302,8 +2372,12 @@ function startMediaServer() {
       }
 
       if (pathname === '/api/art-path') {
-        const p = url.searchParams.get('path');
-        if (!p) { res.writeHead(400); res.end(); return; }
+        const raw = url.searchParams.get('path');
+        if (!raw) { res.writeHead(400); res.end(); return; }
+        const p = path.resolve(raw);
+        const allowed = mediaServerPlaylist.some(i => i.path && path.resolve(i.path) === p) ||
+          mediaServerRecentFolders.some(f => p.startsWith(path.resolve(f) + path.sep));
+        if (!allowed) { res.writeHead(403); res.end('Forbidden'); return; }
         const dir = path.dirname(p);
         for (const name of ['cover.jpg', 'folder.jpg', 'cover.png', 'folder.png']) {
           const cp = path.join(dir, name);
@@ -2376,7 +2450,6 @@ function setMainWindow(win) {
 
 function resetPin() {
   currentPin = null;
-  authenticatedTokens.clear();
   failedAttempts.clear();
 }
 

@@ -39,7 +39,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   syncRecentFolders: (folders) => ipcRenderer.send('sync-recent-folders', folders),
   syncPlaylist: (playlist) => ipcRenderer.send('sync-playlist', playlist),
   syncLoudnessMap: (map) => ipcRenderer.send('sync-loudness-map', map),
-   onRemoteRequestedFolder: (callback) => {
+  overlayState:         (s) => ipcRenderer.send('overlay-state', s),
+  overlayProgress:      (p) => ipcRenderer.send('overlay-progress', p),
+  overlaySetEnabled:    (b) => ipcRenderer.send('overlay-set-enabled', b),
+  overlaySetEdit:       (b) => ipcRenderer.send('overlay-set-edit', b),
+  overlayResetPosition: ()  => ipcRenderer.send('overlay-reset-position'),
+  overlayGetSettings:   ()  => ipcRenderer.invoke('overlay-get-settings'),
+  overlayBg:  (b) => ipcRenderer.send('overlay-bg', b),
+  overlayViz: (v) => ipcRenderer.send('overlay-viz', v),
+  overlayCustomBg: (c) => ipcRenderer.send('overlay-custombg', c),
+  overlayOpacity: (v) => ipcRenderer.send('overlay-opacity', v),
+  windowDragStart: (p) => ipcRenderer.send('win-drag-start', p),
+  windowDragMove:  (p) => ipcRenderer.send('win-drag-move', p),
+  windowDragEnd:   ()  => ipcRenderer.send('win-drag-end'),
+  onRemoteRequestedFolder: (callback) => {
   const listener = (event, folderPath) => callback(folderPath);
   ipcRenderer.on('remote-requested-folder', listener);
   return () => ipcRenderer.removeListener('remote-requested-folder', listener);

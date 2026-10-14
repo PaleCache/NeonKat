@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin:0; background:transparent; overflow:hidden; font-family: Arial, sans-serif; user-select:none; }
+#card {
+  --accent: #a88cff;
+  position:relative; box-sizing:border-box; width:100vw; height:100vh;
+  background:#111; border-radius:12px; overflow:hidden; transition:opacity .2s;
+  border: 1px solid var(--accent);
+}
+ 
+  #resizeHandle {
+  position:absolute; right:0; bottom:0; width:18px; height:18px; z-index:10;
+  display:none; cursor:nwse-resize;
+  background:linear-gradient(135deg, transparent 50%, var(--accent) 50%);
+  border-bottom-right-radius:12px;
+  }
+  #card.edit #resizeHandle { display:block; }
+
+  #customBg { position:absolute; inset:0; background-size:cover; background-position:center; display:none; }
+  #dim { position:absolute; inset:0; background:#000; opacity:0; }
+  #tint { position:absolute; inset:0; background:rgba(17,18,20,.55); }
+  #viz { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  #content { position:absolute; inset:0; display:flex; align-items:center; gap:14px; padding:12px; }
+
+  #artBox {
+  position:relative; height:calc(100vh - 24px); aspect-ratio:1; width:auto;
+  border-radius:10px; overflow:hidden; flex-shrink:0; background:#222;
+  }
+  #artImg, #bgVideo, #bgGif { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  #bgVideo, #bgGif { display:none; }
+
+  #info { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; padding-right:80px; }
+  #title { color:#fff; font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  #artist { color:rgba(255,255,255,.75); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  #barWrap { margin-top:6px; height:4px; background:rgba(255,255,255,.15); border-radius:2px; overflow:hidden; }
+  #bar { height:100%; width:0%; background:var(--accent); transition:width .9s linear; }
+  #times { display:flex; justify-content:space-between; color:rgba(255,255,255,.6); font-size:10px; font-variant-numeric:tabular-nums; }
+
+#brand { position:absolute; right:8px; bottom:6px; z-index:6; display:flex; align-items:center; gap:4px; pointer-events:none;
+         filter:drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
+#brand img { width:14px; height:14px; object-fit:contain; }
+#brand span { color:white; font-size:10px; font-weight:700; letter-spacing:.5px; }
+@media (max-width: 320px) {
+  #brand span { display:none; }
+  #info { padding-right:30px; }
+}
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="customBg"></div>
+  <div id="dim"></div>
+  <div id="tint"></div>
+  
+  <div id="content">
+    <div id="artBox">
+      <img id="artImg" src="">
+      <video id="bgVideo" muted loop playsinline></video>
+      <img id="bgGif">
+      <canvas id="viz" width="96" height="96"></canvas>
+    </div>
+    <div id="info">
+      <div id="title"></div>
+      <div id="artist"></div>
+      <div id="barWrap"><div id="bar"></div></div>
+      <div id="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+    </div>
+  </div>
+  <div id="brand"><img src="build/kat.png"><span>NeonKat</span></div>
+  <div id="resizeHandle"></div>
+</div>
+<script>
+const card = document.getElementById('card');
+const artImg = document.getElementById('artImg');
+const bgVideo = document.getElementById('bgVideo');
+const bgGif = document.getElementById('bgGif');
+const cv = document.getElementById('viz');
+const ctx = cv.getContext('2d');
+const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+let isPlaying = false;
+new ResizeObserver(() => {
+  const box = document.getElementById('artBox');
+  cv.width = box.clientWidth;
+  cv.height = box.clientHeight;
+}).observe(document.getElementById('artBox'));
+const BASE_W = 380, BASE_H = 120;
+
+function fitToWindow() {
+  const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
+  card.style.transform = `scale(${s})`;
+}
+window.addEventListener('resize', fitToWindow);
+fitToWindow();
+const handle = document.getElementById('resizeHandle');
+let resizing = false;
+handle.addEventListener('mousedown', (e) => {
+  if (!editMode) return;
+  e.stopPropagation();      
+  resizing = true;
+  overlayAPI.resizeStart({ x: e.screenX, y: e.screenY });
+});
+document.addEventListener('mousemove', (e) => {
+  if (resizing) overlayAPI.resizeMove({ x: e.screenX, y: e.screenY });
+});
+document.addEventListener('mouseup', () => {
+  if (!resizing) return;
+  resizing = false;
+  overlayAPI.resizeEnd();
+});
+
+
+overlayAPI.onOpacity((v) => { card.style.opacity = v; });
+overlayAPI.onState((s) => {
+  if (!s) return;
+  document.getElementById('title').textContent = s.title || '';
+  document.getElementById('artist').textContent = s.artist || '';
+  if (s.artUrl) artImg.src = s.artUrl; else artImg.removeAttribute('src');
+  isPlaying = !!s.playing;
+  card.classList.toggle('paused', !isPlaying);
+  if (s.color) card.style.setProperty('--accent', s.color);
+  if (bgVideo.style.display === 'block') { isPlaying ? bgVideo.play().catch(()=>{}) : bgVideo.pause(); }
+});
+
+overlayAPI.onProgress((p) => {
+  if (p.color) card.style.setProperty('--accent', p.color);
+  if (typeof p.playing === 'boolean' && p.playing !== isPlaying) {
+    isPlaying = p.playing;
+    if (bgVideo.style.display === 'block') { isPlaying ? bgVideo.play().catch(()=>{}) : bgVideo.pause(); }
+  }
+  const bar = document.getElementById('bar');
+  if (p.live) {
+    bar.style.width = '100%';
+    document.getElementById('cur').textContent = 'LIVE';
+    document.getElementById('dur').textContent = '∞';
+  } else {
+    bar.style.width = (p.duration > 0 ? (p.current / p.duration) * 100 : 0) + '%';
+    document.getElementById('cur').textContent = fmt(p.current);
+    document.getElementById('dur').textContent = fmt(p.duration || 0);
+  }
+  if (bgVideo.style.display === 'block' && isFinite(bgVideo.duration) && bgVideo.duration > 0) {
+    const target = p.current % bgVideo.duration;
+    if (Math.abs(bgVideo.currentTime - target) > 0.5) bgVideo.currentTime = target;
+  }
+});
+
+
+overlayAPI.onBg((bg) => {
+  bgVideo.style.display = bgGif.style.display = 'none';
+  bgVideo.pause();
+  bgVideo.removeAttribute('src');
+  bgVideo.load();
+  bgGif.removeAttribute('src');
+  artImg.style.display = 'block';
+  if (!bg) return;
+  if (bg.type === 'video') {
+    bgVideo.src = bg.url;
+    bgVideo.style.display = 'block';
+    artImg.style.display = 'none';
+    if (isPlaying) bgVideo.play().catch(()=>{});
+  } else if (bg.type === 'image') {
+    bgGif.src = bg.url;
+    bgGif.style.display = 'block';
+    artImg.style.display = 'none';
+  }
+});
+
+
+overlayAPI.onCustomBg((c) => {
+  const el = document.getElementById('customBg');
+  const tint = document.getElementById('tint');
+  const dim = document.getElementById('dim');
+  if (c && c.url) {
+    el.style.backgroundImage = `url("${c.url}")`;
+    el.style.display = 'block';
+    dim.style.opacity = String((100 - (c.brightness ?? 65)) / 100);
+    tint.style.display = 'none';
+  } else {
+    el.style.display = 'none';
+    dim.style.opacity = '0';
+    tint.style.display = 'block';
+  }
+});
+
+
+const mkImgs = (...srcs) => srcs.map(s => { const i = new Image(); i.src = s; return i; });
+const BUBBLE_SETS = {
+  bubbles:     mkImgs('build/note.png', 'build/note1.png'),
+  katbubbles:  mkImgs('build/kat.png'),
+  nukebubbles: mkImgs('build/nuke.png'),
+};
+let viz = { on:false, mode:'bars', data:null };
+let bubbles = [], energyHist = [], lastBeat = 0, lastMode = null;
+
+overlayAPI.onViz((v) => {
+  if (v.color) card.style.setProperty('--accent', v.color);
+  viz = v;
+  if (!v.on) { ctx.clearRect(0, 0, cv.width, cv.height); bubbles = []; return; }
+  if (v.mode !== lastMode) { bubbles = []; lastMode = v.mode; }
+  draw();
+});
+
+function draw() {
+  const W = cv.width, H = cv.height, d = viz.data;
+  if (!d) return;
+  ctx.clearRect(0, 0, W, H);
+  const accent = getComputedStyle(card).getPropertyValue('--accent').trim() || '#a88cff';
+
+  let bass = 0; for (let i = 1; i <= 4; i++) bass += d[i]; bass /= 4;
+  energyHist.push(bass); if (energyHist.length > 32) energyHist.shift();
+  const avg = energyHist.reduce((a,b)=>a+b,0) / energyHist.length;
+  const now = performance.now();
+  const beat = bass > avg * 1.25 && now - lastBeat > 200;
+  if (beat) lastBeat = now;
+
+  if (viz.mode === 'bars') {
+    const perSide = 32, skip = 3;
+    const step = Math.max(1, Math.floor((d.length - skip) / perSide));
+    const slot = W / (perSide * 2);
+    const bw = slot * 0.85;
+    const cx = W / 2;
+    ctx.fillStyle = accent;
+    for (let i = 0; i < perSide; i++) {
+      const h = (d[skip + i * step] || 0) * (H / 255) * 0.6;
+      ctx.fillRect(cx - (i + 1) * slot, H - h, bw, h);
+      ctx.fillRect(cx + i * slot, H - h, bw, h);
+    }
+    return;
+  }
+
+  const imgs = (BUBBLE_SETS[viz.mode] || []).filter(i => i.complete);
+  if (!imgs.length) return;
+  if (Math.random() < (bass / 255) * 0.35 && bubbles.length < 25) {
+    bubbles.push({ x: Math.random()*W, y: H+8, img: imgs[Math.floor(Math.random()*imgs.length)],
+      size: 10 + Math.random()*14, vy: .8 + Math.random()*1.4, vx: (Math.random()-.5)*.8, o: .85 });
+  }
+  if (beat && bubbles.length < 25) {
+    for (let i = 0; i < 3 + Math.floor(Math.random()*4); i++) {
+      bubbles.push({ x: Math.random()*W, y: H+14, img: imgs[Math.floor(Math.random()*imgs.length)],
+        size: 18 + Math.random()*24, vy: 1.8 + Math.random()*2.8, vx: (Math.random()-.5)*2.5, o: 1 });
+    }
+  }
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i];
+    b.y -= b.vy; b.x += b.vx; b.o -= 0.008;
+    if (b.y + b.size < -10 || b.o <= 0) { bubbles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, b.o);
+    ctx.shadowColor = accent; ctx.shadowBlur = b.size * 0.4;
+    ctx.drawImage(b.img, b.x - b.size/2, b.y - b.size/2, b.size, b.size);
+    ctx.restore();
+  }
+}
+
+
+let editMode = false, dragging = false;
+overlayAPI.onEditMode((on) => { editMode = on; card.classList.toggle('edit', on); });
+document.addEventListener('mousedown', e => { if (!editMode) return; dragging = true; overlayAPI.dragStart({ x: e.screenX, y: e.screenY }); });
+document.addEventListener('mousemove', e => { if (dragging) overlayAPI.dragMove({ x: e.screenX, y: e.screenY }); });
+document.addEventListener('mouseup', () => { if (!dragging) return; dragging = false; overlayAPI.dragEnd(); });
+</script>
+</body>
+</html>

@@ -116,6 +116,8 @@
   </label>
 </div>
 
+
+
 <div class="vis-mode-toggle" id="normToggle">
   <span class="label">Loudness Normalization</span>
   <label class="switch">
@@ -158,6 +160,28 @@
     <input type="checkbox" id="nukebubblesCheckbox">
     <span class="slider"></span>
   </label>
+</div>
+
+<div class="vis-mode-toggle" id="overlayToggle">
+  <span class="label">Overlay</span>
+  <label class="switch">
+    <input type="checkbox" id="overlayCheckbox">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="vis-mode-toggle" id="overlayMoveBtn" style="cursor:pointer; opacity:.4;">
+  <span class="label">Move Overlay</span>
+</div>
+
+<div class="vis-mode-toggle" id="overlayResetBtn" style="cursor:pointer; opacity:.4;">
+  <span class="label">Reset Overlay Position</span>
+</div>
+
+<div id="overlayOpacityRow" style="padding:14px 20px; -webkit-app-region:no-drag;">
+  <div class="label" style="margin-bottom:8px;">Overlay Opacity <span id="overlayOpacityValue">100%</span></div>
+  <input type="range" id="overlayOpacity" min="20" max="100" step="1" value="100"
+         style="width:90%; box-sizing:border-box; margin:0; pointer-events:auto; -webkit-app-region:no-drag;">
 </div>
 
 <div id="customBgToggle" style="padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
@@ -454,7 +478,10 @@
   NeonKat
 </footer>
   </div>
+  <div class="vidDragBar" id="vidDragL"></div>
+  <div class="vidDragBar" id="vidDragR"></div>
   <audio id="audio"></audio>
+  
   <style>
 label img {
   filter: brightness(0) invert(1);
