@@ -14,4 +14,5 @@ contextBridge.exposeInMainWorld('overlayAPI', {
   resizeMove:  (p) => ipcRenderer.send('overlay-resize-move', p),
   resizeEnd:   ()  => ipcRenderer.send('overlay-resize-end'),
   onOpacity: (cb) => ipcRenderer.on('overlay-opacity', (_e, v) => cb(v)),
+  onLowPerf: (cb) => ipcRenderer.on('overlay-lowperf', (_e, v) => cb(v)),
 });

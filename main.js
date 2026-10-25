@@ -1178,6 +1178,7 @@ let lastOverlayState = null;
 let lastOverlayProgress = null;
 let dragOrigin = null;
 let lastOverlayBg = null;
+let lastOverlayLowPerf = false;
 let lastOverlayCustomBg = null;
 const OVERLAY_W = 380, OVERLAY_H = 110;
 const OVERLAY_MIN_W = 260, OVERLAY_MAX_W = 900;
@@ -1212,10 +1213,10 @@ function createOverlayWindow() {
   overlayWindow.on('resize', refreshOverlayHitRegion);
   overlayWindow.on('show', () => setTimeout(refreshOverlayHitRegion, 100));
   overlayWindow.loadFile(path.join(__dirname, 'overlay.html'));
-
   overlayWindow.webContents.on('did-finish-load', () => {
-    overlayReady = true;
-    overlayWindow.webContents.send('overlay-opacity', lastOverlayOpacity);
+  overlayReady = true;
+  overlayWindow.webContents.send('overlay-opacity', lastOverlayOpacity);
+  overlayWindow.webContents.send('overlay-lowperf', lastOverlayLowPerf);
     if (lastOverlayState) {
       if (lastOverlayBg) overlayWindow.webContents.send('overlay-bg', lastOverlayBg);
       if (lastOverlayCustomBg) overlayWindow.webContents.send('overlay-custombg', lastOverlayCustomBg);
@@ -1250,6 +1251,11 @@ ipcMain.on('overlay-custombg', (e, c) => {
 ipcMain.on('overlay-bg', (e, bg) => {
   lastOverlayBg = bg || null;
   if (overlayWindow && overlayReady) overlayWindow.webContents.send('overlay-bg', lastOverlayBg);
+});
+
+ipcMain.on('overlay-lowperf', (e, on) => {
+  lastOverlayLowPerf = !!on;
+  if (overlayWindow && overlayReady) overlayWindow.webContents.send('overlay-lowperf', lastOverlayLowPerf);
 });
 
 ipcMain.on('overlay-viz', (e, v) => {

@@ -435,7 +435,9 @@ button,
       align-items: center;
       gap: 5px;
       -webkit-app-region: no-drag;
+      position: relative;
     }
+    
     #visualizerColor {
       height: 20px;
       width: 20px;
@@ -447,7 +449,16 @@ button,
 
     #visualizerCanvas{
      background-size: revert-layer !important;
+    }
+    #overlayOpacityRow,
+    #vizFpsRow {
+      font-size: 14px;
+      color: white;
+    }
 
+    #overlayOpacityRow .label,
+    #vizFpsRow .label {
+      font-weight: normal;
     }
 
     #contextMenu button:hover {
@@ -794,7 +805,6 @@ button:hover, .control-btn:hover, .vis-mode-toggle button:hover {
   position: relative;
   z-index: 2;
 }
-
 
 .sort-wrapper {
   z-index: 100 !important;  
@@ -1800,4 +1810,11 @@ body.video-only #vidDragR {
 img, canvas, video {
   -webkit-user-drag: none;
   user-select: none;
+}
+
+body.low-perf button.control-btn.enabled,
+body.low-perf #repeatBtn.enabled,
+body.low-perf #shuffleBtn.enabled {
+  background: var(--primary-color) !important;
+  color: #000 !important;
 }

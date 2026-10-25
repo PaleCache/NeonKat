@@ -44,6 +44,9 @@
          filter:drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
 #brand img { width:14px; height:14px; object-fit:contain; }
 #brand span { color:white; font-size:10px; font-weight:700; letter-spacing:.5px; }
+#card.lowperf #bar { transition:none; }
+#card.lowperf #title, #card.lowperf #artist { text-shadow:none; }
+#card.lowperf #brand { filter:none; }
 @media (max-width: 320px) {
   #brand span { display:none; }
   #info { padding-right:30px; }
@@ -148,14 +151,16 @@ overlayAPI.onProgress((p) => {
 });
 
 
-overlayAPI.onBg((bg) => {
+let lowPerf = false, lastBg = null, lastCustomBg = null;
+
+function applyBg(bg) {
   bgVideo.style.display = bgGif.style.display = 'none';
   bgVideo.pause();
   bgVideo.removeAttribute('src');
   bgVideo.load();
   bgGif.removeAttribute('src');
   artImg.style.display = 'block';
-  if (!bg) return;
+  if (!bg || lowPerf) return;
   if (bg.type === 'video') {
     bgVideo.src = bg.url;
     bgVideo.style.display = 'block';
@@ -166,24 +171,36 @@ overlayAPI.onBg((bg) => {
     bgGif.style.display = 'block';
     artImg.style.display = 'none';
   }
+}
+
+overlayAPI.onBg((bg) => { lastBg = bg; applyBg(bg); });
+
+overlayAPI.onLowPerf((on) => {
+  lowPerf = !!on;
+  card.classList.toggle('lowperf', lowPerf);
+  applyBg(lastBg);
+  applyCustomBg(lastCustomBg);
+  if (lowPerf) { ctx.clearRect(0, 0, cv.width, cv.height); bubbles = []; }
 });
 
 
-overlayAPI.onCustomBg((c) => {
+function applyCustomBg(c) {
   const el = document.getElementById('customBg');
   const tint = document.getElementById('tint');
   const dim = document.getElementById('dim');
-  if (c && c.url) {
+  if (c && c.url && !lowPerf) {
     el.style.backgroundImage = `url("${c.url}")`;
     el.style.display = 'block';
     dim.style.opacity = String((100 - (c.brightness ?? 65)) / 100);
     tint.style.display = 'none';
   } else {
     el.style.display = 'none';
+    el.style.backgroundImage = 'none';
     dim.style.opacity = '0';
     tint.style.display = 'block';
   }
-});
+}
+overlayAPI.onCustomBg((c) => { lastCustomBg = c; applyCustomBg(c); });
 
 
 const mkImgs = (...srcs) => srcs.map(s => { const i = new Image(); i.src = s; return i; });
@@ -198,7 +215,7 @@ let bubbles = [], energyHist = [], lastBeat = 0, lastMode = null;
 overlayAPI.onViz((v) => {
   if (v.color) card.style.setProperty('--accent', v.color);
   viz = v;
-  if (!v.on) { ctx.clearRect(0, 0, cv.width, cv.height); bubbles = []; return; }
+  if (lowPerf || !v.on) { ctx.clearRect(0, 0, cv.width, cv.height); bubbles = []; return; }
   if (v.mode !== lastMode) { bubbles = []; lastMode = v.mode; }
   draw();
 });

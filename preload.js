@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   overlayViz: (v) => ipcRenderer.send('overlay-viz', v),
   overlayCustomBg: (c) => ipcRenderer.send('overlay-custombg', c),
   overlayOpacity: (v) => ipcRenderer.send('overlay-opacity', v),
+  overlayLowPerf: (b) => ipcRenderer.send('overlay-lowperf', b),
   windowDragStart: (p) => ipcRenderer.send('win-drag-start', p),
   windowDragMove:  (p) => ipcRenderer.send('win-drag-move', p),
   windowDragEnd:   ()  => ipcRenderer.send('win-drag-end'),
