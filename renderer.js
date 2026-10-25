@@ -17,13 +17,17 @@ nukebubbleImages[0].src = 'build/nuke.png';
 katbubbleImages[0].src = 'build/kat.png';
   const savePlaylistBtn = document.getElementById('savePlaylistBtn');
   const loadPlaylistBtn = document.getElementById('loadPlaylistBtn');
-  let visualizerMode = localStorage.getItem('visualizerMode') || 'bars';
+  const VALID_MODES = ['bars', 'bubbles', 'katbubbles', 'nukebubbles', 'none'];
+  let visualizerMode = localStorage.getItem('visualizerMode');
+  if (!VALID_MODES.includes(visualizerMode)) visualizerMode = 'bars';
   const barsToggle = document.getElementById('barsToggle');
   const bubblesToggle = document.getElementById('bubblesToggle');
   const katbubblesToggle = document.getElementById('katbubblesToggle');
   const nukebubblesToggle = document.getElementById('nukebubblesToggle');
   const barsCheckbox = document.getElementById('barsCheckbox');
   const bubblesCheckbox = document.getElementById('bubblesCheckbox');
+  const katbubblesCheckbox = document.getElementById('katbubblesCheckbox');
+  const nukebubblesCheckbox = document.getElementById('nukebubblesCheckbox');
   let skipVideo = localStorage.getItem('skipVideo') === 'true';
   let videoQuality = localStorage.getItem('videoQuality') || '480';
   let selectedDuration = localStorage.getItem('videoDuration') || 30;
@@ -57,6 +61,9 @@ katbubbleImages[0].src = 'build/kat.png';
   let shuffleTrack = false;
   let notifyEnabled = localStorage.getItem('notifyEnabled') === 'true';
   let visualizerToggle = localStorage.getItem('visualizerToggle') === 'true';
+  let playlistBarsEnabled = localStorage.getItem('playlistBars') !== 'false';
+  let visualizerFps = Number(localStorage.getItem('visualizerFps')) || 30; 
+  let vizFpsInterval = visualizerFps > 60 ? 0 : 1000 / visualizerFps;
   let animationFrameId = null;
   let themeColor = localStorage.getItem('themeColor') || '#a88cff';
   let isRainbowActive = localStorage.getItem('isRainbowActive') === 'true';
@@ -779,10 +786,14 @@ function applyLowPerfMode() {
   if (lowPerfMode) {
     document.body.classList.add('low-perf');
     localStorage.setItem('lowPerfMode', 'true');
+    window.bubbles = [];
+    window.katBubbles = [];
+    window.nukeBubbles = [];
   } else {
     document.body.classList.remove('low-perf');
     localStorage.setItem('lowPerfMode', 'false');
   }
+  window.electronAPI?.overlayLowPerf?.(lowPerfMode);
   renderPlaylist();
 }
 
@@ -794,6 +805,7 @@ if (lowPerfRow) {
     lowPerfMode = !lowPerfMode;
     if (lowPerfCheckbox) lowPerfCheckbox.checked = lowPerfMode;
     applyLowPerfMode();
+    visualize();
 
     if (notifyEnabled && Notification.permission === 'granted') {
       window.electronAPI.notify(
@@ -807,6 +819,7 @@ if (lowPerfCheckbox) {
   lowPerfCheckbox.addEventListener('change', () => {
     lowPerfMode = lowPerfCheckbox.checked;
     applyLowPerfMode();
+    visualize();
   });
 }
 let filteredIndices = [];
@@ -1220,14 +1233,12 @@ function updateVisualizerModeUI() {
   bubblesToggle.classList.remove('active');
   katbubblesToggle.classList.remove('active');
   nukebubblesToggle.classList.remove('active');
-
-
   barsCheckbox.checked = false;
   bubblesCheckbox.checked = false;
   katbubblesCheckbox.checked = false;
   nukebubblesCheckbox.checked = false;
 
-  if (overlayEnabled) return;
+  
   if (visualizerMode === 'bars') {
     barsToggle.classList.add('active');
     barsCheckbox.checked = true;
@@ -1243,36 +1254,31 @@ function updateVisualizerModeUI() {
   }
 }
 
-
-barsToggle.addEventListener('click', () => {
-  visualizerMode = 'bars';
+function setVisualizerMode(mode) {
+  visualizerMode = mode;
   localStorage.setItem('visualizerMode', visualizerMode);
+  window.bubbles = [];
+  window.katBubbles = [];
+  window.nukeBubbles = [];
   updateVisualizerModeUI();
   if (visualizerToggle && !audio.paused) visualize();
-});
+}
 
-bubblesToggle.addEventListener('click', () => {
-  visualizerMode = 'bubbles';
-  localStorage.setItem('visualizerMode', visualizerMode);
-  updateVisualizerModeUI();
-  if (visualizerToggle && !audio.paused) visualize();
-});
+function bindVizToggle(row, checkbox, mode) {
+  row.addEventListener('click', (e) => {
+    if (e.target.closest('input[type="checkbox"]') || e.target.closest('.slider') || e.target.closest('.switch')) return;
+    setVisualizerMode(visualizerMode === mode ? 'none' : mode);
+  });
+ 
+  checkbox.addEventListener('change', () => {
+    setVisualizerMode(checkbox.checked ? mode : 'none');
+  });
+}
 
-
-katbubblesToggle.addEventListener('click', () => {
-  visualizerMode = 'katbubbles';
-  localStorage.setItem('visualizerMode', visualizerMode);
-  updateVisualizerModeUI();
-  if (visualizerToggle && !audio.paused) visualize();
-});
-
-nukebubblesToggle.addEventListener('click', () => {
-  visualizerMode = 'nukebubbles';
-  localStorage.setItem('visualizerMode', visualizerMode);
-  updateVisualizerModeUI();
-  if (visualizerToggle && !audio.paused) visualize();
-});
-
+bindVizToggle(barsToggle, barsCheckbox, 'bars');
+bindVizToggle(bubblesToggle, bubblesCheckbox, 'bubbles');
+bindVizToggle(katbubblesToggle, katbubblesCheckbox, 'katbubbles');
+bindVizToggle(nukebubblesToggle, nukebubblesCheckbox, 'nukebubbles');
 
 updateVisualizerModeUI();
 
@@ -1808,7 +1814,7 @@ aboutBtn.addEventListener('click', () => {
       <button id="openGitHubBtn" style="padding: 10px 20px; background: var(--primary-color); border: none; border-radius: 6px; color: black; cursor: pointer; font-weight: bold; margin-bottom: 15px;">Source Code ♡</button>
       <button id="patchBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 15px;">Patch Notes</button>
       <button id="closeAboutBtn" style="padding: 10px 20px; background: #444; border: none; border-radius: 6px; color: white; cursor: pointer;">Close</button>
-       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.6 alpha</p>
+       <p style="font-size: 14px;margin: 15px 0; right: 10px; position: fixed;"></strong>📦 V0.4.7 alpha</p>
       </div>
   </div>
   `;
@@ -2683,7 +2689,9 @@ if (pickNewFolderBtn) {
     updateSliderBackground(volumeSlider);
   }
 
- let lastSelectedIndex = null;
+
+
+let lastSelectedIndex = null;
 
 function renderPlaylist() {
   playlistElem.innerHTML = '';
@@ -2726,7 +2734,7 @@ function renderPlaylist() {
     const isActive = (realIndex === currentIndex);
     const isPlaying = isActive && !audio.paused && audioFiles.length > 0;
     
-    if (isPlaying) {
+    if (isPlaying && !lowPerfMode && playlistBarsEnabled) {
       const gifWrapper = document.createElement('div');
       gifWrapper.style.position = 'absolute';
       gifWrapper.style.left = '9px';
@@ -2742,9 +2750,6 @@ function renderPlaylist() {
       gifWrapper.appendChild(gifImg);
       li.style.paddingLeft = '37px';
       li.style.position = 'relative';
-      if (lowPerfMode) {
-    gifWrapper.style.display = 'none';
-  }
       li.appendChild(gifWrapper);
     }
     
@@ -4272,10 +4277,33 @@ function visualize() {
   let frameCounter = 0;
   let lastTime = 0;
   var lastBeatTime = 0;
+  let lastStaticSig = null;
+  let lastFrameT = 0;
   async function draw(timestamp) {
     animationFrameId = requestAnimationFrame(draw);
    
     lastTime = timestamp || performance.now();
+
+    if (visualizerToggle && vizFpsInterval > 0) {
+      const t = timestamp || performance.now();
+      const dt = t - lastFrameT;
+      if (dt < vizFpsInterval - 1) return;
+      lastFrameT = t - (dt % vizFpsInterval);
+    }
+
+    if (!visualizerToggle || lowPerfMode) {
+      const it = audioFiles[currentIndex];
+      const sig = [
+        currentIndex, audioFiles.length, width, height,
+        currentArtImage ? currentArtImage.src : '',
+        currentArtImage && currentArtImage.complete ? 1 : 0,
+        document.body.classList.contains('mini-mode') ? 1 : 0,
+        isWidgetMode ? 1 : 0,
+        (typeof it === 'string' && currentMetadataCache.has(it)) ? 1 : 0
+      ].join('|');
+      if (sig === lastStaticSig) return;
+      lastStaticSig = sig;
+    }
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
@@ -4420,7 +4448,7 @@ function visualize() {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
-    if (!visualizerToggle || !analyser || !isMainWindowVisible) return;
+    if (!visualizerToggle || lowPerfMode || !analyser || !isMainWindowVisible) return;
 
     analyser.getByteFrequencyData(dataArray);
     frameCounter++;
@@ -4488,6 +4516,7 @@ function visualize() {
       document.documentElement.style.setProperty('--primary-dark', darkColor);
     }
    if (overlayEnabled) return;
+   if (visualizerMode === 'none') return;
    if (visualizerMode === 'bars') {
   const barCount = isMini ? 48 : 64;
   const skipBins = 3;
@@ -4567,7 +4596,7 @@ function visualize() {
 
   ctx.save();
   ctx.drawImage(b.img, x, y, b.size, b.size);
-  const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
+  const primary = currentPrimaryColor;
   ctx.shadowColor = primary;
   ctx.shadowBlur = b.size * 0.4;
   ctx.shadowOffsetX = 0;
@@ -4633,7 +4662,7 @@ function visualize() {
         b.opacity -= 0.004;
         ctx.save();
         ctx.drawImage(b.img, b.x, b.y, b.size, b.size);
-        const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
+        const primary = currentPrimaryColor;
         ctx.shadowColor = primary;
         ctx.shadowBlur = b.size * 0.4;
         ctx.shadowOffsetX = 0;
@@ -4697,7 +4726,7 @@ function visualize() {
         b.opacity -= 0.004;
         ctx.save();
         ctx.drawImage(b.img, b.x, b.y, b.size, b.size);
-        const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim() || '#a88cff';
+        const primary = currentPrimaryColor;
         ctx.shadowColor = primary;
         ctx.shadowBlur = b.size * 0.4;
         ctx.shadowOffsetX = 0;
@@ -4735,7 +4764,7 @@ document.addEventListener('visibilitychange', () => {
     stopVisualizer();
   } else {
     document.body.classList.remove('minimized');
-    if (visualizerToggle) visualize();
+    visualize();
   }
 });
 
@@ -4872,20 +4901,54 @@ function updateGifIcon() {
   const visualizerToggleBtn = document.getElementById('visualizerToggleBtn');
   const visualizerIcon = document.getElementById('visualizerIcon');
   visualizerIcon.src = visualizerToggle ? 'build/visualizer.svg' : 'build/visualizeroff.svg';
+  const vizBarsCheckbox = document.getElementById('vizBarsCheckbox');
+  const vizFpsSlider = document.getElementById('vizFpsSlider');
+  const vizFpsValue = document.getElementById('vizFpsValue');
 
-  visualizerToggleBtn.addEventListener('click', () => {
-  visualizerToggle = !visualizerToggle;
-  localStorage.setItem('visualizerToggle', visualizerToggle);
-  visualizerIcon.src = visualizerToggle ? 'build/visualizer.svg' : 'build/visualizeroff.svg';
+  function setVisualizerEnabled(on) {
+    visualizerToggle = !!on;
+    localStorage.setItem('visualizerToggle', visualizerToggle);
+    visualizerIcon.src = visualizerToggle ? 'build/visualizer.svg' : 'build/visualizeroff.svg';
 
-  if (visualizerToggle) {
-    if (!audio.paused) visualize();
-    audio.addEventListener('play', visualize);
-  } else {
-    audio.removeEventListener('play', visualize);
-    if (!animationFrameId && !audio.paused) visualize();
+    if (visualizerToggle) {
+      if (!audio.paused) visualize();
+      audio.addEventListener('play', visualize);
+    } else {
+      audio.removeEventListener('play', visualize);
+      if (!animationFrameId && !audio.paused) visualize();
+    }
   }
-});
+
+  function setPlaylistBars(on) {
+    playlistBarsEnabled = !!on;
+    localStorage.setItem('playlistBars', playlistBarsEnabled);
+    vizBarsCheckbox.checked = playlistBarsEnabled;
+    renderPlaylist();
+  }
+
+  function setVisualizerFps(v) {
+    visualizerFps = v;
+    vizFpsInterval = v > 60 ? 0 : 1000 / v;
+    vizFpsValue.textContent = v > 60 ? 'Unlimited' : v + ' fps';
+    localStorage.setItem('visualizerFps', v);
+  }
+  vizBarsCheckbox.checked = playlistBarsEnabled;
+  vizFpsSlider.value = visualizerFps;
+  vizFpsValue.textContent = visualizerFps > 60 ? 'Unlimited' : visualizerFps + ' fps';
+  updateSliderBackground(vizFpsSlider);
+  visualizerToggleBtn.addEventListener('click', () => setVisualizerEnabled(!visualizerToggle));
+  vizBarsCheckbox.addEventListener('change', () => setPlaylistBars(vizBarsCheckbox.checked));
+  document.getElementById('barsToggleRow').addEventListener('click', (e) => {
+    if (e.target.closest('.switch')) return;
+    setPlaylistBars(!playlistBarsEnabled);
+  });
+
+  vizFpsSlider.addEventListener('mousedown', (e) => e.stopPropagation());
+  vizFpsSlider.addEventListener('click', (e) => e.stopPropagation());
+  vizFpsSlider.addEventListener('input', () => {
+    setVisualizerFps(Number(vizFpsSlider.value));
+    updateSliderBackground(vizFpsSlider);
+  });
 
   if (visualizerToggle) {
     audio.addEventListener('play', visualize);
@@ -5725,7 +5788,6 @@ function syncPlaylistToServer() {
         nameKeyedMap[getCleanName(item)] = trackLoudnessCache[key];
       }
     });
-    console.log('[Loudness Sync] sending', Object.keys(nameKeyedMap).length, 'entries');
     window.electronAPI.syncLoudnessMap(nameKeyedMap);
   } else {
     console.warn('[Loudness Sync] syncLoudnessMap not found on electronAPI');
@@ -5883,7 +5945,7 @@ let overlayVizWasOn = false;
 const overlayVizBuf = new Uint8Array(analyser.frequencyBinCount);
 setInterval(() => {
   if (!overlayEnabled || !window.electronAPI?.overlayViz) return;
-  const active = visualizerToggle && !audio.paused;
+  const active = visualizerToggle && !audio.paused && !lowPerfMode && visualizerMode !== 'none';
   if (!active) {
     if (overlayVizWasOn) { window.electronAPI.overlayViz({ on: false, color: currentAccent() }); overlayVizWasOn = false; }
     return;
